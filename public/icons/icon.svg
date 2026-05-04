@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Money Flow">
+  <!--
+    Money Flow app icon. Designed on a 512×512 canvas with the safe zone
+    inside a 410×410 square (≈80%) so the same artwork works for both
+    `any` and `maskable` purposes.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="walletFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background tile (gets clipped by safe-zone for maskable) -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Wallet body -->
+  <g transform="translate(96 132)">
+    <rect x="0" y="0" width="320" height="220" rx="32" fill="url(#walletFace)"/>
+    <!-- Wallet flap / strap -->
+    <path d="M0 64 L320 64 L320 96 L0 96 Z" fill="#4f46e5" opacity="0.18"/>
+    <!-- Card slot button -->
+    <circle cx="252" cy="138" r="22" fill="#4f46e5"/>
+    <circle cx="252" cy="138" r="9" fill="#ffffff"/>
+  </g>
+
+  <!-- Upward flow arrow signalling growth / income -->
+  <g transform="translate(168 308)" stroke="#10b981" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <polyline points="0,72 56,16 96,52 176,-28"/>
+    <polyline points="128,-28 176,-28 176,20"/>
+  </g>
+</svg>

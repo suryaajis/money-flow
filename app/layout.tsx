@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,10 +13,41 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_NAME = "Money Flow";
+const APP_DESCRIPTION =
+  "Track income and expenses, categorize transactions, view analytics, and export your financial data.";
+
 export const metadata: Metadata = {
-  title: "Money Flow — Personal finance tracker",
-  description:
-    "Track income and expenses, categorize transactions, view analytics, and export your financial data.",
+  title: { default: `${APP_NAME} — Personal finance tracker`, template: `%s · ${APP_NAME}` },
+  description: APP_DESCRIPTION,
+  applicationName: APP_NAME,
+  appleWebApp: {
+    capable: true,
+    title: "MoneyFlow",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/favicon.ico"],
+  },
+};
+
+// Viewport must be exported separately in Next.js 16 (App Router metadata API).
+// `viewport-fit=cover` lets us paint behind the iOS notch / home indicator;
+// the bottom nav already uses `env(safe-area-inset-bottom)`.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#4f46e5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
+  ],
 };
 
 export default function RootLayout({

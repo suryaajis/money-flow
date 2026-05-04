@@ -86,6 +86,18 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Remove the 300ms tap delay on iOS Safari & let the browser short-circuit
+   * pinch/zoom gesture detection on interactive elements. Combined with the
+   * `viewport-fit=cover` viewport meta this gives a near-native feel inside
+   * the installed PWA. */
+  touch-action: manipulation;
+}
+
+/* Buttons / anchors are the most common tap targets — make them feel snappy. */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 /* Recharts: keep tooltips legible in dark mode without prop overrides. */

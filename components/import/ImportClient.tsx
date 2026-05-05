@@ -326,11 +326,11 @@ export const ImportClient: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <ScanLine className="h-5 w-5 text-primary" />
+          <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+            <ScanLine className="h-6 w-6 text-primary" />
             Impor Struk
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Foto atau unggah struk — kami baca otomatis dan isikan formulirnya.
           </p>
         </div>
@@ -342,7 +342,7 @@ export const ImportClient: React.FC = () => {
       </div>
 
       {errorMessage ? (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -425,16 +425,16 @@ const UploadStage: React.FC<UploadStageProps> = ({
         onDrop={onDrop}
         className={cn(
           "flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16",
-          "border-2 border-dashed rounded-xl transition-colors",
+          "border-2 border-dashed rounded-2xl transition-colors",
           isDragging
-            ? "border-primary bg-primary/5"
-            : "border-border bg-muted/20 hover:bg-muted/30",
+            ? "border-primary bg-primary-soft/40"
+            : "border-border bg-muted/30 hover:bg-muted/40",
         )}
       >
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <ScanLine className="h-7 w-7" />
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <ScanLine className="h-8 w-8" />
         </div>
-        <h3 className="text-base font-semibold">Lepaskan struk di sini</h3>
+        <h3 className="text-base font-bold">Lepaskan struk di sini</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
           Seret &amp; lepas gambar atau PDF, atau pilih dari galeri / kamera.
         </p>
@@ -469,7 +469,7 @@ const UploadStage: React.FC<UploadStageProps> = ({
         />
       </div>
 
-      <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+      <div className="flex items-start gap-2 rounded-2xl border border-border bg-primary-soft/40 px-4 py-3 text-xs text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
         <div>
           <strong className="text-foreground">Diproses di perangkat Anda.</strong>{" "}
@@ -499,11 +499,11 @@ const ProcessingStage: React.FC<ProcessingStageProps> = ({
   <Card>
     <CardContent className="p-4 sm:p-6 space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4 items-center">
-        <div className="aspect-[3/4] w-full sm:w-40 rounded-lg overflow-hidden bg-muted/40 border border-border flex items-center justify-center">
+        <div className="aspect-[3/4] w-full sm:w-40 rounded-2xl overflow-hidden bg-muted/40 border border-border flex items-center justify-center">
           <ReceiptPreview previewUrl={previewUrl} previewMime={previewMime} />
         </div>
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium">
+          <div className="flex items-center gap-2 text-sm font-bold">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span>{statusLabel}</span>
           </div>
@@ -604,7 +604,7 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
         </div>
 
         {lowConfidence ? (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
             <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>
               Hasil pembacaan kurang yakin. Mohon periksa setiap kolom sebelum
@@ -621,22 +621,24 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
                 <button
                   type="button"
                   onClick={() => updateForm("type", "expense")}
-                  className={
+                  className={cn(
+                    "h-12 rounded-2xl border-2 text-sm font-bold transition-all duration-200 active:scale-95",
                     form.type === "expense"
-                      ? "h-10 rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-sm font-medium"
-                      : "h-10 rounded-md border border-border bg-card text-sm text-muted-foreground hover:bg-accent"
-                  }
+                      ? "border-rose-400 bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/40"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:border-primary/30",
+                  )}
                 >
                   Pengeluaran
                 </button>
                 <button
                   type="button"
                   onClick={() => updateForm("type", "income")}
-                  className={
+                  className={cn(
+                    "h-12 rounded-2xl border-2 text-sm font-bold transition-all duration-200 active:scale-95",
                     form.type === "income"
-                      ? "h-10 rounded-md border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium"
-                      : "h-10 rounded-md border border-border bg-card text-sm text-muted-foreground hover:bg-accent"
-                  }
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:border-primary/30",
+                  )}
                 >
                   Pemasukan
                 </button>
@@ -717,7 +719,7 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
           </div>
 
           {parsed.rawText ? (
-            <div className="rounded-lg border border-border bg-muted/30">
+            <div className="rounded-2xl border border-border bg-muted/30">
               <button
                 type="button"
                 onClick={() => setShowRawText(!showRawText)}

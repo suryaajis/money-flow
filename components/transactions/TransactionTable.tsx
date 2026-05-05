@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Pencil, Trash2 } from "l
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { HappyCatIcon, SadCatIcon } from "@/components/shared/CatIcons";
 import { useCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { Transaction } from "@/lib/types";
@@ -81,18 +82,18 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     return (
       <EmptyState
         title="No transactions match your filters"
-        description="Try widening your date range or clearing filters."
+        description="Even the cat is napping. Try widening your date range or clearing filters."
       />
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_-2px_rgba(251,146,60,0.08)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-muted-foreground">
+          <thead className="bg-muted/60 text-muted-foreground">
             <tr className="text-left">
-              <th className="px-3 py-2 w-10">
+              <th className="px-3 py-3 w-10">
                 <input
                   type="checkbox"
                   aria-label="Select page"
@@ -107,14 +108,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 dir={sortDir}
                 onClick={() => setSort("date")}
               />
-              <th className="px-3 py-2 font-medium">Category</th>
+              <th className="px-3 py-3 font-bold text-xs uppercase tracking-wider">Category</th>
               <SortableHeader
                 label="Type"
                 active={sortKey === "type"}
                 dir={sortDir}
                 onClick={() => setSort("type")}
               />
-              <th className="px-3 py-2 font-medium">Notes</th>
+              <th className="px-3 py-3 font-bold text-xs uppercase tracking-wider">Notes</th>
               <SortableHeader
                 label="Amount"
                 active={sortKey === "amount"}
@@ -122,7 +123,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 onClick={() => setSort("amount")}
                 align="right"
               />
-              <th className="px-3 py-2 w-20" aria-label="Actions" />
+              <th className="px-3 py-3 w-20" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -130,8 +131,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
               const cat = getCategory(tx.categoryId);
               const isIncome = tx.type === "income";
               return (
-                <tr key={tx.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-3 py-2.5 align-middle">
+                <tr
+                  key={tx.id}
+                  className="border-t border-border hover:bg-primary-soft/30 transition-colors"
+                >
+                  <td className="px-3 py-3 align-middle">
                     <input
                       type="checkbox"
                       aria-label={`Select transaction ${tx.id}`}
@@ -140,38 +144,43 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       className="h-4 w-4 rounded border-border accent-[var(--primary)]"
                     />
                   </td>
-                  <td className="px-3 py-2.5 align-middle whitespace-nowrap text-muted-foreground">
+                  <td className="px-3 py-3 align-middle whitespace-nowrap text-muted-foreground">
                     {formatDate(tx.date)}
                   </td>
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-3 align-middle">
                     {cat ? <CategoryBadge category={cat} /> : <span className="text-muted-foreground">Unknown</span>}
                   </td>
-                  <td className="px-3 py-2.5 align-middle">
+                  <td className="px-3 py-3 align-middle">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 text-xs font-medium",
+                        "inline-flex items-center gap-1.5 text-xs font-semibold",
                         isIncome
                           ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400",
+                          : "text-rose-500 dark:text-rose-400",
                       )}
                     >
+                      {isIncome ? (
+                        <HappyCatIcon className="h-4 w-4" />
+                      ) : (
+                        <SadCatIcon className="h-4 w-4" />
+                      )}
                       {isIncome ? "Income" : "Expense"}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 align-middle max-w-[280px] truncate text-muted-foreground">
+                  <td className="px-3 py-3 align-middle max-w-[280px] truncate text-muted-foreground">
                     {tx.notes || "—"}
                   </td>
                   <td
                     className={cn(
-                      "px-3 py-2.5 align-middle text-right tabular-nums font-medium whitespace-nowrap",
+                      "px-3 py-3 align-middle text-right tabular-nums font-bold whitespace-nowrap",
                       isIncome
                         ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400",
+                        : "text-rose-500 dark:text-rose-400",
                     )}
                   >
                     {fmtSigned(tx.amount, tx.type)}
                   </td>
-                  <td className="px-3 py-2.5 align-middle text-right">
+                  <td className="px-3 py-3 align-middle text-right">
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
@@ -199,11 +208,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       </div>
 
       {pageCount > 1 ? (
-        <div className="flex items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          <span>
+        <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="font-semibold">
             Page {safePage + 1} of {pageCount} · {sorted.length} transactions
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <Button
               variant="outline"
               size="icon"
@@ -238,12 +247,12 @@ interface SortableHeaderProps {
 }
 
 const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, dir, onClick, align = "left" }) => (
-  <th className={cn("px-3 py-2 font-medium select-none", align === "right" && "text-right")}>
+  <th className={cn("px-3 py-3 select-none", align === "right" && "text-right")}>
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 hover:text-foreground transition-colors",
+        "inline-flex items-center gap-1 hover:text-foreground transition-colors font-bold text-xs uppercase tracking-wider",
         active && "text-foreground",
       )}
     >

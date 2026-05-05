@@ -11,12 +11,12 @@ interface CategorySpendingListProps {
 
 export const CategorySpendingList: React.FC<CategorySpendingListProps> = ({
   data,
-  emptyLabel = "Belum ada data untuk periode ini.",
+  emptyLabel = "No data for this period yet.",
 }) => {
   const { fmt } = useCurrency();
 
   if (data.length === 0) {
-    return <EmptyState title="Tidak ada data" description={emptyLabel} />;
+    return <EmptyState title="No data" description={emptyLabel} />;
   }
 
   return (
@@ -26,26 +26,28 @@ export const CategorySpendingList: React.FC<CategorySpendingListProps> = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
+                className="inline-block h-3 w-3 rounded-full flex-shrink-0 ring-2 ring-card"
                 style={{ backgroundColor: row.color }}
                 aria-hidden
               />
-              <span className="truncate font-medium">{row.categoryName}</span>
+              <span className="truncate font-semibold">{row.categoryName}</span>
             </div>
             <div className="flex gap-3 text-muted-foreground tabular-nums">
-              <span>{fmt(row.total)}</span>
-              <span className="text-xs w-10 text-right">{row.percentage.toFixed(0)}%</span>
+              <span className="font-bold text-foreground">{fmt(row.total)}</span>
+              <span className="text-xs w-10 text-right font-bold text-primary">
+                {row.percentage.toFixed(0)}%
+              </span>
             </div>
           </div>
           <div
-            className="h-2 w-full rounded-full bg-muted overflow-hidden"
+            className="h-2.5 w-full rounded-full bg-muted overflow-hidden"
             role="progressbar"
             aria-valuenow={row.percentage}
             aria-valuemin={0}
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: `${Math.min(100, row.percentage)}%`,
                 backgroundColor: row.color,

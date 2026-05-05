@@ -5,7 +5,6 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { CategoryAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { PieChart as PieChartIcon } from "lucide-react";
 
 interface CategoryPieChartProps {
   data: CategoryAggregate[];
@@ -19,9 +18,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
   if (data.length === 0) {
     return (
       <EmptyState
-        icon={<PieChartIcon className="h-5 w-5" />}
-        title="Belum ada pengeluaran"
-        description="Tambahkan transaksi pengeluaran untuk melihat distribusi kategori."
+        title="No expenses yet"
+        description="Add an expense transaction to see your spending breakdown."
       />
     );
   }
@@ -36,10 +34,12 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
                 data={data}
                 dataKey="total"
                 nameKey="categoryName"
-                innerRadius={56}
-                outerRadius={92}
-                paddingAngle={2}
+                innerRadius={60}
+                outerRadius={96}
+                paddingAngle={3}
+                cornerRadius={6}
                 stroke="var(--card)"
+                strokeWidth={3}
               >
                 {data.map((d) => (
                   <Cell key={d.categoryId} fill={d.color} />
@@ -50,20 +50,22 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
           </ResponsiveContainer>
         )}
       </div>
-      <ul className="space-y-2 text-sm">
+      <ul className="space-y-2.5 text-sm">
         {data.slice(0, 6).map((d) => (
           <li key={d.categoryId} className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
+                className="inline-block h-3 w-3 rounded-full flex-shrink-0 ring-2 ring-card"
                 style={{ backgroundColor: d.color }}
                 aria-hidden
               />
-              <span className="truncate">{d.categoryName}</span>
+              <span className="truncate font-medium">{d.categoryName}</span>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground tabular-nums">
-              <span>{fmt(d.total)}</span>
-              <span className="text-xs w-10 text-right">{d.percentage.toFixed(0)}%</span>
+              <span className="font-semibold text-foreground">{fmt(d.total)}</span>
+              <span className="text-xs w-10 text-right font-bold text-primary">
+                {d.percentage.toFixed(0)}%
+              </span>
             </div>
           </li>
         ))}

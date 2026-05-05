@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { HappyCatIcon, SadCatIcon } from "@/components/shared/CatIcons";
 import { useCategories } from "@/hooks/useCategories";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { todayISO } from "@/lib/utils";
+import { cn, todayISO } from "@/lib/utils";
 
 export interface TransactionFormValues {
   amount: number;
@@ -79,28 +80,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
         <div className="space-y-1.5 col-span-2">
           <Label>Type</Label>
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
+            <TypeToggle
+              active={type === "expense"}
+              tone="expense"
               onClick={() => setType("expense")}
-              className={
-                type === "expense"
-                  ? "h-10 rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-sm font-medium"
-                  : "h-10 rounded-md border border-border bg-card text-sm text-muted-foreground hover:bg-accent"
-              }
-            >
-              Expense
-            </button>
-            <button
-              type="button"
+            />
+            <TypeToggle
+              active={type === "income"}
+              tone="income"
               onClick={() => setType("income")}
-              className={
-                type === "income"
-                  ? "h-10 rounded-md border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium"
-                  : "h-10 rounded-md border border-border bg-card text-sm text-muted-foreground hover:bg-accent"
-              }
-            >
-              Income
-            </button>
+            />
           </div>
         </div>
 
@@ -172,5 +161,35 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
         <Button type="submit">{initial ? "Save changes" : "Add transaction"}</Button>
       </div>
     </form>
+  );
+};
+
+interface TypeToggleProps {
+  active: boolean;
+  tone: TransactionType;
+  onClick: () => void;
+}
+
+const TypeToggle: React.FC<TypeToggleProps> = ({ active, tone, onClick }) => {
+  const isIncome = tone === "income";
+  const Icon = isIncome ? HappyCatIcon : SadCatIcon;
+  const label = isIncome ? "Income" : "Expense";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "h-12 rounded-2xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 active:scale-95",
+        active
+          ? isIncome
+            ? "border-emerald-400 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40"
+            : "border-rose-400 bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/40"
+          : "border-border bg-card text-muted-foreground hover:bg-accent hover:border-primary/30",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 };

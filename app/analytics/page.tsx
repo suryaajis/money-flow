@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -9,15 +9,16 @@ import { TrendChart } from "@/components/analytics/TrendChart";
 import { CategorySpendingList } from "@/components/analytics/CategorySpendingList";
 import { InsightCard } from "@/components/analytics/InsightCard";
 import { BalanceChart } from "@/components/dashboard/BalanceChart";
+import { HappyCatIcon, SadCatIcon } from "@/components/shared/CatIcons";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { Transaction } from "@/lib/types";
 
 const RANGES = [
-  { label: "3 bulan terakhir", months: 3 },
-  { label: "6 bulan terakhir", months: 6 },
-  { label: "12 bulan terakhir", months: 12 },
+  { label: "Last 3 months", months: 3 },
+  { label: "Last 6 months", months: 6 },
+  { label: "Last 12 months", months: 12 },
 ] as const;
 
 export default function AnalyticsPage() {
@@ -59,13 +60,13 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Analitik</h2>
-          <p className="text-sm text-muted-foreground">
-            Tren dan wawasan keuangan pada periode yang dipilih.
+          <h2 className="text-2xl font-extrabold tracking-tight">Analytics</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Trends and insights across your selected period.
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="range">Periode</Label>
+          <Label htmlFor="range">Period</Label>
           <Select id="range" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
             {RANGES.map((r) => (
               <option key={r.months} value={r.months}>
@@ -78,25 +79,25 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InsightCard
-          label="Saldo bersih"
+          label="Net balance"
           value={fmt(summary.totalBalance)}
           tone={summary.totalBalance >= 0 ? "positive" : "negative"}
           icon={<Wallet className="h-4 w-4" />}
         />
         <InsightCard
-          label="Pemasukan"
+          label="Income"
           value={fmt(summary.totalIncome)}
           tone="positive"
-          icon={<ArrowUpRight className="h-4 w-4" />}
+          icon={<HappyCatIcon className="h-4 w-4" />}
         />
         <InsightCard
-          label="Pengeluaran"
+          label="Expense"
           value={fmt(summary.totalExpense)}
           tone="negative"
-          icon={<ArrowDownLeft className="h-4 w-4" />}
+          icon={<SadCatIcon className="h-4 w-4" />}
         />
         <InsightCard
-          label="Bulan ini vs bulan lalu"
+          label="This month vs last"
           value={
             momChange === null
               ? "—"
@@ -106,8 +107,8 @@ export default function AnalyticsPage() {
             momChange === null
               ? undefined
               : momChange.pct === null
-                ? "vs bulan lalu"
-                : `${momChange.pct >= 0 ? "+" : ""}${momChange.pct.toFixed(1)}% vs bulan lalu`
+                ? "vs last month"
+                : `${momChange.pct >= 0 ? "+" : ""}${momChange.pct.toFixed(1)}% vs last month`
           }
           tone={momTone}
           icon={momIcon}
@@ -116,7 +117,7 @@ export default function AnalyticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tren pemasukan & pengeluaran</CardTitle>
+          <CardTitle>Income & expense trend</CardTitle>
         </CardHeader>
         <CardContent>
           <TrendChart data={monthly} />
@@ -126,7 +127,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Perbandingan bulanan</CardTitle>
+            <CardTitle>Monthly comparison</CardTitle>
           </CardHeader>
           <CardContent>
             <BalanceChart data={monthly} />
@@ -134,11 +135,11 @@ export default function AnalyticsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Kategori pengeluaran terbesar</CardTitle>
+            <CardTitle>Top spending categories</CardTitle>
             {topCategory ? (
               <p className="text-sm text-muted-foreground">
-                Tertinggi: <span className="font-medium text-foreground">{topCategory.categoryName}</span>{" "}
-                sebesar {fmt(topCategory.total)}
+                Top: <span className="font-bold text-foreground">{topCategory.categoryName}</span>{" "}
+                at {fmt(topCategory.total)}
               </p>
             ) : null}
           </CardHeader>

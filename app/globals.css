@@ -18,58 +18,81 @@
   --color-ring: var(--ring);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-cream: var(--cream);
+  --color-mint: var(--mint);
+  --color-blush: var(--blush);
+  --font-sans: var(--font-nunito), var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 1.75rem;
 }
 
+/*
+ * Cat-themed pastel palette.
+ *
+ * Light: warm cream background (#FFFBF5) with soft peach primary (#FB923C).
+ * Dark: warm dark stone (#1C1917) instead of pure black to keep cozy.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #fffbf5;
+  --foreground: #2a1f17;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #6366f1;
-  --primary: #4f46e5;
+  --card-foreground: #2a1f17;
+  --muted: #fdf2e3;
+  --muted-foreground: #8a7461;
+  --border: #f5e6d3;
+  --input: #f5e6d3;
+  --ring: #fb923c;
+  --primary: #fb923c;             /* peach orange */
   --primary-foreground: #ffffff;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --primary-soft: #ffe4cc;        /* peach tint for backgrounds */
+  --accent: #fef3c7;              /* cream */
+  --accent-foreground: #2a1f17;
+  --destructive: #f97373;         /* softer red */
   --destructive-foreground: #ffffff;
-  --success: #10b981;
-  --success-foreground: #ffffff;
+  --success: #6ee7b7;             /* mint green */
+  --success-foreground: #064e3b;
+
+  /* Cat-theme decorative tokens */
+  --cream: #fef3c7;
+  --mint: #a7f3d0;
+  --blush: #fec9c9;
 }
 
 .dark {
-  --background: #0b1120;
-  --foreground: #e2e8f0;
-  --card: #111827;
-  --card-foreground: #e2e8f0;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --border: #1f2937;
-  --input: #1f2937;
-  --ring: #818cf8;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --accent: #1e293b;
-  --accent-foreground: #e2e8f0;
-  --destructive: #f87171;
-  --destructive-foreground: #0b1120;
-  --success: #34d399;
-  --success-foreground: #0b1120;
+  --background: #1c1917;
+  --foreground: #f5e6d3;
+  --card: #292524;
+  --card-foreground: #f5e6d3;
+  --muted: #3c3330;
+  --muted-foreground: #b8a392;
+  --border: #44403c;
+  --input: #44403c;
+  --ring: #fb923c;
+  --primary: #fb923c;
+  --primary-foreground: #1c1917;
+  --primary-soft: #5b3a23;
+  --accent: #44403c;
+  --accent-foreground: #f5e6d3;
+  --destructive: #fca5a5;
+  --destructive-foreground: #1c1917;
+  --success: #6ee7b7;
+  --success-foreground: #064e3b;
+
+  --cream: #44403c;
+  --mint: #064e3b;
+  --blush: #5b3a23;
 }
 
 * {
@@ -83,7 +106,7 @@ body {
 }
 
 body {
-  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: var(--font-nunito), var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /* Remove the 300ms tap delay on iOS Safari & let the browser short-circuit
@@ -104,8 +127,9 @@ a,
 .recharts-default-tooltip {
   background-color: var(--card) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.5rem !important;
+  border-radius: 0.875rem !important;
   color: var(--foreground) !important;
+  box-shadow: 0 4px 16px -4px rgba(251, 146, 60, 0.15) !important;
 }
 
 .recharts-tooltip-label,
@@ -113,7 +137,7 @@ a,
   color: var(--foreground) !important;
 }
 
-/* Subtle scrollbar styling */
+/* Subtle scrollbar styling (peach accent) */
 @media (pointer: fine) {
   *::-webkit-scrollbar {
     width: 10px;
@@ -124,9 +148,77 @@ a,
     border-radius: 999px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+    background: var(--primary);
   }
   *::-webkit-scrollbar-track {
     background: transparent;
   }
+}
+
+/* ---------------------------------------------------------------- */
+/* Cat-theme animations & utilities                                  */
+/* ---------------------------------------------------------------- */
+
+/* Paw-print loading bounce */
+@keyframes paw-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.7) translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1) translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.paw-bounce {
+  animation: paw-bounce 1.2s infinite ease-in-out both;
+}
+
+/* Cat tail wag for empty states */
+@keyframes tail-wag {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+
+.tail-wag {
+  transform-origin: bottom center;
+  animation: tail-wag 2.4s infinite ease-in-out;
+}
+
+/* Card hover lift */
+.cat-card-hover {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.cat-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(251, 146, 60, 0.25);
+}
+
+/* Soft fade-in (for modals / banners) */
+@keyframes cat-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: cat-fade-in 200ms ease-out;
+}
+
+/* Subtle scale-in for modal content */
+@keyframes cat-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-in {
+  animation: cat-scale-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gentle blink for sleeping cat */
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.05); }
+}
+.eye-blink {
+  transform-origin: center;
+  animation: blink 4s infinite ease-in-out;
 }

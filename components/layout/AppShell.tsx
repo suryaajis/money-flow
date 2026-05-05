@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { DataBootstrap } from "@/components/layout/DataBootstrap";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
+import { FloatingAddButton } from "@/components/layout/FloatingAddButton";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ThemeProvider>
@@ -21,6 +22,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </main>
       </div>
       <MobileNav />
+      <FloatingAddButton />
       <InstallPrompt />
     </div>
   </ThemeProvider>

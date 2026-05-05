@@ -8,11 +8,11 @@ import {
   LayoutDashboard,
   ScanLine,
   Tags,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { CatMascot, PawIcon } from "@/components/shared/CatIcons";
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -27,17 +27,20 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:border-r md:border-border md:bg-card">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Wallet className="h-4 w-4" />
+      <div className="flex h-20 items-center gap-3 border-b border-border px-6">
+        <div className="text-primary">
+          <CatMascot className="h-12 w-12" />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold leading-none">Money Flow</span>
-          <span className="text-xs text-muted-foreground mt-0.5">Personal finance</span>
+          <span className="text-base font-extrabold leading-none tracking-tight">Money Flow</span>
+          <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <PawIcon className="h-3 w-3" />
+            Purr-sonal finance
+          </span>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1.5 px-3 py-5">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -46,21 +49,26 @@ export const Sidebar: React.FC = () => {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold",
+                "transition-all duration-200",
                 active
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              {Icon ? <Icon className="h-4 w-4" /> : null}
+              {Icon ? <Icon className={cn("h-4 w-4", active && "scale-110 transition-transform")} /> : null}
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-border px-6 py-4 text-xs text-muted-foreground">
-        Data is stored locally in your browser.
+      <div className="mx-3 mb-3 rounded-2xl bg-primary-soft/60 px-4 py-3 text-xs text-foreground/80 leading-relaxed">
+        <div className="flex items-center gap-1.5 mb-1 font-semibold text-foreground">
+          <PawIcon className="h-3.5 w-3.5 text-primary" />
+          Cozy & private
+        </div>
+        Your data stays on this device. No cloud, no tracking.
       </div>
     </aside>
   );

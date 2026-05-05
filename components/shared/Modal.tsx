@@ -52,21 +52,22 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
+        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div
         className={cn(
-          "relative z-10 w-full bg-card text-card-foreground border border-border shadow-xl",
-          "rounded-t-xl sm:rounded-xl",
+          "relative z-10 w-full bg-card text-card-foreground border border-border shadow-2xl shadow-primary/10",
+          "rounded-t-3xl sm:rounded-3xl",
           "max-h-[90vh] overflow-y-auto",
+          "animate-scale-in",
           sizeClasses[size],
           "mx-0 sm:mx-4",
         )}
       >
         <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+            <h2 className="text-lg font-bold tracking-tight">{title}</h2>
             {description ? (
               <p className="mt-1 text-sm text-muted-foreground">{description}</p>
             ) : null}
@@ -75,7 +76,7 @@ export const Modal: React.FC<ModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground active:scale-90"
           >
             <X className="h-4 w-4" />
           </button>

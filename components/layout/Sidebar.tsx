@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   LayoutDashboard,
+  ScanLine,
   Tags,
   Wallet,
   type LucideIcon,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
+  ScanLine,
   Tags,
   BarChart3,
 };

@@ -24,6 +24,7 @@ const APP_SHELL = [
   "/",
   "/dashboard",
   "/transactions",
+  "/import",
   "/categories",
   "/analytics",
   "/offline",

@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   LayoutDashboard,
+  ScanLine,
   Tags,
   type LucideIcon,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
+  ScanLine,
   Tags,
   BarChart3,
 };
@@ -27,7 +29,7 @@ export const MobileNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

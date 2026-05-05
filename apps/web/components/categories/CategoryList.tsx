@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
@@ -29,29 +29,39 @@ export const CategoryList: React.FC = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <p className="text-sm text-muted-foreground">
-          {categories.length} categories. Default categories cannot be deleted.
+          <span className="font-bold text-foreground">{categories.length}</span> categories.
+          Default categories can&apos;t be deleted.
         </p>
-        <Button onClick={() => setAdding(true)}>New category</Button>
+        <Button onClick={() => setAdding(true)}>
+          <Plus className="h-4 w-4" /> New category
+        </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((c) => {
           const usage = usageById.get(c.id) ?? 0;
           return (
-            <Card key={c.id}>
-              <CardContent className="p-4">
+            <Card key={c.id} className="cat-card-hover relative overflow-hidden">
+              {/* Color accent strip on the left edge */}
+              <div
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-1.5"
+                style={{ backgroundColor: c.color }}
+              />
+              <CardContent className="p-4 pl-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <CategoryBadge category={c} />
-                    <p className="text-xs text-muted-foreground capitalize">
+                    <p className="text-xs text-muted-foreground capitalize font-medium">
                       {c.type === "both" ? "Income & expense" : c.type}
                       {" · "}
-                      {usage} {usage === 1 ? "transaction" : "transactions"}
+                      <span className="text-foreground font-bold">{usage}</span>{" "}
+                      {usage === 1 ? "transaction" : "transactions"}
                     </p>
                     {c.isDefault ? (
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-primary">
                         Default
                       </p>
                     ) : null}
@@ -82,7 +92,7 @@ export const CategoryList: React.FC = () => {
         })}
       </div>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="New category">
+      <Modal open={adding} onClose={() => setAdding(false)} title="New category" description="Pick a name and color for your new category.">
         <CategoryForm
           onSubmit={async (values) => {
             await addCategory(values);

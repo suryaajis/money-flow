@@ -13,12 +13,20 @@ interface SummaryCardProps {
   tone?: Tone;
   icon?: React.ReactNode;
   hint?: string;
+  /** Optional decoration to place in the top-right corner (e.g. a cat mascot). */
+  decoration?: React.ReactNode;
 }
 
-const toneAccent: Record<Tone, string> = {
-  neutral: "from-blue-500/15 to-blue-500/0 text-blue-600 dark:text-blue-400",
-  income: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
-  expense: "from-rose-500/15 to-rose-500/0 text-rose-600 dark:text-rose-400",
+const toneTextClass: Record<Tone, string> = {
+  neutral: "text-foreground",
+  income: "text-emerald-600 dark:text-emerald-400",
+  expense: "text-rose-500 dark:text-rose-400",
+};
+
+const toneBgClass: Record<Tone, string> = {
+  neutral: "bg-primary-soft text-primary",
+  income: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+  expense: "bg-rose-100 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300",
 };
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({
@@ -27,15 +35,31 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   tone = "neutral",
   icon,
   hint,
+  decoration,
 }) => {
   const { fmt } = useCurrency();
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-5">
+    <Card className="overflow-hidden cat-card-hover relative">
+      {decoration ? (
+        <div
+          aria-hidden
+          className="absolute -right-3 -top-3 opacity-90 pointer-events-none"
+        >
+          {decoration}
+        </div>
+      ) : null}
+      <CardContent className="p-5 relative">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className={cn("text-2xl font-semibold tracking-tight", toneAccent[tone].split(" ").slice(2).join(" "))}>
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {label}
+            </p>
+            <p
+              className={cn(
+                "text-2xl font-extrabold tracking-tight tabular-nums",
+                toneTextClass[tone],
+              )}
+            >
               {fmt(amount)}
             </p>
             {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
@@ -43,8 +67,8 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           {icon ? (
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br",
-                toneAccent[tone],
+                "flex h-11 w-11 items-center justify-center rounded-2xl flex-shrink-0",
+                toneBgClass[tone],
               )}
             >
               {icon}

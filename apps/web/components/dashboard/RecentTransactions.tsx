@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { HappyCatIcon, SadCatIcon } from "@/components/shared/CatIcons";
 import { useCategories } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -19,11 +19,11 @@ export const RecentTransactions: React.FC = () => {
   if (recent.length === 0) {
     return (
       <EmptyState
-        title="Belum ada transaksi"
-        description="Mulai dengan menambahkan pemasukan atau pengeluaran pertama kamu."
+        title="No transactions yet"
+        description="Your kitty wallet is empty. Add your first income or expense to get started."
         action={
           <Link href="/transactions">
-            <Button size="sm">Tambah transaksi</Button>
+            <Button size="sm">Add transaction</Button>
           </Link>
         }
       />
@@ -40,18 +40,18 @@ export const RecentTransactions: React.FC = () => {
             <div
               className={
                 isIncome
-                  ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "flex h-9 w-9 items-center justify-center rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300 flex-shrink-0"
+                  : "flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300 flex-shrink-0"
               }
               aria-hidden
             >
-              {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+              {isIncome ? <HappyCatIcon className="h-5 w-5" /> : <SadCatIcon className="h-5 w-5" />}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {tx.notes || cat?.name || "Transaksi"}
+              <p className="text-sm font-semibold truncate">
+                {tx.notes || cat?.name || "Transaction"}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-1">
                 {cat ? <CategoryBadge category={cat} /> : null}
                 <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>
               </div>
@@ -59,8 +59,8 @@ export const RecentTransactions: React.FC = () => {
             <div
               className={
                 isIncome
-                  ? "text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400"
-                  : "text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400"
+                  ? "text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400 flex-shrink-0"
+                  : "text-sm font-bold tabular-nums text-rose-500 dark:text-rose-400 flex-shrink-0"
               }
             >
               {fmtSigned(tx.amount, tx.type)}

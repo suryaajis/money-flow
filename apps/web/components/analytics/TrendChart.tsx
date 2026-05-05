@@ -18,6 +18,9 @@ interface TrendChartProps {
   data: MonthlyAggregate[];
 }
 
+const INCOME_COLOR = "#6ee7b7"; // mint
+const EXPENSE_COLOR = "#fca5a5"; // soft coral
+
 export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -31,12 +34,12 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor={INCOME_COLOR} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={INCOME_COLOR} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="0%" stopColor={EXPENSE_COLOR} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -56,21 +59,21 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
             width={70}
           />
           <Tooltip formatter={(value) => fmt(Number(value) || 0)} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           <Area
             type="monotone"
             dataKey="income"
-            name="Pemasukan"
-            stroke="#10b981"
-            strokeWidth={2}
+            name="Income"
+            stroke={INCOME_COLOR}
+            strokeWidth={2.5}
             fill="url(#incomeGradient)"
           />
           <Area
             type="monotone"
             dataKey="expense"
-            name="Pengeluaran"
-            stroke="#ef4444"
-            strokeWidth={2}
+            name="Expense"
+            stroke={EXPENSE_COLOR}
+            strokeWidth={2.5}
             fill="url(#expenseGradient)"
           />
         </AreaChart>

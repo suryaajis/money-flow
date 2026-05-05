@@ -18,6 +18,10 @@ interface BalanceChartProps {
   data: MonthlyAggregate[];
 }
 
+// Soft pastel pair — easier on the eyes, on-theme.
+const INCOME_COLOR = "#6ee7b7"; // mint
+const EXPENSE_COLOR = "#fca5a5"; // soft coral
+
 export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -47,11 +51,11 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
           />
           <Tooltip
             formatter={(value) => fmt(Number(value) || 0)}
-            cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+            cursor={{ fill: "var(--primary-soft)", opacity: 0.5 }}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="income" name="Pemasukan" fill="#10b981" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="expense" name="Pengeluaran" fill="#ef4444" radius={[6, 6, 0, 0]} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+          <Bar dataKey="income" name="Income" fill={INCOME_COLOR} radius={[10, 10, 0, 0]} />
+          <Bar dataKey="expense" name="Expense" fill={EXPENSE_COLOR} radius={[10, 10, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

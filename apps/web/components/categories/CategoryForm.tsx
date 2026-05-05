@@ -99,7 +99,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initial, onSubmit, o
             setName(e.target.value);
             setError(null);
           }}
-          placeholder="e.g. Groceries"
+          placeholder="e.g. Cat treats"
           autoFocus
         />
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -151,22 +151,30 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initial, onSubmit, o
               onClick={() => setColor(c)}
               aria-label={`Pick color ${c}`}
               className={cn(
-                "h-8 w-8 rounded-full border-2 transition-transform",
+                "h-10 w-10 rounded-full transition-all duration-200 flex items-center justify-center",
+                "active:scale-90",
                 color === c
-                  ? "border-foreground scale-110"
-                  : "border-transparent hover:scale-105",
+                  ? "ring-2 ring-offset-2 ring-offset-card scale-110 shadow-md"
+                  : "hover:scale-110",
               )}
-              style={{ backgroundColor: c }}
-            />
+              style={{
+                backgroundColor: c,
+                ...(color === c ? ({ "--tw-ring-color": c } as React.CSSProperties) : {}),
+              }}
+            >
+              {color === c ? <Check className="h-4 w-4 text-white" strokeWidth={3} /> : null}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-md border border-border bg-muted/40 p-3">
-        <p className="text-xs text-muted-foreground mb-1.5">Preview</p>
+      <div className="rounded-2xl border border-border bg-muted/40 p-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+          Preview
+        </p>
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-          style={{ backgroundColor: `${color}1F`, color }}
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+          style={{ backgroundColor: `${color}24`, color }}
         >
           <SelectedIcon className="h-3 w-3" />
           {name || "Category name"}

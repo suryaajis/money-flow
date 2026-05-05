@@ -89,16 +89,16 @@ export const InstallPrompt: React.FC = () => {
     <div
       role="dialog"
       aria-label="Install Money Flow"
-      className="fixed inset-x-3 z-40 bottom-[calc(env(safe-area-inset-bottom)+72px)] md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm rounded-xl border border-border bg-card text-card-foreground shadow-lg"
+      className="fixed inset-x-3 z-40 bottom-[calc(env(safe-area-inset-bottom)+72px)] md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm rounded-2xl border border-border bg-card text-card-foreground shadow-xl shadow-primary/15 animate-fade-in"
     >
       <div className="flex items-start gap-3 p-4">
-        <div className="grid place-items-center h-10 w-10 rounded-lg bg-primary/10 text-primary shrink-0">
+        <div className="grid place-items-center h-11 w-11 rounded-2xl bg-primary-soft text-primary shrink-0">
           <Download className="h-5 w-5" aria-hidden />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">Install Money Flow</p>
+          <p className="text-sm font-bold">Install Money Flow</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Add to your home screen for offline access and a full-screen experience.
+            Add to your home screen so the cat is never far away.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Button size="sm" onClick={handleInstall} className="touch-manipulation">

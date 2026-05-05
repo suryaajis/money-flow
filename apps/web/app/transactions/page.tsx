@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,16 @@ import { useExport } from "@/hooks/useExport";
 import type { Transaction } from "@/lib/types";
 
 export default function TransactionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <TransactionsClient />
+    </Suspense>
+  );
+}
+
+function TransactionsClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     filtered,
     loading,
@@ -24,7 +35,13 @@ export default function TransactionsPage() {
   } = useTransactions();
   const { exportXLSX, exportCSV } = useExport();
 
-  const [adding, setAdding] = useState(false);
+  // Lazy initializer reads `?new=1` once on mount (used by the mobile FAB
+  // on every other page) — avoids the React-19 "no setState in effect" rule
+  // by deriving initial state synchronously rather than calling setAdding
+  // from inside useEffect.
+  const [adding, setAdding] = useState<boolean>(
+    () => searchParams.get("new") === "1",
+  );
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [confirming, setConfirming] = useState<Transaction | null>(null);
   const [bulkConfirming, setBulkConfirming] = useState(false);
@@ -50,16 +67,16 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Transactions</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-extrabold tracking-tight">Transactions</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Add, edit, and review your income and expenses.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
+          <Button variant="outline" size="sm" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
             <Download className="h-4 w-4" /> CSV
           </Button>
-          <Button variant="outline" onClick={() => exportXLSX(filtered)} disabled={filtered.length === 0}>
+          <Button variant="outline" size="sm" onClick={() => exportXLSX(filtered)} disabled={filtered.length === 0}>
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
           <Button onClick={() => setAdding(true)}>
@@ -75,8 +92,8 @@ export default function TransactionsPage() {
       </Card>
 
       {selected.size > 0 ? (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-2.5">
-          <span className="text-sm">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-primary-soft/40 px-4 py-2.5">
+          <span className="text-sm font-semibold">
             <strong>{selected.size}</strong> selected
           </span>
           <div className="flex gap-2">

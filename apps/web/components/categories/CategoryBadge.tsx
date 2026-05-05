@@ -14,11 +14,11 @@ interface CategoryBadgeProps {
 export const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category, className }) => (
   <span
     className={cn(
-      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
       className,
     )}
     style={{
-      backgroundColor: `${category.color}1F`, // ~12% alpha
+      backgroundColor: `${category.color}24`, // ~14% alpha
       color: category.color,
     }}
   >

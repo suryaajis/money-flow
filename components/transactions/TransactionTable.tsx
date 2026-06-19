@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -15,6 +15,7 @@ type SortDir = "asc" | "desc";
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  loading?: boolean;
   onEdit: (tx: Transaction) => void;
   onDelete: (tx: Transaction) => void;
   selected: Set<string>;
@@ -25,6 +26,7 @@ const PAGE_SIZE = 15;
 
 export const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions,
+  loading = false,
   onEdit,
   onDelete,
   selected,
@@ -76,6 +78,15 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     }
     setPage(0);
   };
+
+  if (loading && transactions.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm">Memuat transaksi...</span>
+      </div>
+    );
+  }
 
   if (transactions.length === 0) {
     return (

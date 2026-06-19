@@ -84,8 +84,8 @@ export const CategoryList: React.FC = () => {
 
       <Modal open={adding} onClose={() => setAdding(false)} title="New category">
         <CategoryForm
-          onSubmit={(values) => {
-            addCategory(values);
+          onSubmit={async (values) => {
+            await addCategory(values);
             setAdding(false);
           }}
           onCancel={() => setAdding(false)}
@@ -96,8 +96,8 @@ export const CategoryList: React.FC = () => {
         {editing ? (
           <CategoryForm
             initial={editing}
-            onSubmit={(values) => {
-              updateCategory(editing.id, values);
+            onSubmit={async (values) => {
+              await updateCategory(editing.id, values);
               setEditing(null);
             }}
             onCancel={() => setEditing(null)}
@@ -115,8 +115,8 @@ export const CategoryList: React.FC = () => {
         }
         confirmLabel="Delete"
         destructive
-        onConfirm={() => {
-          if (confirming) deleteCategory(confirming.id);
+        onConfirm={async () => {
+          if (confirming) await deleteCategory(confirming.id);
         }}
         onClose={() => setConfirming(null)}
       />

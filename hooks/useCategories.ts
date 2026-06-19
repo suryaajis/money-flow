@@ -2,16 +2,17 @@
 
 import { useCallback, useMemo } from "react";
 import { useCategoryStore } from "@/store/categoryStore";
-import type { Category } from "@/lib/types";
+import type { ApiCategory } from "@/lib/api";
+
+export type Category = ApiCategory;
 
 export function useCategories() {
   const categories = useCategoryStore((s) => s.categories);
+  const loading = useCategoryStore((s) => s.loading);
   const addCategory = useCategoryStore((s) => s.addCategory);
   const updateCategory = useCategoryStore((s) => s.updateCategory);
   const deleteCategory = useCategoryStore((s) => s.deleteCategory);
-  const resetToDefaults = useCategoryStore((s) => s.resetToDefaults);
 
-  // Lookup map for fast joins with transactions.
   const byId = useMemo(() => {
     const map = new Map<string, Category>();
     for (const c of categories) map.set(c.id, c);
@@ -25,11 +26,11 @@ export function useCategories() {
 
   return {
     categories,
+    loading,
     byId,
     getCategory,
     addCategory,
     updateCategory,
     deleteCategory,
-    resetToDefaults,
   };
 }

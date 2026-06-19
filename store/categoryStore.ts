@@ -1,55 +1,56 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import type { Category } from "@/lib/types";
-import { DEFAULT_CATEGORIES, STORAGE_KEYS } from "@/lib/constants";
-import { uid } from "@/lib/utils";
+import { categoriesApi, type ApiCategory } from "@/lib/api";
 
-type NewCategory = Omit<Category, "id" | "isDefault">;
+export type Category = ApiCategory;
+
+type NewCategory = Omit<ApiCategory, "id" | "isDefault">;
 
 interface CategoryState {
   categories: Category[];
-  hasHydrated: boolean;
+  loading: boolean;
+  hasLoaded: boolean;
 
-  addCategory: (input: NewCategory) => Category;
-  updateCategory: (id: string, patch: Partial<NewCategory>) => void;
-  deleteCategory: (id: string) => void;
-  resetToDefaults: () => void;
+  fetchCategories: () => Promise<void>;
+  addCategory: (input: NewCategory) => Promise<Category>;
+  updateCategory: (id: string, patch: Partial<NewCategory>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  clearAll: () => void;
 }
 
-export const useCategoryStore = create<CategoryState>()(
-  persist(
-    (set, get) => ({
-      categories: DEFAULT_CATEGORIES,
-      hasHydrated: false,
+export const useCategoryStore = create<CategoryState>()((set, get) => ({
+  categories: [],
+  loading: false,
+  hasLoaded: false,
 
-      addCategory: (input) => {
-        const cat: Category = { ...input, id: uid("cat"), isDefault: false };
-        set((state) => ({ categories: [...state.categories, cat] }));
-        return cat;
-      },
+  fetchCategories: async () => {
+    set({ loading: true });
+    try {
+      const categories = await categoriesApi.getAll();
+      set({ categories, hasLoaded: true });
+    } finally {
+      set({ loading: false });
+    }
+  },
 
-      updateCategory: (id, patch) => {
-        set((state) => ({
-          categories: state.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-        }));
-      },
+  addCategory: async (input) => {
+    const cat = await categoriesApi.create(input);
+    set((state) => ({ categories: [...state.categories, cat] }));
+    return cat;
+  },
 
-      deleteCategory: (id) => {
-        // Default categories cannot be deleted to keep the seed data coherent.
-        const target = get().categories.find((c) => c.id === id);
-        if (!target || target.isDefault) return;
-        set((state) => ({ categories: state.categories.filter((c) => c.id !== id) }));
-      },
+  updateCategory: async (id, patch) => {
+    const updated = await categoriesApi.update(id, patch);
+    set((state) => ({
+      categories: state.categories.map((c) => (c.id === id ? updated : c)),
+    }));
+  },
 
-      resetToDefaults: () => set({ categories: DEFAULT_CATEGORIES }),
-    }),
-    {
-      name: STORAGE_KEYS.categories,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ categories: state.categories }),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.hasHydrated = true;
-      },
-    },
-  ),
-);
+  deleteCategory: async (id) => {
+    const target = get().categories.find((c) => c.id === id);
+    if (!target || target.isDefault) return;
+    await categoriesApi.delete(id);
+    set((state) => ({ categories: state.categories.filter((c) => c.id !== id) }));
+  },
+
+  clearAll: () => set({ categories: [], hasLoaded: false }),
+}));

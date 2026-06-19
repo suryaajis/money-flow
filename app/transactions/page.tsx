@@ -16,6 +16,7 @@ import type { Transaction } from "@/lib/types";
 export default function TransactionsPage() {
   const {
     filtered,
+    loading,
     addTransaction,
     updateTransaction,
     deleteTransaction,
@@ -28,14 +29,20 @@ export default function TransactionsPage() {
   const [confirming, setConfirming] = useState<Transaction | null>(null);
   const [bulkConfirming, setBulkConfirming] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (values: TransactionFormValues) => {
-    if (editing) {
-      updateTransaction(editing.id, values);
-      setEditing(null);
-    } else {
-      addTransaction(values);
-      setAdding(false);
+  const handleSubmit = async (values: TransactionFormValues) => {
+    setSubmitting(true);
+    try {
+      if (editing) {
+        await updateTransaction(editing.id, values);
+        setEditing(null);
+      } else {
+        await addTransaction(values);
+        setAdding(false);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -85,6 +92,7 @@ export default function TransactionsPage() {
 
       <TransactionTable
         transactions={filtered}
+        loading={loading}
         onEdit={(tx) => setEditing(tx)}
         onDelete={(tx) => setConfirming(tx)}
         selected={selected}
@@ -92,7 +100,7 @@ export default function TransactionsPage() {
       />
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add transaction">
-        <TransactionForm onSubmit={handleSubmit} onCancel={() => setAdding(false)} />
+        <TransactionForm onSubmit={handleSubmit} onCancel={() => setAdding(false)} submitting={submitting} />
       </Modal>
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit transaction">
@@ -101,6 +109,7 @@ export default function TransactionsPage() {
             initial={editing}
             onSubmit={handleSubmit}
             onCancel={() => setEditing(null)}
+            submitting={submitting}
           />
         ) : null}
       </Modal>
@@ -111,8 +120,8 @@ export default function TransactionsPage() {
         description="This action cannot be undone."
         confirmLabel="Delete"
         destructive
-        onConfirm={() => {
-          if (confirming) deleteTransaction(confirming.id);
+        onConfirm={async () => {
+          if (confirming) await deleteTransaction(confirming.id);
         }}
         onClose={() => setConfirming(null)}
       />
@@ -123,8 +132,8 @@ export default function TransactionsPage() {
         description="This action cannot be undone."
         confirmLabel="Delete all"
         destructive
-        onConfirm={() => {
-          deleteMany([...selected]);
+        onConfirm={async () => {
+          await deleteMany([...selected]);
           setSelected(new Set());
         }}
         onClose={() => setBulkConfirming(false)}

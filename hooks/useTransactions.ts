@@ -2,9 +2,11 @@
 
 import { useMemo } from "react";
 import { useTransactionStore } from "@/store/transactionStore";
-import type { Transaction, TransactionFilters } from "@/lib/types";
+import type { TransactionFilters } from "@/lib/types";
+import type { ApiTransaction } from "@/lib/api";
 
-/** Apply a filter set to a list of transactions. */
+export type Transaction = ApiTransaction;
+
 export function applyFilters(
   transactions: Transaction[],
   filters: TransactionFilters,
@@ -25,15 +27,11 @@ export function applyFilters(
   });
 }
 
-/**
- * `useTransactions` exposes the transaction list (raw or filtered) and the
- * full set of mutators. UI components should never read from the store
- * directly — they go through this hook so we can later swap the data source.
- */
 export function useTransactions() {
   const transactions = useTransactionStore((s) => s.transactions);
   const filters = useTransactionStore((s) => s.filters);
-  const hasHydrated = useTransactionStore((s) => s.hasHydrated);
+  const loading = useTransactionStore((s) => s.loading);
+  const hasLoaded = useTransactionStore((s) => s.hasLoaded);
 
   const addTransaction = useTransactionStore((s) => s.addTransaction);
   const updateTransaction = useTransactionStore((s) => s.updateTransaction);
@@ -41,7 +39,6 @@ export function useTransactions() {
   const deleteMany = useTransactionStore((s) => s.deleteMany);
   const setFilters = useTransactionStore((s) => s.setFilters);
   const resetFilters = useTransactionStore((s) => s.resetFilters);
-  const resetWithSampleData = useTransactionStore((s) => s.resetWithSampleData);
   const clearAll = useTransactionStore((s) => s.clearAll);
 
   const sorted = useMemo(
@@ -55,14 +52,14 @@ export function useTransactions() {
     transactions: sorted,
     filtered,
     filters,
-    hasHydrated,
+    loading,
+    hasLoaded,
     addTransaction,
     updateTransaction,
     deleteTransaction,
     deleteMany,
     setFilters,
     resetFilters,
-    resetWithSampleData,
     clearAll,
   };
 }

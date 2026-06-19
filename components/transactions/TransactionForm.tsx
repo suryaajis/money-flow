@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,9 +23,10 @@ interface TransactionFormProps {
   initial?: Transaction;
   onSubmit: (values: TransactionFormValues) => void;
   onCancel: () => void;
+  submitting?: boolean;
 }
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel }) => {
+export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
   const { categories } = useCategories();
 
   const [amount, setAmount] = useState<string>(initial ? String(initial.amount) : "");
@@ -166,10 +168,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit">{initial ? "Save changes" : "Add transaction"}</Button>
+        <Button type="submit" disabled={submitting} className="gap-2">
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          {initial ? "Save changes" : "Add transaction"}
+        </Button>
       </div>
     </form>
   );

@@ -33,6 +33,7 @@ export interface TransactionFilters {
   categoryId?: string;
   type?: TransactionType | "all";
   searchQuery?: string;
+  tag?: string;
 }
 
 export interface FinancialSummary {

@@ -57,7 +57,7 @@ export interface CategoryAggregate {
 
 export type Theme = "light" | "dark" | "system";
 
-export type CurrencyCode = "IDR" | "USD";
+export type CurrencyCode = "IDR" | "USD" | "EUR" | "SGD" | "MYR" | "JPY" | "GBP";
 
 export interface CurrencyConfig {
   code: CurrencyCode;

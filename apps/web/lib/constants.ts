@@ -3,6 +3,11 @@ import type { Category, CurrencyCode, CurrencyConfig } from "@/lib/types";
 export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   IDR: { code: "IDR", symbol: "Rp", locale: "id-ID", decimals: 0 },
   USD: { code: "USD", symbol: "$", locale: "en-US", decimals: 2 },
+  EUR: { code: "EUR", symbol: "€", locale: "de-DE", decimals: 2 },
+  SGD: { code: "SGD", symbol: "S$", locale: "en-SG", decimals: 2 },
+  MYR: { code: "MYR", symbol: "RM", locale: "ms-MY", decimals: 2 },
+  JPY: { code: "JPY", symbol: "¥", locale: "ja-JP", decimals: 0 },
+  GBP: { code: "GBP", symbol: "£", locale: "en-GB", decimals: 2 },
 };
 
 export const DEFAULT_CURRENCY: CurrencyCode = "IDR";

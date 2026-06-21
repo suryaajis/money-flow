@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BudgetsModule } from './budgets/budgets.module';
+import { BackupModule } from './backup/backup.module';
 import { User } from './users/user.entity';
 import { Category } from './categories/category.entity';
 import { Transaction } from './transactions/transaction.entity';
@@ -34,6 +35,7 @@ import { Budget } from './budgets/budget.entity';
     CategoriesModule,
     TransactionsModule,
     BudgetsModule,
+    BackupModule,
   ],
 })
 export class AppModule {}

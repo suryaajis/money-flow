@@ -33,6 +33,9 @@ export class Transaction {
   @Column({ nullable: true, length: 3, default: null })
   currency: string | null;
 
+  @Column({ type: 'simple-array', nullable: true, default: null })
+  tags: string[];
+
   @Column()
   userId: string;
 

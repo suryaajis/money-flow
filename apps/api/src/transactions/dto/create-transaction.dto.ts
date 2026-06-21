@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsIn, IsOptional, IsDateString, Min, Length } from 'class-validator';
+import { IsArray, IsString, IsNumber, IsIn, IsOptional, IsDateString, Min, Length } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber()
@@ -22,4 +22,9 @@ export class CreateTransactionDto {
   @IsString()
   @Length(3, 3)
   currency?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }

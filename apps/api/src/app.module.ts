@@ -5,9 +5,11 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { BudgetsModule } from './budgets/budgets.module';
 import { User } from './users/user.entity';
 import { Category } from './categories/category.entity';
 import { Transaction } from './transactions/transaction.entity';
+import { Budget } from './budgets/budget.entity';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { Transaction } from './transactions/transaction.entity';
         username: config.get<string>('DB_USERNAME', 'postgres'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'money_flow'),
-        entities: [User, Category, Transaction],
+        entities: [User, Category, Transaction, Budget],
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('NODE_ENV') === 'development',
       }),
@@ -31,6 +33,7 @@ import { Transaction } from './transactions/transaction.entity';
     UsersModule,
     CategoriesModule,
     TransactionsModule,
+    BudgetsModule,
   ],
 })
 export class AppModule {}

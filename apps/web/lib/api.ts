@@ -64,6 +64,29 @@ export const authApi = {
   me: () => request<AuthUser>('/auth/me'),
 };
 
+// ── Budgets ───────────────────────────────────────────────────────────────────
+
+export interface ApiBudget {
+  id: string;
+  categoryId: string;
+  category: { id: string; name: string; color: string; icon: string; type: string };
+  amount: number;
+  month: string;
+}
+
+export const budgetsApi = {
+  getAll: (month?: string) => {
+    const qs = month ? `?month=${month}` : '';
+    return request<ApiBudget[]>(`/budgets${qs}`);
+  },
+  upsert: (data: { categoryId: string; amount: number; month: string }) =>
+    request<ApiBudget>('/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<void>(`/budgets/${id}`, { method: 'DELETE' }),
+  copyPrevious: (month: string) =>
+    request<ApiBudget[]>('/budgets/copy-previous', { method: 'POST', body: JSON.stringify({ month }) }),
+};
+
 // ── Categories ────────────────────────────────────────────────────────────────
 
 export type ApiCategory = Category;

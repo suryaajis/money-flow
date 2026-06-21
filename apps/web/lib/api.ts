@@ -133,3 +133,21 @@ export const transactionsApi = {
   bulkDelete: (ids: string[]) =>
     request<void>('/transactions/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) }),
 };
+
+// ── Backup ────────────────────────────────────────────────────────────────────
+
+export interface BackupData {
+  version: number;
+  exportedAt: string;
+  transactions: ApiTransaction[];
+  categories: ApiCategory[];
+}
+
+export const backupApi = {
+  export: () => request<BackupData>('/backup/export'),
+  import: (data: BackupData, mode: 'merge' | 'replace') =>
+    request<{ imported: number }>('/backup/import', {
+      method: 'POST',
+      body: JSON.stringify({ data, mode }),
+    }),
+};

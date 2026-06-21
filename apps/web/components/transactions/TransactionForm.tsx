@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ export interface TransactionFormValues {
   date: string;
   notes?: string;
   currency?: CurrencyCode | null;
+  tags?: string[];
 }
 
 interface TransactionFormProps {
@@ -39,6 +40,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
   const [date, setDate] = useState<string>(initial?.date ?? todayISO());
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
   const [currency, setCurrency] = useState<CurrencyCode | null>(initial?.currency ?? null);
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
 
   // Only show categories valid for the chosen type. Default to first match.
@@ -52,6 +55,39 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
     if (categoryId && validCategories.some((c) => c.id === categoryId)) return categoryId;
     return validCategories[0]?.id ?? "";
   }, [categoryId, validCategories]);
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim().replace(/,+$/, "").trim();
+    if (!trimmed) return;
+    const tag = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+    if (!tags.includes(tag)) {
+      setTags((prev) => [...prev, tag]);
+    }
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+    }
+  };
+
+  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.endsWith(",")) {
+      addTag(val.slice(0, -1));
+    } else {
+      setTagInput(val);
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +114,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       date,
       notes: notes.trim() || undefined,
       currency: currency ?? null,
+      tags: tags.length > 0 ? tags : undefined,
     });
   };
 
@@ -162,17 +199,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
         </div>
 
         <div className="space-y-1.5 col-span-2">
-          <Label htmlFor="tx-notes">Notes (optional)</Label>
-          <Textarea
-            id="tx-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="What was this for?"
-            rows={3}
-          />
-        </div>
-
-        <div className="space-y-1.5 col-span-2">
           <Label htmlFor="tx-currency">
             Currency{" "}
             <span className="text-muted-foreground font-normal">(optional — defaults to {globalCurrency})</span>
@@ -189,6 +215,49 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
               </option>
             ))}
           </Select>
+        </div>
+
+        <div className="space-y-1.5 col-span-2">
+          <Label htmlFor="tx-tags">Tags (optional)</Label>
+          {tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    aria-label={`Remove tag ${tag}`}
+                    onClick={() => removeTag(tag)}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <Input
+            id="tx-tags"
+            placeholder="Add tag..."
+            value={tagInput}
+            onChange={handleTagChange}
+            onKeyDown={handleTagKeyDown}
+          />
+          <p className="text-xs text-muted-foreground">Press Enter or comma to add a tag.</p>
+        </div>
+
+        <div className="space-y-1.5 col-span-2">
+          <Label htmlFor="tx-notes">Notes (optional)</Label>
+          <Textarea
+            id="tx-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="What was this for?"
+            rows={3}
+          />
         </div>
       </div>
 

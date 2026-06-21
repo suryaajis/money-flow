@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   LayoutDashboard,
+  PiggyBank,
   ScanLine,
   Tags,
   type LucideIcon,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
+  PiggyBank,
   ScanLine,
   Tags,
   BarChart3,
@@ -29,7 +31,7 @@ export const MobileNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   LayoutDashboard,
+  PiggyBank,
   ScanLine,
   Tags,
   Wallet,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
+  PiggyBank,
   ScanLine,
   Tags,
   BarChart3,

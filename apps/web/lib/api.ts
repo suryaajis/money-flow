@@ -133,3 +133,49 @@ export const transactionsApi = {
   bulkDelete: (ids: string[]) =>
     request<void>('/transactions/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) }),
 };
+
+// ── Recurring Transactions ────────────────────────────────────────────────────
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface ApiRecurring {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'income' | 'expense';
+  categoryId: string | null;
+  category?: ApiCategory;
+  frequency: RecurringFrequency;
+  startDate: string;
+  endDate: string | null;
+  nextRunDate: string;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateRecurringInput = Omit<
+  ApiRecurring,
+  'id' | 'userId' | 'category' | 'createdAt' | 'updatedAt' | 'nextRunDate'
+>;
+
+export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
+  isActive?: boolean;
+};
+
+export const recurringApi = {
+  getAll: () => request<ApiRecurring[]>('/recurring'),
+  create: (data: CreateRecurringInput) =>
+    request<ApiRecurring>('/recurring', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: UpdateRecurringInput) =>
+    request<ApiRecurring>(`/recurring/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    request<void>(`/recurring/${id}`, { method: 'DELETE' }),
+};

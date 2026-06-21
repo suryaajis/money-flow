@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Wallet, LogOut, User } from "lucide-react";
+import { Wallet, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { CurrencyToggle } from "@/components/layout/CurrencyToggle";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -14,6 +15,15 @@ function titleForPath(pathname: string): string {
     (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
   );
   return match?.label ?? "Money Flow";
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 }
 
 export const Header: React.FC = () => {
@@ -44,10 +54,18 @@ export const Header: React.FC = () => {
         <ThemeToggle />
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-border">
-            <span className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
-              <User className="h-3.5 w-3.5" />
-              {user.name}
-            </span>
+            <Link
+              href="/settings/profile"
+              title="Profil"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
+                {getInitials(user.name)}
+              </div>
+              <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
+                {user.name}
+              </span>
+            </Link>
             <button
               onClick={handleLogout}
               title="Keluar"

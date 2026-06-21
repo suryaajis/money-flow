@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
+import { NotificationScheduler } from "@/components/layout/NotificationScheduler";
 import { useAuthStore } from "@/store/authStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
@@ -43,6 +44,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </div>
         <MobileNav />
         <InstallPrompt />
+        <NotificationScheduler />
       </div>
     </ThemeProvider>
   );

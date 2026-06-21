@@ -11,6 +11,7 @@ import {
   PiggyBank,
   ScanLine,
   Tags,
+  UserCircle,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
   ScanLine,
   Tags,
   BarChart3,
+  UserCircle,
 };
 
 export const Sidebar: React.FC = () => {

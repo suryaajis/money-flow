@@ -9,6 +9,7 @@ import {
   PiggyBank,
   ScanLine,
   Tags,
+  UserCircle,
   type LucideIcon,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -21,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   ScanLine,
   Tags,
   BarChart3,
+  UserCircle,
 };
 
 export const MobileNav: React.FC = () => {

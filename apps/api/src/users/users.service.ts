@@ -29,4 +29,9 @@ export class UsersService {
   async findById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
   }
+
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await this.userRepository.update(userId, { password: hashed });
+  }
 }

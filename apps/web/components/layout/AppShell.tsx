@@ -13,6 +13,9 @@ import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useUIStore } from "@/store/uiStore";
 
+// Routes that render without the authenticated app chrome or the auth gate.
+const PUBLIC_ROUTES = ["/login", "/register"];
+
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -21,14 +24,22 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const fetchCategories = useCategoryStore((s) => s.fetchCategories);
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
 
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+
   useEffect(() => {
+    if (isPublicRoute) return;
     if (!token) {
       router.replace("/login");
       return;
     }
     fetchCategories();
     fetchTransactions();
-  }, [token, pathname, fetchCategories, fetchTransactions, router]);
+  }, [token, pathname, isPublicRoute, fetchCategories, fetchTransactions, router]);
+
+  // Login/register render on their own layout, without the sidebar/header shell.
+  if (isPublicRoute) {
+    return <ThemeProvider>{children}</ThemeProvider>;
+  }
 
   if (!token) return null;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Clock } from "lucide-react";
+import { Bell, BellOff, Clock, AlertTriangle } from "lucide-react";
 import { useNotificationStore, ALL_DAYS, type DayOfWeek } from "@/store/notificationStore";
 import { requestNotificationPermission, showDailyReminderNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,11 @@ export default function NotificationSettingsPage() {
     reminderEnabled,
     reminderTime,
     activeDays,
+    overBudgetEnabled,
     setReminderEnabled,
     setReminderTime,
     toggleDay,
+    setOverBudgetEnabled,
   } = useNotificationStore();
 
   const [permission, setPermission] = useState<NotificationPermission>("default");
@@ -121,6 +123,43 @@ export default function NotificationSettingsPage() {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Over-budget alert toggle */}
+      <div className="rounded-lg border p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-base font-semibold flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Over-budget Alert
+            </Label>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Get notified when spending exceeds a budget limit.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={overBudgetEnabled}
+            onClick={async () => {
+              if (!overBudgetEnabled) {
+                const p = await requestNotificationPermission();
+                setPermission(p);
+                if (p !== "granted") return;
+              }
+              setOverBudgetEnabled(!overBudgetEnabled);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              overBudgetEnabled ? "bg-primary" : "bg-input"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                overBudgetEnabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
         </div>
       </div>
 

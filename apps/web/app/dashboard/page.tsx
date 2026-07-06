@@ -5,7 +5,7 @@ import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SummaryCard } from "@/components/dashboard/SummaryCard";
-import { BalanceChart } from "@/components/dashboard/BalanceChart";
+import { TrendChart } from "@/components/analytics/TrendChart";
 import { CategoryPieChart } from "@/components/dashboard/CategoryPieChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -55,7 +55,7 @@ export default function DashboardPage() {
             <CardTitle>Monthly income vs expense</CardTitle>
           </CardHeader>
           <CardContent>
-            <BalanceChart data={monthly} />
+            <TrendChart data={monthly} />
           </CardContent>
         </Card>
         <Card>

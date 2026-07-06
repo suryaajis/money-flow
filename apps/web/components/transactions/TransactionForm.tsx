@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/hooks/useCategories";
 import { useUIStore } from "@/store/uiStore";
+import { useTransactionStore } from "@/store/transactionStore";
 import { CURRENCIES } from "@/lib/constants";
 import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
 import { todayISO } from "@/lib/utils";
@@ -33,6 +34,15 @@ interface TransactionFormProps {
 export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
   const { categories } = useCategories();
   const globalCurrency = useUIStore((s) => s.currency);
+  const { transactions: allTransactions } = useTransactionStore();
+
+  const allUsedTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const tx of allTransactions) {
+      for (const tag of tx.tags ?? []) set.add(tag);
+    }
+    return Array.from(set).sort();
+  }, [allTransactions]);
 
   const [amount, setAmount] = useState<string>(initial ? String(initial.amount) : "");
   const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
@@ -42,7 +52,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
   const [currency, setCurrency] = useState<CurrencyCode | null>(initial?.currency ?? null);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return [];
+    const query = tagInput.startsWith("#") ? tagInput : `#${tagInput}`;
+    return allUsedTags.filter((t) => t.startsWith(query) && !tags.includes(t)).slice(0, 6);
+  }, [tagInput, allUsedTags, tags]);
 
   // Only show categories valid for the chosen type. Default to first match.
   const validCategories = useMemo(
@@ -239,13 +256,36 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
               ))}
             </div>
           ) : null}
-          <Input
-            id="tx-tags"
-            placeholder="Add tag..."
-            value={tagInput}
-            onChange={handleTagChange}
-            onKeyDown={handleTagKeyDown}
-          />
+          <div className="relative">
+            <Input
+              id="tx-tags"
+              placeholder="Add tag..."
+              value={tagInput}
+              onChange={handleTagChange}
+              onKeyDown={handleTagKeyDown}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              autoComplete="off"
+            />
+            {showSuggestions && tagSuggestions.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-popover shadow-md">
+                {tagSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      addTag(suggestion);
+                      setShowSuggestions(false);
+                    }}
+                    className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground first:rounded-t-md last:rounded-b-md"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">Press Enter or comma to add a tag.</p>
         </div>
 

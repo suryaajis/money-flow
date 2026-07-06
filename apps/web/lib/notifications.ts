@@ -49,6 +49,33 @@ export function getTodayLabel(): string {
   return DAY_MAP[new Date().getDay()];
 }
 
+export async function showOverBudgetNotification(
+  categoryName: string,
+  spent: number,
+  limit: number,
+): Promise<void> {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  const pct = Math.round((spent / limit) * 100);
+  const body = `${categoryName}: ${pct}% dari anggaran terpakai. Segera tinjau pengeluaranmu.`;
+
+  const registration = await navigator.serviceWorker?.ready;
+  if (registration) {
+    await registration.showNotification("Anggaran Terlampaui! ⚠️", {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: `over-budget-${categoryName}`,
+    });
+  } else {
+    new Notification("Anggaran Terlampaui! ⚠️", {
+      body,
+      icon: "/icons/icon-192.png",
+    });
+  }
+}
+
 /**
  * Returns milliseconds until the next occurrence of HH:MM today (or tomorrow
  * if that time has already passed today).

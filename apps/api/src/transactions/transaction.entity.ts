@@ -30,6 +30,9 @@ export class Transaction {
   @Column({ nullable: true, type: 'text' })
   notes: string;
 
+  @Column({ nullable: true, length: 3, default: null })
+  currency: string | null;
+
   @Column()
   userId: string;
 

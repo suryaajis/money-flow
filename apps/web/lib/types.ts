@@ -21,6 +21,7 @@ export interface Transaction {
   categoryId: string;
   date: string; // ISO 8601 (YYYY-MM-DD or full ISO datetime)
   notes?: string;
+  currency?: CurrencyCode | null; // optional per-transaction currency; null means use global setting
   createdAt: string;
   updatedAt: string;
 }
@@ -57,7 +58,7 @@ export interface CategoryAggregate {
 
 export type Theme = "light" | "dark" | "system";
 
-export type CurrencyCode = "IDR" | "USD";
+export type CurrencyCode = "IDR" | "USD" | "EUR" | "SGD" | "MYR" | "JPY" | "GBP";
 
 export interface CurrencyConfig {
   code: CurrencyCode;

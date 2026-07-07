@@ -57,4 +57,5 @@ export const NAV_ITEMS = [
   { href: "/import", label: "Import", icon: "ScanLine" },
   { href: "/categories", label: "Categories", icon: "Tags" },
   { href: "/analytics", label: "Analytics", icon: "BarChart3" },
+  { href: "/settings/profile", label: "Profile", icon: "UserCircle" },
 ] as const;

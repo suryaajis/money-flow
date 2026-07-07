@@ -64,6 +64,18 @@ export const authApi = {
   me: () => request<AuthUser>('/auth/me'),
 };
 
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get: () => request<AuthUser>('/users/profile'),
+  updateName: (name: string) =>
+    request<AuthUser>('/users/profile', { method: 'PUT', body: JSON.stringify({ name }) }),
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request<void>('/users/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+  deleteAccount: () =>
+    request<void>('/users/account', { method: 'DELETE' }),
+};
+
 // ── Budgets ───────────────────────────────────────────────────────────────────
 
 export interface ApiBudget {

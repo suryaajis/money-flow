@@ -11,8 +11,9 @@ export function applyFilters(
   transactions: Transaction[],
   filters: TransactionFilters,
 ): Transaction[] {
-  const { dateFrom, dateTo, categoryId, type, searchQuery } = filters;
+  const { dateFrom, dateTo, categoryId, type, searchQuery, tag } = filters;
   const search = searchQuery?.toLowerCase().trim();
+  const tagFilter = tag?.toLowerCase().trim();
 
   return transactions.filter((tx) => {
     if (type && type !== "all" && tx.type !== type) return false;
@@ -22,6 +23,9 @@ export function applyFilters(
     if (search) {
       const haystack = `${tx.notes ?? ""}`.toLowerCase();
       if (!haystack.includes(search)) return false;
+    }
+    if (tagFilter) {
+      if (!tx.tags?.some((t) => t.toLowerCase().includes(tagFilter))) return false;
     }
     return true;
   });

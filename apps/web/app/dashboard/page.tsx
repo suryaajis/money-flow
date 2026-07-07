@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,16 @@ import { SummaryCard } from "@/components/dashboard/SummaryCard";
 import { BalanceChart } from "@/components/dashboard/BalanceChart";
 import { CategoryPieChart } from "@/components/dashboard/CategoryPieChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { BudgetOverviewWidget } from "@/components/dashboard/BudgetOverviewWidget";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useBudgetStore } from "@/store/budgetStore";
 
 export default function DashboardPage() {
   const { summary, monthly, expenseByCategory } = useAnalytics({ months: 6 });
+  const { budgets, fetchBudgets } = useBudgetStore();
+
+  // Fetch budgets for the current month on mount
+  useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
   return (
     <div className="space-y-6">
@@ -67,6 +74,17 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {budgets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Budget this month</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BudgetOverviewWidget />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

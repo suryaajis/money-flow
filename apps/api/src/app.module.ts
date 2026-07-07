@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BudgetsModule } from './budgets/budgets.module';
+import { BackupModule } from './backup/backup.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { User } from './users/user.entity';
 import { Category } from './categories/category.entity';
@@ -37,6 +38,7 @@ import { RecurringTransaction } from './recurring/recurring-transaction.entity';
     CategoriesModule,
     TransactionsModule,
     BudgetsModule,
+    BackupModule,
     RecurringModule,
   ],
 })

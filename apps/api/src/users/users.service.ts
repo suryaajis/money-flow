@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -33,5 +33,21 @@ export class UsersService {
   async updatePassword(userId: string, newPassword: string): Promise<void> {
     const hashed = await bcrypt.hash(newPassword, 12);
     await this.userRepository.update(userId, { password: hashed });
+  }
+
+  async updateName(userId: string, name: string): Promise<User> {
+    await this.userRepository.update(userId, { name });
+    return this.userRepository.findOneOrFail({ where: { id: userId } });
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOneOrFail({ where: { id: userId } });
+    const valid = await bcrypt.compare(oldPassword, user.password);
+    if (!valid) throw new UnauthorizedException('Password lama tidak sesuai');
+    await this.updatePassword(userId, newPassword);
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    await this.userRepository.delete(userId);
   }
 }

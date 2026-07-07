@@ -44,6 +44,20 @@ export default function AnalyticsPage() {
 
   const topCategory = expenseByCategory[0];
 
+  // TAG-04: aggregate expense amount by tag
+  const expenseByTag = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const tx of inRange) {
+      if (tx.type !== "expense") continue;
+      for (const tag of tx.tags ?? []) {
+        map.set(tag, (map.get(tag) ?? 0) + tx.amount);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([tag, total]) => ({ tag, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [inRange]);
+
   const momTone = momChange === null
     ? "neutral"
     : momChange.delta >= 0
@@ -147,6 +161,38 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+      {expenseByTag.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pengeluaran per tag</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Breakdown pengeluaran berdasarkan tag transaksi.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expenseByTag.slice(0, 8).map(({ tag, total }) => {
+                const max = expenseByTag[0].total;
+                const pct = max > 0 ? (total / max) * 100 : 0;
+                return (
+                  <div key={tag} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-muted-foreground">{tag}</span>
+                      <span>{fmt(total)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -9,8 +9,10 @@ import {
   ChevronRight,
   LayoutDashboard,
   PiggyBank,
+  Repeat,
   ScanLine,
   Tags,
+  UserCircle,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -22,9 +24,11 @@ const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
   PiggyBank,
+  Repeat,
   ScanLine,
   Tags,
   BarChart3,
+  UserCircle,
 };
 
 export const Sidebar: React.FC = () => {

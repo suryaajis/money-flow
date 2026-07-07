@@ -126,6 +126,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 onClick={() => setSort("type")}
               />
               <th className="px-3 py-2 font-medium">Notes</th>
+              <th className="px-3 py-2 font-medium">Tags</th>
               <SortableHeader
                 label="Amount"
                 active={sortKey === "amount"}
@@ -171,6 +172,22 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   </td>
                   <td className="px-3 py-2.5 align-middle max-w-[280px] truncate text-muted-foreground">
                     {tx.notes || "—"}
+                  </td>
+                  <td className="px-3 py-2.5 align-middle">
+                    {tx.tags && tx.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {tx.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td
                     className={cn(

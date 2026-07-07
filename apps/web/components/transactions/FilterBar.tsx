@@ -17,7 +17,8 @@ export const FilterBar: React.FC = () => {
     !!filters.dateTo ||
     !!filters.categoryId ||
     (filters.type && filters.type !== "all") ||
-    !!filters.searchQuery;
+    !!filters.searchQuery ||
+    !!filters.tag;
 
   return (
     <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
@@ -66,6 +67,13 @@ export const FilterBar: React.FC = () => {
           onChange={(e) => setFilters({ dateTo: e.target.value || undefined })}
         />
       </div>
+      <Input
+        aria-label="Filter by tag"
+        placeholder="Filter by tag..."
+        value={filters.tag ?? ""}
+        onChange={(e) => setFilters({ tag: e.target.value || undefined })}
+        className="lg:col-span-5"
+      />
 
       {hasActiveFilters ? (
         <div className="sm:col-span-2 lg:col-span-5 flex justify-end">

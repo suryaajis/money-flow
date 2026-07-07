@@ -62,6 +62,24 @@ export const authApi = {
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
 
   me: () => request<AuthUser>('/auth/me'),
+
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+};
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get: () => request<AuthUser>('/users/profile'),
+  updateName: (name: string) =>
+    request<AuthUser>('/users/profile', { method: 'PUT', body: JSON.stringify({ name }) }),
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request<void>('/users/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+  deleteAccount: () =>
+    request<void>('/users/account', { method: 'DELETE' }),
 };
 
 // ── Budgets ───────────────────────────────────────────────────────────────────
@@ -150,4 +168,48 @@ export const backupApi = {
       method: 'POST',
       body: JSON.stringify({ data, mode }),
     }),
+// ── Recurring Transactions ────────────────────────────────────────────────────
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface ApiRecurring {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'income' | 'expense';
+  categoryId: string | null;
+  category?: ApiCategory;
+  frequency: RecurringFrequency;
+  startDate: string;
+  endDate: string | null;
+  nextRunDate: string;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateRecurringInput = Omit<
+  ApiRecurring,
+  'id' | 'userId' | 'category' | 'createdAt' | 'updatedAt' | 'nextRunDate'
+>;
+
+export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
+  isActive?: boolean;
+};
+
+export const recurringApi = {
+  getAll: () => request<ApiRecurring[]>('/recurring'),
+  create: (data: CreateRecurringInput) =>
+    request<ApiRecurring>('/recurring', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: UpdateRecurringInput) =>
+    request<ApiRecurring>(`/recurring/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    request<void>(`/recurring/${id}`, { method: 'DELETE' }),
 };

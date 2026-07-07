@@ -22,6 +22,7 @@ export interface Transaction {
   date: string; // ISO 8601 (YYYY-MM-DD or full ISO datetime)
   notes?: string;
   currency?: CurrencyCode | null; // optional per-transaction currency; null means use global setting
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -32,6 +33,7 @@ export interface TransactionFilters {
   categoryId?: string;
   type?: TransactionType | "all";
   searchQuery?: string;
+  tag?: string;
 }
 
 export interface FinancialSummary {

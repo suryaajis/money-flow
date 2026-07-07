@@ -7,8 +7,10 @@ import {
   BarChart3,
   LayoutDashboard,
   PiggyBank,
+  Repeat,
   ScanLine,
   Tags,
+  UserCircle,
   type LucideIcon,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -18,9 +20,11 @@ const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   ArrowLeftRight,
   PiggyBank,
+  Repeat,
   ScanLine,
   Tags,
   BarChart3,
+  UserCircle,
 };
 
 export const MobileNav: React.FC = () => {
@@ -31,7 +35,7 @@ export const MobileNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-6">
+      <ul className="grid grid-cols-7">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

@@ -6,11 +6,13 @@ import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BudgetsModule } from './budgets/budgets.module';
+import { RecurringModule } from './recurring/recurring.module';
 import { User } from './users/user.entity';
 import { Category } from './categories/category.entity';
 import { Transaction } from './transactions/transaction.entity';
 import { Budget } from './budgets/budget.entity';
 import { PasswordResetToken } from './auth/password-reset-token.entity';
+import { RecurringTransaction } from './recurring/recurring-transaction.entity';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { PasswordResetToken } from './auth/password-reset-token.entity';
         username: config.get<string>('DB_USERNAME', 'postgres'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'money_flow'),
-        entities: [User, Category, Transaction, Budget, PasswordResetToken],
+        entities: [User, Category, Transaction, Budget, PasswordResetToken, RecurringTransaction],
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('NODE_ENV') === 'development',
       }),
@@ -35,6 +37,7 @@ import { PasswordResetToken } from './auth/password-reset-token.entity';
     CategoriesModule,
     TransactionsModule,
     BudgetsModule,
+    RecurringModule,
   ],
 })
 export class AppModule {}

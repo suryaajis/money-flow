@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/hooks/useCategories";
-import type { Transaction, TransactionType } from "@/lib/types";
+import { useUIStore } from "@/store/uiStore";
+import { CURRENCIES } from "@/lib/constants";
+import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
 import { todayISO } from "@/lib/utils";
 
 export interface TransactionFormValues {
@@ -17,6 +19,7 @@ export interface TransactionFormValues {
   categoryId: string;
   date: string;
   notes?: string;
+  currency?: CurrencyCode | null;
 }
 
 interface TransactionFormProps {
@@ -28,12 +31,14 @@ interface TransactionFormProps {
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
   const { categories } = useCategories();
+  const globalCurrency = useUIStore((s) => s.currency);
 
   const [amount, setAmount] = useState<string>(initial ? String(initial.amount) : "");
   const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? "");
   const [date, setDate] = useState<string>(initial?.date ?? todayISO());
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
+  const [currency, setCurrency] = useState<CurrencyCode | null>(initial?.currency ?? null);
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
 
   // Only show categories valid for the chosen type. Default to first match.
@@ -72,6 +77,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       categoryId: selectedCategoryId,
       date,
       notes: notes.trim() || undefined,
+      currency: currency ?? null,
     });
   };
 
@@ -164,6 +170,25 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
             placeholder="What was this for?"
             rows={3}
           />
+        </div>
+
+        <div className="space-y-1.5 col-span-2">
+          <Label htmlFor="tx-currency">
+            Currency{" "}
+            <span className="text-muted-foreground font-normal">(optional — defaults to {globalCurrency})</span>
+          </Label>
+          <Select
+            id="tx-currency"
+            value={currency ?? ""}
+            onChange={(e) => setCurrency((e.target.value as CurrencyCode) || null)}
+          >
+            <option value="">Use global ({globalCurrency})</option>
+            {Object.values(CURRENCIES).map((cfg) => (
+              <option key={cfg.code} value={cfg.code}>
+                {cfg.code} — {cfg.symbol}
+              </option>
+            ))}
+          </Select>
         </div>
       </div>
 

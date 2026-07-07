@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsIn, IsOptional, IsDateString, Min } from 'class-validator';
+import { IsString, IsNumber, IsIn, IsOptional, IsDateString, Min, Length } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber()
@@ -17,4 +17,9 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(3, 3)
+  currency?: string;
 }

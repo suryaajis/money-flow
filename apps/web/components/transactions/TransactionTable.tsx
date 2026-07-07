@@ -181,6 +181,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                     )}
                   >
                     {fmtSigned(tx.amount, tx.type)}
+                    {tx.currency && tx.currency !== "IDR" && (
+                      <span className="ml-1 text-xs text-muted-foreground">≈ {tx.currency}</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 align-middle text-right">
                     <div className="flex justify-end gap-1">

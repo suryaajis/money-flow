@@ -44,6 +44,12 @@ export class Transaction {
   @Column({ type: 'simple-array', nullable: true, default: null })
   tags: string[];
 
+  @Column({ nullable: true, length: 20, default: 'web' })
+  source: string;
+
+  @Column({ nullable: true })
+  recordedBy: string | null;
+
   @Column()
   userId: string;
 

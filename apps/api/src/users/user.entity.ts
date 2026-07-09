@@ -23,6 +23,12 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ nullable: true, unique: true, length: 20 })
+  waPhone: string | null;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  waLinkedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,19 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Category } from '../categories/category.entity';
 
 export interface ParsedTransaction {
   amount: number;
   type: 'income' | 'expense';
-  categoryName: string;
+  categoryId: string | null;
   date: string;
-  notes: string;
-  confidence: number;
+  notes: string | null;
 }
 
 export interface ParseResult {
   transactions: ParsedTransaction[];
-  needsClarification: boolean;
-  clarificationQuestion?: string;
 }
 
 @Injectable()
@@ -22,135 +20,138 @@ export class MessageParserService {
   private genAI: any = null;
 
   constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('GEMINI_API_KEY');
+    const apiKey = config.get<string>('GEMINI_API_KEY', '');
     if (apiKey) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { GoogleGenerativeAI } = require('@google/generative-ai');
         this.genAI = new GoogleGenerativeAI(apiKey);
       } catch {
-        this.logger.warn('Failed to initialize Gemini AI, falling back to rule-based parser');
+        this.logger.warn('Failed to load @google/generative-ai, using rule-based fallback');
       }
     } else {
-      this.logger.warn('GEMINI_API_KEY not set, using rule-based parser');
+      this.logger.warn('GEMINI_API_KEY not set — using rule-based fallback parser');
     }
   }
 
-  async parse(
-    message: string,
-    categories: string[],
-    today: string,
-  ): Promise<ParseResult> {
+  async parse(text: string, categories: Category[], now: Date): Promise<ParseResult> {
     if (this.genAI) {
       try {
-        return await this.parseWithGemini(message, categories, today);
+        return await this.parseWithGemini(text, categories, now);
       } catch (err) {
-        this.logger.error('Gemini parse failed, falling back to rule-based', err);
+        this.logger.warn('Gemini parse failed, falling back to rule-based', err?.message);
       }
     }
-    return this.ruleBasedParse(message, today);
+    return this.parseRuleBased(text, categories, now);
   }
 
-  private async parseWithGemini(
-    message: string,
-    categories: string[],
-    today: string,
-  ): Promise<ParseResult> {
+  private async parseWithGemini(text: string, categories: Category[], now: Date): Promise<ParseResult> {
     const model = this.genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
     });
 
-    const prompt = `You are a financial transaction parser for an Indonesian personal finance app.
-Today's date: ${today}
+    const todayStr = now.toISOString().split('T')[0];
+    const catList = categories.map(c => `${c.id}:${c.name}(${c.type})`).join(', ');
 
-Available categories: ${categories.join(', ')}
+    const prompt = `Parse pesan keuangan dalam Bahasa Indonesia berikut menjadi JSON transaksi.
 
-Parse the user's message into financial transactions.
+Pesan: "${text}"
+Tanggal hari ini: ${todayStr}
+Kategori tersedia (id:nama:tipe): ${catList}
 
-Rules:
-- Amount formats: 15rb/15k/15ribu = 15000, 1jt/1juta = 1000000, 1.5jt = 1500000
-- Income indicators: +, "gajian", "gaji", "terima", "dapat", "masuk", "transfer masuk", "bayaran"
-- Expense is default if no income indicator
-- Date parsing: "kemarin" = yesterday, "tadi pagi" = today, "2 hari lalu" = 2 days ago, "senin lalu" = last monday
-- Auto-classify to closest category from the list
-- If multiple transactions in one message, parse all of them
-- confidence: 0.0-1.0 (use < 0.7 if amount or category is unclear)
+Aturan parsing:
+- "rb/ribu/k" = × 1.000, "jt/juta" = × 1.000.000, "M/miliar" = × 1.000.000.000
+- Awalan "+" atau kata (gajian, terima, dapat, masuk, bayaran) = income; sisanya = expense
+- Pilih categoryId yang paling sesuai dari daftar; null jika tidak yakin
+- "kemarin" = hari sebelumnya, "tadi" / "pagi ini" = hari ini
+- Satu pesan bisa berisi beberapa transaksi (dipisah koma/titik koma)
 
-Return JSON only:
+Format output JSON:
 {
   "transactions": [
     {
-      "amount": number,
-      "type": "income" | "expense",
-      "categoryName": "string (from available categories or best guess)",
-      "date": "YYYY-MM-DD",
-      "notes": "string",
-      "confidence": number
+      "amount": 15000,
+      "type": "expense",
+      "categoryId": "uuid-or-null",
+      "date": "${todayStr}",
+      "notes": "kopi"
     }
-  ],
-  "needsClarification": boolean,
-  "clarificationQuestion": "string or null"
-}
-
-User message: "${message}"`;
+  ]
+}`;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    return JSON.parse(text);
+    const responseText = result.response.text();
+    return JSON.parse(responseText) as ParseResult;
   }
 
-  private ruleBasedParse(message: string, today: string): ParseResult {
-    const normalized = message.toLowerCase().trim();
+  private parseRuleBased(text: string, categories: Category[], now: Date): ParseResult {
+    const todayStr = now.toISOString().split('T')[0];
+    const transactions: ParsedTransaction[] = [];
 
-    // Parse amount
-    const amountMatch = normalized.match(
-      /(\+?)([\d,.]+)\s*(rb|ribu|k|jt|juta|m|miliar)?/,
-    );
-    if (!amountMatch) {
-      return {
-        transactions: [],
-        needsClarification: true,
-        clarificationQuestion: 'Maaf, aku tidak bisa mendeteksi jumlah. Coba format: "kopi 15rb" atau "gajian 5jt"',
-      };
+    const parts = text.split(/,|;/).map(p => p.trim()).filter(Boolean);
+    for (const part of parts) {
+      const tx = this.parseOnePart(part, categories, todayStr);
+      if (tx) transactions.push(tx);
     }
 
-    const isIncome =
-      normalized.startsWith('+') ||
-      /\b(gajian?|terima|dapat|masuk|bayaran|transfer masuk)\b/.test(normalized);
+    return { transactions };
+  }
 
-    let amount = parseFloat(amountMatch[2].replace(',', '.').replace('.', ''));
-    if (isNaN(amount)) amount = 0;
-    const unit = amountMatch[3];
-    if (unit === 'rb' || unit === 'ribu' || unit === 'k') amount *= 1000;
-    else if (unit === 'jt' || unit === 'juta') amount *= 1_000_000;
-    else if (unit === 'm' || unit === 'miliar') amount *= 1_000_000_000;
+  private parseOnePart(text: string, categories: Category[], todayStr: string): ParsedTransaction | null {
+    const lower = text.toLowerCase();
 
-    // Rule-based category
-    let categoryName = 'Lainnya';
-    if (/\b(kopi|makan|minum|resto|warung|siang|malam|sarapan)\b/.test(normalized)) categoryName = 'Makanan';
-    else if (/\b(bensin|bbm|parkir|tol|ojek|grab|gojek|bus|kereta|transport)\b/.test(normalized)) categoryName = 'Transport';
-    else if (/\b(listrik|air|internet|wifi|telpon|pulsa|token)\b/.test(normalized)) categoryName = 'Tagihan';
-    else if (/\b(baju|sepatu|celana|belanja|mall|toko)\b/.test(normalized)) categoryName = 'Belanja';
-    else if (/\b(gajian?|gaji|salary)\b/.test(normalized)) categoryName = 'Gaji';
-    else if (/\b(hiburan|nonton|bioskop|game)\b/.test(normalized)) categoryName = 'Hiburan';
-    else if (/\b(kesehatan|obat|dokter|apotik|rumah sakit)\b/.test(normalized)) categoryName = 'Kesehatan';
+    const amountMatch = lower.match(/(\d+[.,]?\d*)\s*(rb|ribu|k|jt|juta|m|miliar)?/i);
+    if (!amountMatch) return null;
 
-    // Date
-    let date = today;
-    if (/kemarin/.test(normalized)) {
-      const d = new Date(today);
+    let amount = parseFloat(amountMatch[1].replace(',', '.'));
+    const unit = (amountMatch[2] || '').toLowerCase();
+    if (['rb', 'ribu', 'k'].includes(unit)) amount *= 1000;
+    else if (['jt', 'juta'].includes(unit)) amount *= 1_000_000;
+    else if (['m', 'miliar'].includes(unit)) amount *= 1_000_000_000;
+
+    const incomeWords = ['gajian', 'gaji', 'terima', 'dapat', 'masuk', 'bayaran', 'fee', 'honor'];
+    const type: 'income' | 'expense' =
+      lower.startsWith('+') || incomeWords.some(w => lower.includes(w)) ? 'income' : 'expense';
+
+    const keywordMap: Record<string, string[]> = {
+      Makanan: ['makan', 'kopi', 'nasi', 'soto', 'bakso', 'mie', 'pizza', 'ayam', 'snack', 'minum', 'warung'],
+      Transport: ['bensin', 'grab', 'gojek', 'ojek', 'taxi', 'parkir', 'tol', 'bus', 'kereta', 'bbm'],
+      Belanja: ['beli', 'baju', 'sepatu', 'tokped', 'shopee', 'lazada'],
+      Tagihan: ['listrik', 'air', 'internet', 'wifi', 'bayar', 'cicilan', 'pulsa', 'token'],
+      Gaji: ['gajian', 'gaji', 'salary'],
+      Hiburan: ['nonton', 'bioskop', 'game', 'netflix', 'spotify', 'hiburan'],
+      Kesehatan: ['dokter', 'obat', 'apotek', 'rs', 'rumah sakit'],
+    };
+
+    let categoryId: string | null = null;
+    const targetType = type === 'income' ? ['income', 'both'] : ['expense', 'both'];
+    const validCats = categories.filter(c => targetType.includes(c.type));
+
+    for (const [catName, keywords] of Object.entries(keywordMap)) {
+      if (keywords.some(kw => lower.includes(kw))) {
+        const matched = validCats.find(c => c.name.toLowerCase().includes(catName.toLowerCase()));
+        if (matched) { categoryId = matched.id; break; }
+      }
+    }
+
+    if (type === 'income' && !categoryId) {
+      const salaryCat = validCats.find(
+        c => c.name.toLowerCase().includes('gaji') || c.name.toLowerCase().includes('salary'),
+      );
+      if (salaryCat) categoryId = salaryCat.id;
+    }
+
+    // Date parsing
+    let date = todayStr;
+    if (lower.includes('kemarin')) {
+      const d = new Date(todayStr);
       d.setDate(d.getDate() - 1);
       date = d.toISOString().split('T')[0];
     }
 
-    const notes = message.replace(/[\d,.]+\s*(rb|ribu|k|jt|juta|m|miliar)?/gi, '').trim();
+    const notes = text.replace(amountMatch[0], '').replace(/^[+\-\s]+/, '').trim() || null;
 
-    return {
-      transactions: [
-        { amount, type: isIncome ? 'income' : 'expense', categoryName, date, notes, confidence: 0.7 },
-      ],
-      needsClarification: false,
-    };
+    return { amount, type, categoryId, date, notes };
   }
 }

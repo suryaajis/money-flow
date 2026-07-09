@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
   BarChart3,
+  HandCoins,
   LayoutDashboard,
   PiggyBank,
   Repeat,
@@ -21,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight,
   PiggyBank,
   Repeat,
+  HandCoins,
   ScanLine,
   Tags,
   BarChart3,
@@ -35,7 +37,7 @@ export const MobileNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-7">
+      <ul className="grid grid-cols-8">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

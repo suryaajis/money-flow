@@ -23,17 +23,17 @@ export class User {
   @Column()
   password: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
   @Column({ nullable: true, unique: true, length: 20 })
   waPhone: string | null;
 
   @Column({ nullable: true, type: 'timestamp' })
   waLinkedAt: Date | null;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   transactions: Transaction[];

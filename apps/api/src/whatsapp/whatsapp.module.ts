@@ -12,7 +12,8 @@ import { WhatsappSettingsController } from './whatsapp.controller.settings';
 
 @Module({
   imports: [TypeOrmModule.forFeature([WaSession, User, Transaction, Category])],
-  providers: [WaNotifierService, MessageParserService, WhatsappService],
   controllers: [WhatsappController, WhatsappSettingsController],
+  providers: [WhatsappService, WaNotifierService, MessageParserService],
+  exports: [WhatsappService, WaNotifierService],
 })
 export class WhatsappModule {}

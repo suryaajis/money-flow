@@ -22,7 +22,7 @@ export class WalletMember {
   owner: User;
 
   // The member who was invited (null until they accept)
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   memberUserId: string | null;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
@@ -30,14 +30,14 @@ export class WalletMember {
   member: User | null;
 
   // Invite target (before account exists)
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   memberEmail: string | null;
 
-  @Column({ nullable: true, length: 20 })
+  @Column({ type: 'varchar', nullable: true, length: 20 })
   memberWaPhone: string | null;
 
   // 64-char hex token, cleared once accepted
-  @Column({ nullable: true, length: 64 })
+  @Column({ type: 'varchar', nullable: true, length: 64 })
   inviteToken: string | null;
 
   @Column({ nullable: true, type: 'timestamp' })

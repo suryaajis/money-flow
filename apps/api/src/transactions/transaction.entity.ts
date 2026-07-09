@@ -44,10 +44,11 @@ export class Transaction {
   @Column({ type: 'simple-array', nullable: true, default: null })
   tags: string[];
 
-  @Column({ nullable: true, length: 20, default: 'web' })
+  // Where the transaction was recorded from: 'web' (default) or 'whatsapp'.
+  @Column({ type: 'varchar', nullable: true, length: 20, default: 'web' })
   source: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   recordedBy: string | null;
 
   @Column()

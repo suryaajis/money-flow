@@ -8,6 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { numericTransformer } from '../database/numeric.transformer';
 
 @Entity('debts')
 export class Debt {
@@ -25,7 +26,12 @@ export class Debt {
   @Column({ type: 'enum', enum: ['owed_to_me', 'i_owe'] })
   direction: 'owed_to_me' | 'i_owe';
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: numericTransformer,
+  })
   amount: number;
 
   @Column()

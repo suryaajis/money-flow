@@ -215,3 +215,31 @@ export const recurringApi = {
   delete: (id: string) =>
     request<void>(`/recurring/${id}`, { method: 'DELETE' }),
 };
+
+// ── Shared Wallet ─────────────────────────────────────────────────────────────
+
+export interface ApiWalletMember {
+  id: string;
+  ownerUserId: string;
+  memberUserId: string | null;
+  memberEmail: string | null;
+  memberWaPhone: string | null;
+  inviteToken: string | null;
+  acceptedAt: string | null;
+  createdAt: string;
+  owner?: { id: string; name: string; email: string };
+  member?: { id: string; name: string; email: string } | null;
+}
+
+export const sharedWalletApi = {
+  getMyMembers: () => request<ApiWalletMember[]>('/shared-wallet/members'),
+  getSharedWithMe: () => request<ApiWalletMember[]>('/shared-wallet/shared-with-me'),
+  invite: (email: string) =>
+    request<ApiWalletMember>('/shared-wallet/invite', { method: 'POST', body: JSON.stringify({ email }) }),
+  accept: (token: string) =>
+    request<ApiWalletMember>(`/shared-wallet/accept/${token}`, { method: 'POST' }),
+  removeMember: (id: string) =>
+    request<void>(`/shared-wallet/members/${id}`, { method: 'DELETE' }),
+  leave: (id: string) =>
+    request<void>(`/shared-wallet/leave/${id}`, { method: 'DELETE' }),
+};

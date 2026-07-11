@@ -1,25 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Category } from '../categories/category.entity';
+import {
+  TemplateParserService,
+  ParseResult,
+  ParsedTransaction,
+} from './template-parser.service';
 
-export interface ParsedTransaction {
-  amount: number;
-  type: 'income' | 'expense';
-  categoryId: string | null;
-  date: string;
-  notes: string | null;
-}
-
-export interface ParseResult {
-  transactions: ParsedTransaction[];
-}
+export { ParseResult, ParsedTransaction };
 
 @Injectable()
 export class MessageParserService {
   private readonly logger = new Logger(MessageParserService.name);
   private genAI: any = null;
 
-  constructor(private config: ConfigService) {
+  // When Gemini reports it is out of quota / rate-limited, skip it until this
+  // timestamp so we don't burn requests and every message is answered instantly
+  // by the template parser. Reset automatically once the cooldown elapses.
+  private geminiCooldownUntil = 0;
+  private static readonly COOLDOWN_MS = 60 * 1000; // 1 minute default backoff
+
+  constructor(
+    private config: ConfigService,
+    private readonly templateParser: TemplateParserService,
+  ) {
     const apiKey = config.get<string>('GEMINI_API_KEY', '');
     if (apiKey) {
       try {
@@ -27,22 +31,55 @@ export class MessageParserService {
         const { GoogleGenerativeAI } = require('@google/generative-ai');
         this.genAI = new GoogleGenerativeAI(apiKey);
       } catch {
-        this.logger.warn('Failed to load @google/generative-ai, using rule-based fallback');
+        this.logger.warn('Failed to load @google/generative-ai — using template parser only');
       }
     } else {
-      this.logger.warn('GEMINI_API_KEY not set — using rule-based fallback parser');
+      this.logger.warn('GEMINI_API_KEY not set — using template parser only');
     }
   }
 
   async parse(text: string, categories: Category[], now: Date): Promise<ParseResult> {
-    if (this.genAI) {
+    if (this.canUseGemini()) {
       try {
-        return await this.parseWithGemini(text, categories, now);
+        const result = await this.parseWithGemini(text, categories, now);
+        // Guard against Gemini returning an empty/garbage result — fall back.
+        if (result?.transactions?.length) return result;
+        this.logger.debug('Gemini returned no transactions, using template parser');
       } catch (err) {
-        this.logger.warn('Gemini parse failed, falling back to rule-based', err?.message);
+        this.handleGeminiError(err);
       }
     }
-    return this.parseRuleBased(text, categories, now);
+    // Non-AI fallback: always available, no rate limit.
+    return this.templateParser.parse(text, categories, now);
+  }
+
+  private canUseGemini(): boolean {
+    if (!this.genAI) return false;
+    if (Date.now() < this.geminiCooldownUntil) return false;
+    return true;
+  }
+
+  private handleGeminiError(err: any): void {
+    const status = err?.status ?? err?.response?.status;
+    const message = String(err?.message ?? '').toLowerCase();
+    const isQuota =
+      status === 429 ||
+      message.includes('429') ||
+      message.includes('quota') ||
+      message.includes('rate limit') ||
+      message.includes('resource has been exhausted') ||
+      message.includes('exceeded');
+
+    if (isQuota) {
+      this.geminiCooldownUntil = Date.now() + MessageParserService.COOLDOWN_MS;
+      this.logger.warn(
+        `Gemini quota/rate limit hit — switching to template parser for ${
+          MessageParserService.COOLDOWN_MS / 1000
+        }s`,
+      );
+    } else {
+      this.logger.warn(`Gemini parse failed (${status ?? 'unknown'}), using template parser`);
+    }
   }
 
   private async parseWithGemini(text: string, categories: Category[], now: Date): Promise<ParseResult> {
@@ -83,75 +120,5 @@ Format output JSON:
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     return JSON.parse(responseText) as ParseResult;
-  }
-
-  private parseRuleBased(text: string, categories: Category[], now: Date): ParseResult {
-    const todayStr = now.toISOString().split('T')[0];
-    const transactions: ParsedTransaction[] = [];
-
-    const parts = text.split(/,|;/).map(p => p.trim()).filter(Boolean);
-    for (const part of parts) {
-      const tx = this.parseOnePart(part, categories, todayStr);
-      if (tx) transactions.push(tx);
-    }
-
-    return { transactions };
-  }
-
-  private parseOnePart(text: string, categories: Category[], todayStr: string): ParsedTransaction | null {
-    const lower = text.toLowerCase();
-
-    const amountMatch = lower.match(/(\d+[.,]?\d*)\s*(rb|ribu|k|jt|juta|m|miliar)?/i);
-    if (!amountMatch) return null;
-
-    let amount = parseFloat(amountMatch[1].replace(',', '.'));
-    const unit = (amountMatch[2] || '').toLowerCase();
-    if (['rb', 'ribu', 'k'].includes(unit)) amount *= 1000;
-    else if (['jt', 'juta'].includes(unit)) amount *= 1_000_000;
-    else if (['m', 'miliar'].includes(unit)) amount *= 1_000_000_000;
-
-    const incomeWords = ['gajian', 'gaji', 'terima', 'dapat', 'masuk', 'bayaran', 'fee', 'honor'];
-    const type: 'income' | 'expense' =
-      lower.startsWith('+') || incomeWords.some(w => lower.includes(w)) ? 'income' : 'expense';
-
-    const keywordMap: Record<string, string[]> = {
-      Makanan: ['makan', 'kopi', 'nasi', 'soto', 'bakso', 'mie', 'pizza', 'ayam', 'snack', 'minum', 'warung'],
-      Transport: ['bensin', 'grab', 'gojek', 'ojek', 'taxi', 'parkir', 'tol', 'bus', 'kereta', 'bbm'],
-      Belanja: ['beli', 'baju', 'sepatu', 'tokped', 'shopee', 'lazada'],
-      Tagihan: ['listrik', 'air', 'internet', 'wifi', 'bayar', 'cicilan', 'pulsa', 'token'],
-      Gaji: ['gajian', 'gaji', 'salary'],
-      Hiburan: ['nonton', 'bioskop', 'game', 'netflix', 'spotify', 'hiburan'],
-      Kesehatan: ['dokter', 'obat', 'apotek', 'rs', 'rumah sakit'],
-    };
-
-    let categoryId: string | null = null;
-    const targetType = type === 'income' ? ['income', 'both'] : ['expense', 'both'];
-    const validCats = categories.filter(c => targetType.includes(c.type));
-
-    for (const [catName, keywords] of Object.entries(keywordMap)) {
-      if (keywords.some(kw => lower.includes(kw))) {
-        const matched = validCats.find(c => c.name.toLowerCase().includes(catName.toLowerCase()));
-        if (matched) { categoryId = matched.id; break; }
-      }
-    }
-
-    if (type === 'income' && !categoryId) {
-      const salaryCat = validCats.find(
-        c => c.name.toLowerCase().includes('gaji') || c.name.toLowerCase().includes('salary'),
-      );
-      if (salaryCat) categoryId = salaryCat.id;
-    }
-
-    // Date parsing
-    let date = todayStr;
-    if (lower.includes('kemarin')) {
-      const d = new Date(todayStr);
-      d.setDate(d.getDate() - 1);
-      date = d.toISOString().split('T')[0];
-    }
-
-    const notes = text.replace(amountMatch[0], '').replace(/^[+\-\s]+/, '').trim() || null;
-
-    return { amount, type, categoryId, date, notes };
   }
 }

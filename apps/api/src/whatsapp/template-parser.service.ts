@@ -114,9 +114,10 @@ export class TemplateParserService {
     const todayStr = this.toDateStr(now);
     const transactions: ParsedTransaction[] = [];
 
-    // Split multiple transactions separated by comma / semicolon / " dan "
+    // Split multiple transactions on ";" , " dan ", or a comma that is NOT
+    // inside a number (so "1,5jt" stays intact but "bensin 50k, parkir" splits).
     const parts = text
-      .split(/,|;|\bdan\b/i)
+      .split(/\s*;\s*|\s+dan\s+|,(?!\d)/i)
       .map(p => p.trim())
       .filter(Boolean);
 
@@ -136,8 +137,19 @@ export class TemplateParserService {
   ): ParsedTransaction | null {
     const lower = text.toLowerCase();
 
-    // Amount: 15rb / 15k / 15.000 / 1,5jt / 1.5juta / +8jt
-    const amountMatch = lower.match(/(\d[\d.,]*)\s*(rb|ribu|k|jt|juta|m|miliar|jeti)?/i);
+    // Resolve the date first and remove its phrase from the working text, so a
+    // number inside the date ("2 hari lalu") is never mistaken for the amount.
+    const { date, matched: dateMatch } = this.parseDate(lower, now, todayStr);
+    const working = dateMatch ? lower.replace(dateMatch, ' ') : lower;
+
+    // Amount: prefer a number that carries a unit (15rb / 1,5jt), otherwise
+    // fall back to the first bare number (15.000 / 150000).
+    // The (?![a-z]) guard stops the "k" in "kemarin" being read as a ×1000 unit.
+    const unitMatch = working.match(
+      /(\d[\d.,]*)\s*(rb|ribu|k|jt|juta|m|miliar|jeti)(?![a-z])/i,
+    );
+    const bareMatch = working.match(/(\d[\d.,]*)/);
+    const amountMatch = unitMatch ?? bareMatch;
     if (!amountMatch) return null;
 
     const amount = this.parseAmount(amountMatch[1], amountMatch[2]);
@@ -151,12 +163,12 @@ export class TemplateParserService {
         ? 'income'
         : 'expense';
 
-    const categoryId = explicitCat ?? this.matchCategory(lower, type, categories);
-    const date = this.parseDate(lower, now, todayStr);
+    const categoryId = explicitCat ?? this.matchCategory(working, type, categories);
 
-    // Notes = text without amount token, currency markers, and explicit-cat tag
-    const notes =
-      text
+    // Notes = text without amount token, date phrase, currency markers, tags
+    let notes = dateMatch ? text.replace(new RegExp(this.escapeRegex(dateMatch), 'i'), ' ') : text;
+    notes =
+      notes
         .replace(amountMatch[0], '')
         .replace(/#\w+/g, '')
         .replace(/\b(kategori|kat)\s*:\s*\S+/gi, '')
@@ -241,29 +253,37 @@ export class TemplateParserService {
     return other?.id ?? null;
   }
 
-  private parseDate(lower: string, now: Date, todayStr: string): string {
-    if (this.hasWord(lower, 'kemarin') || this.hasWord(lower, 'kmrn')) {
-      return this.shiftDate(now, -1);
-    }
-    if (lower.includes('kemarin lusa') || lower.includes('2 hari lalu')) {
-      return this.shiftDate(now, -2);
+  private parseDate(
+    lower: string,
+    now: Date,
+    todayStr: string,
+  ): { date: string; matched: string | null } {
+    // "kemarin lusa" / "2 hari lalu" → 2 days ago (check before single "kemarin")
+    if (lower.includes('kemarin lusa')) {
+      return { date: this.shiftDate(now, -2), matched: 'kemarin lusa' };
     }
     const nDaysMatch = lower.match(/(\d+)\s*hari\s*(?:yang\s*)?lalu/);
     if (nDaysMatch) {
-      return this.shiftDate(now, -parseInt(nDaysMatch[1], 10));
+      return { date: this.shiftDate(now, -parseInt(nDaysMatch[1], 10)), matched: nDaysMatch[0] };
+    }
+    if (this.hasWord(lower, 'kemarin')) {
+      return { date: this.shiftDate(now, -1), matched: 'kemarin' };
+    }
+    if (this.hasWord(lower, 'kmrn')) {
+      return { date: this.shiftDate(now, -1), matched: 'kmrn' };
     }
     // "senin lalu", "jumat kemarin" → most recent past occurrence of that weekday
     const dayMatch = lower.match(
       /\b(minggu|senin|selasa|rabu|kamis|jumat|jum'at|sabtu)\b\s*(lalu|kemarin)?/,
     );
-    if (dayMatch && (dayMatch[2] || lower.includes('lalu'))) {
+    if (dayMatch && dayMatch[2]) {
       const target = this.DAY_NAMES[dayMatch[1]];
       const current = now.getDay();
       let diff = current - target;
       if (diff <= 0) diff += 7;
-      return this.shiftDate(now, -diff);
+      return { date: this.shiftDate(now, -diff), matched: dayMatch[0] };
     }
-    return todayStr;
+    return { date: todayStr, matched: null };
   }
 
   private shiftDate(now: Date, days: number): string {

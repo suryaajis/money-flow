@@ -200,6 +200,47 @@ export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
   isActive?: boolean;
 };
 
+// ── Debts ─────────────────────────────────────────────────────────────────────
+
+export interface ApiDebt {
+  id: string;
+  direction: 'owed_to_me' | 'i_owe';
+  amount: number;
+  counterpartyName: string;
+  notes: string | null;
+  dueDate: string | null;
+  settledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDebtInput {
+  direction: 'owed_to_me' | 'i_owe';
+  amount: number;
+  counterpartyName: string;
+  notes?: string;
+  dueDate?: string;
+}
+
+export const debtsApi = {
+  getAll: (status?: 'active' | 'settled') => {
+    const qs = status ? `?status=${status}` : '';
+    return request<ApiDebt[]>(`/debts${qs}`);
+  },
+  create: (data: CreateDebtInput) =>
+    request<ApiDebt>('/debts', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<CreateDebtInput>) =>
+    request<ApiDebt>(`/debts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  settle: (id: string) =>
+    request<ApiDebt>(`/debts/${id}/settle`, { method: 'PATCH' }),
+  unsettle: (id: string) =>
+    request<ApiDebt>(`/debts/${id}/unsettle`, { method: 'PATCH' }),
+  delete: (id: string) =>
+    request<void>(`/debts/${id}`, { method: 'DELETE' }),
+};
+
+// ── Recurring ─────────────────────────────────────────────────────────────────
+
 export const recurringApi = {
   getAll: () => request<ApiRecurring[]>('/recurring'),
   create: (data: CreateRecurringInput) =>

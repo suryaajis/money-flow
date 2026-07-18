@@ -283,4 +283,17 @@ export const sharedWalletApi = {
     request<void>(`/shared-wallet/members/${id}`, { method: 'DELETE' }),
   leave: (id: string) =>
     request<void>(`/shared-wallet/leave/${id}`, { method: 'DELETE' }),
+  // SHARE-04: id→name of people who may appear as recordedBy on my wallet
+  getRecorders: () => request<{ id: string; name: string }[]>('/shared-wallet/recorders'),
+  // SHARE-03: owner's categories + record a transaction into their wallet
+  getOwnerCategories: (ownerId: string) =>
+    request<ApiCategory[]>(`/shared-wallet/${ownerId}/categories`),
+  recordForOwner: (
+    ownerId: string,
+    data: { amount: number; type: 'income' | 'expense'; categoryId: string; date: string; notes?: string },
+  ) =>
+    request<ApiTransaction>(`/shared-wallet/${ownerId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

@@ -24,6 +24,10 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
       const m = month ?? get().currentMonth;
       const budgets = await budgetsApi.getAll(m);
       set({ budgets, currentMonth: m });
+    } catch {
+      // Stale-session 401 handled globally in lib/api; swallow so the
+      // fire-and-forget call in DashboardPage can't become an unhandled
+      // rejection.
     } finally {
       set({ loading: false });
     }

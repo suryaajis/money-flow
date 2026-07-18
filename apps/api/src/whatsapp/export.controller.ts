@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 

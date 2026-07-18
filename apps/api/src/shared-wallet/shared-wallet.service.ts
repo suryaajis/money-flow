@@ -28,7 +28,7 @@ export class SharedWalletService {
   getMyMembers(ownerUserId: string) {
     return this.memberRepo.find({
       where: { ownerUserId },
-      relations: ['member'],
+      relations: { member: true },
       order: { createdAt: 'ASC' },
     });
   }
@@ -37,7 +37,7 @@ export class SharedWalletService {
   getSharedWithMe(memberUserId: string) {
     return this.memberRepo.find({
       where: { memberUserId },
-      relations: ['owner'],
+      relations: { owner: true },
       order: { createdAt: 'ASC' },
     });
   }
@@ -156,7 +156,7 @@ export class SharedWalletService {
     const me = await this.userRepo.findOne({ where: { id: userId } });
     const members = await this.memberRepo.find({
       where: { ownerUserId: userId },
-      relations: ['member'],
+      relations: { member: true },
     });
     const recorders: { id: string; name: string }[] = [];
     if (me) recorders.push({ id: me.id, name: me.name });

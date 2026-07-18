@@ -27,6 +27,10 @@ export const useCategoryStore = create<CategoryState>()((set, get) => ({
     try {
       const categories = await categoriesApi.getAll();
       set({ categories, hasLoaded: true });
+    } catch {
+      // A stale-session 401 is already handled globally in lib/api (evict +
+      // redirect). Swallow here so the fire-and-forget call in AppShell can't
+      // surface as an unhandled promise rejection.
     } finally {
       set({ loading: false });
     }

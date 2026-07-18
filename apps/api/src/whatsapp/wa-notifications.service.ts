@@ -50,7 +50,7 @@ export class WaNotificationsService {
       try {
         const txs = await this.txRepo.find({
           where: { userId: user.id, date: Between(startStr, endStr) },
-          relations: ['category'],
+          relations: { category: true },
         });
         if (!txs.length) continue;
 

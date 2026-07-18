@@ -1,98 +1,151 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Money Flow API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS + TypeORM + PostgreSQL backend for Money Flow.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Setup
 
 ```bash
-$ npm install
+npm install                       # from the repo root (npm workspaces)
+cp .env.example .env              # then fill in your database credentials
 ```
 
-## Compile and run the project
+### Environment
+
+`apps/api/.env` drives both the running app and the database CLI scripts:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `DB_HOST` | `localhost` | |
+| `DB_PORT` | `5432` | |
+| `DB_USERNAME` | `postgres` | Must match your Postgres role |
+| `DB_PASSWORD` | — | |
+| `DB_NAME` | `money_flow` | The database must already exist; migrations do not create it |
+| `JWT_SECRET` | — | Use a long random string |
+| `JWT_EXPIRES_IN` | `7d` | |
+| `PORT` | `3001` | |
+| `FRONTEND_URL` | `http://localhost:3000` | CORS origin |
+| `NODE_ENV` | `development` | `development` enables SQL query logging |
+
+Create the database once before running migrations:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+createdb money_flow
+# or, if Postgres runs in Docker:
+docker exec <container> psql -U <user> -c "CREATE DATABASE money_flow"
 ```
 
-## Run tests
+## Database schema (migrations)
+
+The schema is managed **entirely by migrations**. `synchronize` is `false` in
+every environment — including development — so the entities never silently
+alter your database. Any change to an entity requires a migration.
+
+Run these from `apps/api/` (or from the repo root, where the same four scripts
+are proxied to this workspace).
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run migration:run                      # apply all pending migrations
+npm run migration:show                     # list migrations and their status
+npm run migration:revert                   # roll back the most recent migration
+npm run migration:generate -- <Name>       # diff entities vs. database, write a migration
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+`migration:generate` requires a name. It becomes a TypeScript class name, so
+use PascalCase letters and digits only:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run migration:generate -- AddCurrencyToTransaction   # ✅
+npm run migration:generate AddCurrencyToTransaction      # ✅ (npm >= 7)
+npm run migration:generate                               # ❌ no name
+npm run migration:generate -- add-currency               # ❌ invalid class name
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The `--` separator is optional on npm 7+ but harmless, and it's required on
+npm 6 and older — the docs here use it for portability.
 
-## Resources
+### Typical workflow
 
-Check out a few resources that may come in handy when working with NestJS:
+1. Edit an entity (e.g. add a column to `transaction.entity.ts`).
+2. `npm run migration:generate -- AddFooToTransaction`
+   — this diffs your entities against the **current database**, so make sure
+   all earlier migrations are applied first.
+3. Read the generated file in `src/database/migrations/`. Generated SQL is a
+   starting point, not gospel — check the `down()` especially, and edit
+   destructive or data-losing statements by hand.
+4. `npm run migration:run` to apply it.
+5. Commit the migration file alongside the entity change.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Migrations run inside a single transaction, so a failure rolls the whole
+migration back.
 
-## Support
+### First-time setup on an empty database
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+npm run migration:run     # creates all 7 tables
+npm run seed              # optional demo data
+```
 
-## Stay in touch
+The `uuid-ossp` extension is created automatically by the Postgres driver on
+connect — no manual `CREATE EXTENSION` needed.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Seeding
 
-## License
+```bash
+npm run seed
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Creates a demo user with the 9 default categories and 8 sample transactions
+spread over the last month:
+
+- Email: `demo@moneyflow.test`
+- Password: `demo1234`
+
+Override with `SEED_EMAIL` / `SEED_PASSWORD`:
+
+```bash
+SEED_EMAIL=me@example.com SEED_PASSWORD=hunter2 npm run seed
+```
+
+The seed is **idempotent** — it checks for the demo email first and does
+nothing if that user already exists, so re-running is safe. To reseed from
+scratch, delete the user (cascades to their categories and transactions) and
+run it again.
+
+Note that this CLI seed is separate from `CategoriesService.seedDefaults()`,
+which seeds the same 9 default categories for a real user at runtime via the
+`categories` controller. The two category lists are kept in sync by hand.
+
+## Running
+
+```bash
+npm run start:dev      # watch mode, port 3001
+npm run start:prod     # from dist/ — run migration:run during deploy first
+npm run build
+npm run lint
+npm run test
+```
+
+## Database tooling internals
+
+`src/database/` holds:
+
+| File | Purpose |
+|---|---|
+| `data-source-options.ts` | Single source of truth for the connection config and entity list; consumed by both `AppModule` and the CLI |
+| `data-source.ts` | `DataSource` for CLI scripts; loads `.env` itself since Nest's `ConfigModule` isn't running |
+| `migrate.ts` | The `migration:*` commands |
+| `seed.ts` | The `seed` command |
+| `migrations/` | Generated migration files — commit these |
+
+### Why not the `typeorm` CLI?
+
+`migrate.ts` reimplements `generate` / `run` / `revert` / `show` on top of the
+same DataSource APIs the official CLI uses. This is deliberate: TypeORM 1.0
+ships a CommonJS CLI that `require()`s yargs 18, which is ESM-only. Node 20
+cannot `require()` an ES module, so `typeorm`, `typeorm-ts-node-commonjs` and
+`typeorm-ts-node-esm` all crash with `ERR_REQUIRE_ESM` before reaching any
+command.
+
+If this project moves to Node >= 22.12 (which supports `require(esm)`), the
+upstream CLI becomes usable and `migrate.ts` can be deleted in favour of the
+standard `typeorm -d src/database/data-source.ts <command>` invocations.

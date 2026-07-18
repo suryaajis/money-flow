@@ -58,7 +58,6 @@ export function useProcessOverdueRecurring() {
               categoryId: tx.categoryId,
               date: tx.date,
               notes: tx.notes,
-              userId: tx.userId,
             });
           } catch {
             // ignore per-transaction errors, continue with others

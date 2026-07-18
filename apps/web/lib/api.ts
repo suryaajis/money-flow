@@ -168,6 +168,8 @@ export const backupApi = {
       method: 'POST',
       body: JSON.stringify({ data, mode }),
     }),
+};
+
 // ── Recurring Transactions ────────────────────────────────────────────────────
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';

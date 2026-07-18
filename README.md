@@ -66,12 +66,16 @@ Create a PostgreSQL database (default name `money_flow`):
 CREATE DATABASE money_flow;
 ```
 
-> The API uses TypeORM with `synchronize: true` in non-production environments,
-> so tables are created automatically on first run. Do **not** rely on this in production.
+Migrations do not create the database itself — only its tables. You'll apply
+them in step 4, once the credentials are configured.
+
+> The schema is managed entirely by TypeORM migrations. `synchronize` is
+> `false` in **every** environment, including development, so entity changes
+> never alter your database implicitly — each one needs a migration.
 
 ### 3. Configure environment variables
 
-**`apps/api/.env`**
+**`apps/api/.env`** (copy `apps/api/.env.example` and fill in)
 
 ```env
 # Database
@@ -97,7 +101,23 @@ NODE_ENV=development
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
-### 4. Run the apps
+### 4. Create the schema and seed data
+
+From the repository root:
+
+```bash
+npm run migration:run     # create all tables
+npm run seed              # optional: demo user + sample transactions
+```
+
+The seed creates `demo@moneyflow.test` / `demo1234` with the 9 default
+categories and 8 sample transactions. It's idempotent — re-running it does
+nothing if that user already exists.
+
+See [`apps/api/README.md`](apps/api/README.md) for the full migration workflow
+(generating, reverting, and how to handle entity changes).
+
+### 5. Run the apps
 
 From the repository root, in two terminals:
 
@@ -120,6 +140,11 @@ Open <http://localhost:3000> and register a new account to get started.
 | `npm run dev:api` | Start the NestJS dev server (watch mode) |
 | `npm run build:web` | Build the frontend for production |
 | `npm run build:api` | Build the backend for production |
+| `npm run migration:run` | Apply pending database migrations |
+| `npm run migration:generate -- <Name>` | Generate a migration from entity changes |
+| `npm run migration:revert` | Roll back the most recent migration |
+| `npm run migration:show` | List migrations and their status |
+| `npm run seed` | Seed the demo user and sample data |
 | `npm run lint` | Lint all workspaces |
 
 ## API Endpoints (v1)
@@ -143,6 +168,10 @@ Open <http://localhost:3000> and register a new account to get started.
 
 ```bash
 npm run build:api && npm run build:web
+
+# Apply pending migrations before starting the backend.
+# Nothing creates the schema at runtime — `synchronize` is off everywhere.
+npm run migration:run
 
 # Start backend
 npm run start:prod --workspace=apps/api

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Link, Unlink, CheckCircle2, AlertCircle } from "lucide-react";
+import { MessageSquare, Link, Unlink, CheckCircle2, AlertCircle, Bell } from "lucide-react";
 
 interface WaStatus {
   linked: boolean;
@@ -9,16 +9,61 @@ interface WaStatus {
   linkedAt: string | null;
 }
 
+interface NotificationPrefs {
+  notifyMonthlyRecap: boolean;
+  notifyOverBudget: boolean;
+  notifyDebtDue: boolean;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+
+const PREF_LABELS: { key: keyof NotificationPrefs; label: string; desc: string }[] = [
+  { key: "notifyMonthlyRecap", label: "Rekap awal bulan", desc: "Ringkasan bulan lalu setiap tanggal 1" },
+  { key: "notifyOverBudget", label: "Alert budget terlampaui", desc: "Peringatan saat pengeluaran melebihi budget" },
+  { key: "notifyDebtDue", label: "Pengingat jatuh tempo utang", desc: "Ingatkan H-1 dan hari-H utang piutang" },
+];
+
 export default function WhatsAppSettingsPage() {
   const [status, setStatus] = useState<WaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
 
   useEffect(() => {
     fetchStatus();
+    fetchPrefs();
   }, []);
+
+  async function fetchPrefs() {
+    try {
+      const token = localStorage.getItem("mf:token");
+      const res = await fetch(`${API_BASE}/users/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setPrefs(await res.json());
+    } catch {
+      // ignore
+    }
+  }
+
+  async function togglePref(key: keyof NotificationPrefs) {
+    if (!prefs) return;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); // optimistic
+    try {
+      const token = localStorage.getItem("mf:token");
+      const res = await fetch(`${API_BASE}/users/notifications`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ [key]: next[key] }),
+      });
+      if (res.ok) setPrefs(await res.json());
+    } catch {
+      setPrefs(prefs); // revert
+    }
+  }
 
   async function fetchStatus() {
     setLoading(true);
@@ -165,6 +210,43 @@ export default function WhatsAppSettingsPage() {
               {submitting ? "Menghubungkan..." : "Hubungkan WhatsApp"}
             </button>
           </form>
+        </div>
+      )}
+
+      {status?.linked && prefs && (
+        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold">Notifikasi WhatsApp</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Semua notifikasi opt-in (default mati), maksimal 1 pesan proaktif per hari.
+          </p>
+          <div className="space-y-3">
+            {PREF_LABELS.map(({ key, label, desc }) => (
+              <label key={key} className="flex items-start justify-between gap-3 cursor-pointer">
+                <div>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={prefs[key]}
+                  onClick={() => togglePref(key)}
+                  className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    prefs[key] ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      prefs[key] ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </label>
+            ))}
+          </div>
         </div>
       )}
 

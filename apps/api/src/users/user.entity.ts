@@ -31,6 +31,16 @@ export class User {
   @Column({ nullable: true, type: 'timestamp' })
   waLinkedAt: Date | null;
 
+  // Proactive WhatsApp notification preferences (opt-in, default off per PRD).
+  @Column({ type: 'boolean', default: false })
+  notifyMonthlyRecap: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  notifyOverBudget: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  notifyDebtDue: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

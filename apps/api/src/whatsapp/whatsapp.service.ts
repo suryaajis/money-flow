@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { WaSession } from './wa-session.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
+import { Budget } from '../budgets/budget.entity';
+import { Debt } from '../debts/debt.entity';
 import { WaNotifierService } from './wa-notifier.service';
 import { MessageParserService } from './message-parser.service';
 import { VoiceService } from './voice.service';
@@ -18,9 +22,13 @@ export class WhatsappService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
+    @InjectRepository(Budget) private budgetRepo: Repository<Budget>,
+    @InjectRepository(Debt) private debtRepo: Repository<Debt>,
     private notifier: WaNotifierService,
     private parser: MessageParserService,
     private voice: VoiceService,
+    private jwt: JwtService,
+    private config: ConfigService,
   ) {}
 
   async getLinkStatus(userId: string) {
@@ -69,10 +77,18 @@ export class WhatsappService {
       await this.handleHapus(user, session);
     } else if (['daftar', 'list'].includes(trimmed)) {
       await this.handleDaftar(user);
-    } else if (trimmed === 'budget') {
+    } else if (['budget', 'anggaran'].includes(trimmed)) {
       await this.handleBudget(user);
+    } else if (['utang', 'hutang', 'piutang'].includes(trimmed)) {
+      await this.handleUtangList(user);
+    } else if (['ekspor', 'export', 'unduh'].includes(trimmed)) {
+      await this.handleEkspor(user);
     } else if (['bantuan', 'help', '?'].includes(trimmed)) {
       await this.handleBantuan(from);
+    } else if (this.isDebtRecord(trimmed)) {
+      await this.handleDebtRecord(user, text);
+    } else if (this.isDebtSettle(trimmed)) {
+      await this.handleDebtSettle(user, session, text);
     } else {
       await this.handleTransactionInput(user, session, text);
     }
@@ -197,6 +213,14 @@ export class WhatsappService {
       await this.notifier.sendText(from, `✅ ${saved} transaksi dari voice note tersimpan!`);
     } else if (saved === 0) {
       await this.notifier.sendText(from, '😕 Tidak ada transaksi yang bisa disimpan.');
+    } else if (session.state === 'awaiting_debt_settle') {
+      if (replyId.startsWith('settle_')) {
+        const debtId = replyId.replace('settle_', '');
+        await this.settleDebtById(user, debtId);
+      } else {
+        await this.notifier.sendText(from, '❌ Dibatalkan.');
+      }
+      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
     }
   }
 
@@ -387,10 +411,225 @@ export class WhatsappService {
     await this.notifier.sendText(from, msg);
   }
 
+  // ── CMD-06: budget status per category for the current month ────────────────
   private async handleBudget(user: User) {
+    const from = user.waPhone;
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    const budgets = await this.budgetRepo.find({ where: { userId: user.id, month } });
+    if (!budgets.length) {
+      await this.notifier.sendText(
+        from,
+        '💼 Belum ada budget untuk bulan ini.\n\nAtur budget lewat dashboard → menu Budget.',
+      );
+      return;
+    }
+
+    const txs = await this.txRepo.find({
+      where: { userId: user.id, type: 'expense', date: Between(start, end) },
+    });
+    const cats = await this.catRepo.find({ where: { userId: user.id } });
+    const catName = (id: string) => cats.find(c => c.id === id)?.name ?? 'Lainnya';
+
+    const spentByCat = new Map<string, number>();
+    for (const tx of txs) {
+      spentByCat.set(tx.categoryId, (spentByCat.get(tx.categoryId) ?? 0) + Number(tx.amount));
+    }
+
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
+    const label = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    let msg = `💼 *Budget ${label}*\n\n`;
+    for (const b of budgets) {
+      const spent = spentByCat.get(b.categoryId) ?? 0;
+      const limit = Number(b.amount);
+      const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+      const icon = pct >= 100 ? '🔴' : pct >= 80 ? '🟠' : '🟢';
+      msg += `${icon} ${catName(b.categoryId)}: Rp${fmt(spent)} / Rp${fmt(limit)} (${pct}%)\n`;
+    }
+    await this.notifier.sendText(from, msg);
+  }
+
+  // ── CMD-07: list active (unsettled) debts ───────────────────────────────────
+  private async handleUtangList(user: User) {
+    const from = user.waPhone;
+    const debts = await this.debtRepo.find({
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+    });
+    const active = debts.filter(d => !d.settledAt);
+    if (!active.length) {
+      await this.notifier.sendText(from, '📒 Tidak ada utang piutang aktif. 🎉');
+      return;
+    }
+
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
+    const piutang = active.filter(d => d.direction === 'owed_to_me');
+    const hutang = active.filter(d => d.direction === 'i_owe');
+    let msg = '📒 *Utang Piutang Aktif*\n';
+    if (piutang.length) {
+      msg += '\n💰 *Piutang (mereka hutang ke kamu):*\n';
+      for (const d of piutang) {
+        msg += `• ${d.counterpartyName}: Rp${fmt(Number(d.amount))}${d.dueDate ? ` — jatuh tempo ${d.dueDate}` : ''}\n`;
+      }
+    }
+    if (hutang.length) {
+      msg += '\n💸 *Hutang (kamu hutang ke mereka):*\n';
+      for (const d of hutang) {
+        msg += `• ${d.counterpartyName}: Rp${fmt(Number(d.amount))}${d.dueDate ? ` — jatuh tempo ${d.dueDate}` : ''}\n`;
+      }
+    }
+    msg += '\nUntuk tandai lunas: ketik "<nama> udah bayar".';
+    await this.notifier.sendText(from, msg);
+  }
+
+  // ── DEBT-01/02: record a debt from chat ─────────────────────────────────────
+  // "pinjam ke budi 100rb" / "budi pinjam 100rb" → piutang (owed_to_me)
+  // "hutang ke ani 50rb" / "ngutang ke ani 50rb" → hutang (i_owe)
+  private isDebtRecord(lower: string): boolean {
+    if (!/\d/.test(lower)) return false;
+    // "pinjam ke X", "piutang ...", or "hutang/utang/ngutang ke X".
+    // Requires "ke" for the hutang/utang words so "bayar hutang 100rb" (an
+    // expense) is not mistaken for a debt entry.
+    return (
+      /\bpinjam\b/.test(lower) ||
+      /\bpiutang\b/.test(lower) ||
+      /\b(hutang|utang|ngutang)\s+ke\b/.test(lower)
+    );
+  }
+
+  private async handleDebtRecord(user: User, text: string) {
+    const from = user.waPhone;
+    const lower = text.toLowerCase();
+
+    // Amount
+    const amountMatch = lower.match(/(\d[\d.,]*)\s*(rb|ribu|k|jt|juta|m|miliar)?/);
+    if (!amountMatch) {
+      await this.notifier.sendText(from, '❓ Nominal tidak terbaca. Contoh: "pinjam ke budi 100rb"');
+      return;
+    }
+    let amount = parseFloat(amountMatch[1].replace(/\./g, '').replace(',', '.'));
+    const unit = (amountMatch[2] || '').toLowerCase();
+    if (['rb', 'ribu', 'k'].includes(unit)) amount *= 1000;
+    else if (['jt', 'juta'].includes(unit)) amount *= 1_000_000;
+    else if (['m', 'miliar'].includes(unit)) amount *= 1_000_000_000;
+
+    // Direction: "hutang ke" / "ngutang ke" / "utang ke" = I owe (i_owe).
+    // "pinjam ke X" (I lend to X) / "piutang" / "X pinjam" = owed_to_me.
+    const iOwe = /\b(hutang|ngutang|utang)\s+ke\b/.test(lower);
+    const direction: 'owed_to_me' | 'i_owe' = iOwe ? 'i_owe' : 'owed_to_me';
+
+    // Counterparty name: word after "ke", else first non-keyword token.
+    let name = '';
+    const keMatch = lower.match(/\bke\s+([a-z][a-z\s]*?)(?=\s*\d|\s*$)/);
+    if (keMatch) name = keMatch[1].trim();
+    if (!name) {
+      const cleaned = lower
+        .replace(/\b(pinjam|piutang|hutang|utang|ngutang|ke)\b/g, ' ')
+        .replace(amountMatch[0], ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      name = cleaned.split(' ')[0] ?? '';
+    }
+    name = name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Tanpa nama';
+
+    const debt = this.debtRepo.create({
+      userId: user.id,
+      direction,
+      amount,
+      counterpartyName: name,
+      notes: null,
+      dueDate: null,
+      settledAt: null,
+    });
+    await this.debtRepo.save(debt);
+
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
+    const msg =
+      direction === 'owed_to_me'
+        ? `✅ Tercatat: *${name}* hutang Rp${fmt(amount)} ke kamu (piutang).`
+        : `✅ Tercatat: kamu hutang Rp${fmt(amount)} ke *${name}*.`;
+    await this.notifier.sendText(from, msg);
+  }
+
+  // ── DEBT-03: settle a debt from chat ("budi udah bayar", "lunas ani") ───────
+  private isDebtSettle(lower: string): boolean {
+    return /\b(udah|sudah|udh)\s+(bayar|lunas)\b/.test(lower) || /\blunas\b/.test(lower);
+  }
+
+  private async handleDebtSettle(user: User, session: WaSession, text: string) {
+    const from = user.waPhone;
+    const lower = text.toLowerCase();
+    const nameToken = lower
+      .replace(/\b(udah|sudah|udh|bayar|lunas|utang|hutang|piutang)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const active = (
+      await this.debtRepo.find({ where: { userId: user.id }, order: { createdAt: 'DESC' } })
+    ).filter(d => !d.settledAt);
+
+    if (!active.length) {
+      await this.notifier.sendText(from, '📒 Tidak ada utang piutang aktif untuk dilunaskan.');
+      return;
+    }
+
+    const matches = nameToken
+      ? active.filter(d => d.counterpartyName.toLowerCase().includes(nameToken.split(' ')[0]))
+      : active;
+
+    if (matches.length === 1) {
+      await this.settleDebtById(user, matches[0].id);
+      return;
+    }
+
+    // Ambiguous → ask which one via buttons (max 3)
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
+    const options = matches.slice(0, 3).map(d => ({
+      id: `settle_${d.id}`,
+      title: `${d.counterpartyName} ${fmt(Number(d.amount))}`,
+    }));
+    await this.sessionRepo.update(session.id, {
+      state: 'awaiting_debt_settle',
+      context: {},
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    });
+    await this.notifier.sendTextWithButtons(from, 'Utang/piutang mana yang lunas?', options);
+  }
+
+  private async settleDebtById(user: User, debtId: string) {
+    const from = user.waPhone;
+    const debt = await this.debtRepo.findOne({ where: { id: debtId, userId: user.id } });
+    if (!debt) {
+      await this.notifier.sendText(from, '❌ Data tidak ditemukan.');
+      return;
+    }
+    debt.settledAt = new Date();
+    await this.debtRepo.save(debt);
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
     await this.notifier.sendText(
-      user.waPhone,
-      '💼 Fitur budget via WA akan segera hadir!\n\nUntuk sekarang, cek budget di dashboard aplikasi.',
+      from,
+      `✅ ${debt.counterpartyName} Rp${fmt(Number(debt.amount))} ditandai *lunas*.`,
+    );
+  }
+
+  // ── CMD-09: generate a 1-hour signed CSV export link ────────────────────────
+  private async handleEkspor(user: User) {
+    const from = user.waPhone;
+    const token = this.jwt.sign(
+      { sub: user.id, purpose: 'wa-export' },
+      { expiresIn: '1h' },
+    );
+    const baseUrl = this.config
+      .get<string>('PUBLIC_API_URL', 'http://localhost:3001/api')
+      .replace(/\/$/, '');
+    const url = `${baseUrl}/export/transactions?token=${token}`;
+    await this.notifier.sendText(
+      from,
+      '📤 *Ekspor transaksi bulan ini*\n\n' +
+        `Unduh CSV di sini (berlaku 1 jam):\n${url}`,
     );
   }
 
@@ -403,12 +642,19 @@ export class WhatsappService {
         '• gajian 8jt\n' +
         '• bensin 50k, parkir 3k\n' +
         '• 🎙️ atau kirim voice note!\n\n' +
+        '*Utang piutang:*\n' +
+        '• pinjam ke budi 100rb\n' +
+        '• hutang ke ani 50rb\n' +
+        '• budi udah bayar\n\n' +
         '*Perintah:*\n' +
         '• *saldo* — Ringkasan bulan ini\n' +
         '• *rekap* — Laporan bulanan\n' +
         '• *rekap minggu ini* — Laporan 7 hari\n' +
+        '• *budget* — Status budget per kategori\n' +
+        '• *utang* — Daftar utang piutang aktif\n' +
         '• *daftar* — 5 transaksi terakhir\n' +
         '• *hapus* — Hapus transaksi WA terakhir\n' +
+        '• *ekspor* — Link unduh CSV bulan ini\n' +
         '• *bantuan* — Tampilkan menu ini',
     );
   }

@@ -9,6 +9,8 @@ import { BudgetsModule } from './budgets/budgets.module';
 import { BackupModule } from './backup/backup.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { SharedWalletModule } from './shared-wallet/shared-wallet.module';
+import { DebtsModule } from './debts/debts.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { buildDataSourceOptions } from './database/data-source-options';
 
 @Module({
@@ -28,6 +30,8 @@ import { buildDataSourceOptions } from './database/data-source-options';
     BackupModule,
     RecurringModule,
     SharedWalletModule,
+    DebtsModule,
+    WhatsappModule,
   ],
 })
 export class AppModule {}

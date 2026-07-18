@@ -23,6 +23,14 @@ export class User {
   @Column()
   password: string;
 
+  // `type` must be explicit: the `string | null` TS type emits design:type
+  // Object, which TypeORM cannot map to a Postgres column.
+  @Column({ type: 'varchar', nullable: true, unique: true, length: 20 })
+  waPhone: string | null;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  waLinkedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -9,6 +9,21 @@ function getToken(): string | null {
   return localStorage.getItem('mf:token');
 }
 
+/**
+ * A 401 on a request that *did* carry a token means the token is stale
+ * (expired, or signed with a secret the API no longer uses). Evict it and
+ * bounce to /login so the app doesn't keep rendering the authenticated shell
+ * against an invalid session. Guarded so we don't loop when already on /login.
+ */
+function handleStaleSession(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('mf:token');
+  localStorage.removeItem('mf:auth');
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login');
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -23,6 +38,10 @@ async function request<T>(
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
+    // Only a rejected *authenticated* request signals a stale session. A 401
+    // from login/forgot-password (no token sent) is just bad credentials and
+    // must surface to the caller as an ApiError instead.
+    if (res.status === 401 && token) handleStaleSession();
     const body = await res.json().catch(() => ({}));
     const message = body?.message ?? `HTTP ${res.status}`;
     throw new ApiError(res.status, Array.isArray(message) ? message.join(', ') : message);

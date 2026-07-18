@@ -166,7 +166,9 @@ export class TemplateParserService {
     const categoryId = explicitCat ?? this.matchCategory(working, type, categories);
 
     // Notes = text without amount token, date phrase, currency markers, tags
-    let notes = dateMatch ? text.replace(new RegExp(this.escapeRegex(dateMatch), 'i'), ' ') : text;
+    let notes: string | null = dateMatch
+      ? text.replace(new RegExp(this.escapeRegex(dateMatch), 'i'), ' ')
+      : text;
     notes =
       notes
         .replace(amountMatch[0], '')

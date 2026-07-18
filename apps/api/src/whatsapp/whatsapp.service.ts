@@ -149,7 +149,7 @@ export class WhatsappService {
     const session = await this.getOrCreateSession(from);
     await this.sessionRepo.update(session.id, {
       state: 'awaiting_voice_confirm',
-      context: { transactions: result.transactions, transcript },
+      context: { transactions: result.transactions, transcript } as any,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
@@ -183,12 +183,20 @@ export class WhatsappService {
       }
     } else if (session.state === 'awaiting_voice_confirm') {
       await this.resolveVoiceConfirm(user, session, replyId === 'voice_save');
+    } else if (session.state === 'awaiting_debt_settle') {
+      if (replyId.startsWith('settle_')) {
+        const debtId = replyId.replace('settle_', '');
+        await this.settleDebtById(user, debtId);
+      } else {
+        await this.notifier.sendText(from, '❌ Dibatalkan.');
+      }
+      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
     }
   }
 
   // VN-04/05: apply or discard the transactions parsed from a voice note.
   private async resolveVoiceConfirm(user: User, session: WaSession, save: boolean) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const transactions: any[] = session.context?.transactions ?? [];
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
 
@@ -213,19 +221,11 @@ export class WhatsappService {
       await this.notifier.sendText(from, `✅ ${saved} transaksi dari voice note tersimpan!`);
     } else if (saved === 0) {
       await this.notifier.sendText(from, '😕 Tidak ada transaksi yang bisa disimpan.');
-    } else if (session.state === 'awaiting_debt_settle') {
-      if (replyId.startsWith('settle_')) {
-        const debtId = replyId.replace('settle_', '');
-        await this.settleDebtById(user, debtId);
-      } else {
-        await this.notifier.sendText(from, '❌ Dibatalkan.');
-      }
-      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
     }
   }
 
   private async handleTransactionInput(user: User, session: WaSession, text: string) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const categories = await this.catRepo.find({ where: { userId: user.id } });
     const result = await this.parser.parse(text, categories, new Date());
 
@@ -249,7 +249,7 @@ export class WhatsappService {
 
         await this.sessionRepo.update(session.id, {
           state: 'awaiting_category',
-          context: { partial: tx },
+          context: { partial: tx } as any,
           expiresAt: new Date(Date.now() + 5 * 60 * 1000),
         });
 
@@ -292,7 +292,7 @@ export class WhatsappService {
   }
 
   private async handleSaldo(user: User) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -316,7 +316,7 @@ export class WhatsappService {
   }
 
   private async handleRekap(user: User, cmd: string) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const now = new Date();
     let start: string, end: string, label: string;
 
@@ -333,7 +333,7 @@ export class WhatsappService {
 
     const txs = await this.txRepo.find({
       where: { userId: user.id, date: Between(start, end) },
-      relations: ['category'],
+      relations: { category: true },
     });
 
     const expense = txs.filter(t => t.type === 'expense');
@@ -358,7 +358,7 @@ export class WhatsappService {
   }
 
   private async handleHapus(user: User, session: WaSession) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const last = await this.txRepo.findOne({
       where: { userId: user.id, source: 'whatsapp' },
       order: { createdAt: 'DESC' },
@@ -374,7 +374,7 @@ export class WhatsappService {
 
     await this.sessionRepo.update(session.id, {
       state: 'awaiting_confirm_delete',
-      context: { txId: last.id },
+      context: { txId: last.id } as any,
       expiresAt: new Date(Date.now() + 3 * 60 * 1000),
     });
 
@@ -389,12 +389,12 @@ export class WhatsappService {
   }
 
   private async handleDaftar(user: User) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const txs = await this.txRepo.find({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
       take: 5,
-      relations: ['category'],
+      relations: { category: true },
     });
 
     if (!txs.length) {
@@ -413,7 +413,7 @@ export class WhatsappService {
 
   // ── CMD-06: budget status per category for the current month ────────────────
   private async handleBudget(user: User) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -454,7 +454,7 @@ export class WhatsappService {
 
   // ── CMD-07: list active (unsettled) debts ───────────────────────────────────
   private async handleUtangList(user: User) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const debts = await this.debtRepo.find({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
@@ -501,7 +501,7 @@ export class WhatsappService {
   }
 
   private async handleDebtRecord(user: User, text: string) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const lower = text.toLowerCase();
 
     // Amount
@@ -560,7 +560,7 @@ export class WhatsappService {
   }
 
   private async handleDebtSettle(user: User, session: WaSession, text: string) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const lower = text.toLowerCase();
     const nameToken = lower
       .replace(/\b(udah|sudah|udh|bayar|lunas|utang|hutang|piutang)\b/g, ' ')
@@ -600,7 +600,7 @@ export class WhatsappService {
   }
 
   private async settleDebtById(user: User, debtId: string) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const debt = await this.debtRepo.findOne({ where: { id: debtId, userId: user.id } });
     if (!debt) {
       await this.notifier.sendText(from, '❌ Data tidak ditemukan.');
@@ -617,7 +617,7 @@ export class WhatsappService {
 
   // ── CMD-09: generate a 1-hour signed CSV export link ────────────────────────
   private async handleEkspor(user: User) {
-    const from = user.waPhone;
+    const from = user.waPhone!;
     const token = this.jwt.sign(
       { sub: user.id, purpose: 'wa-export' },
       { expiresIn: '1h' },
@@ -675,7 +675,7 @@ export class WhatsappService {
     }
 
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
-    await this.handleTextMessage(user.waPhone, text);
+    await this.handleTextMessage(user.waPhone!, text);
   }
 
   private async getOrCreateSession(waPhone: string): Promise<WaSession> {

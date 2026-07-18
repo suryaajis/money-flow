@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Query, Body, HttpCode, Res, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { WhatsappService } from './whatsapp.service';
 
 @Controller('webhook/whatsapp')

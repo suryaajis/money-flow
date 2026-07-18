@@ -7,7 +7,7 @@ import {
   ParsedTransaction,
 } from './template-parser.service';
 
-export { ParseResult, ParsedTransaction };
+export type { ParseResult, ParsedTransaction };
 
 @Injectable()
 export class MessageParserService {

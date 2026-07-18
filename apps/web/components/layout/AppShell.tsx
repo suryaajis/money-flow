@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
 import { NotificationScheduler } from "@/components/layout/NotificationScheduler";
+import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
@@ -27,22 +28,57 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
+  // Which token has been confirmed valid by the API. We only mount the
+  // authenticated chrome — and the heavy chart subtrees inside it — once the
+  // current token matches this, so the render tree never flips shape mid-flight
+  // (which is what trips React's "rendered more hooks than during the previous
+  // render" invariant). Deriving `authed` during render (rather than storing a
+  // status) keeps setState out of the effect body.
+  const [validatedToken, setValidatedToken] = useState<string | null>(null);
+  const authed = !!token && validatedToken === token;
+
   useEffect(() => {
     if (isPublicRoute) return;
+
     if (!token) {
       router.replace("/login");
       return;
     }
-    fetchCategories();
-    fetchTransactions();
-  }, [token, pathname, isPublicRoute, fetchCategories, fetchTransactions, router]);
+
+    if (validatedToken === token) return; // already confirmed this token
+
+    // A token string is present, but it may be stale. Validate it against the
+    // API before mounting the authenticated tree or loading data. On failure,
+    // lib/api's global 401 handler evicts the token and redirects to /login.
+    let cancelled = false;
+    authApi
+      .me()
+      .then(() => {
+        if (cancelled) return;
+        setValidatedToken(token);
+        fetchCategories();
+        fetchTransactions();
+      })
+      .catch(() => {
+        /* handled globally in lib/api (evict + redirect) */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, pathname, isPublicRoute, validatedToken, fetchCategories, fetchTransactions, router]);
 
   // Login/register render on their own layout, without the sidebar/header shell.
   if (isPublicRoute) {
     return <ThemeProvider>{children}</ThemeProvider>;
   }
 
-  if (!token) return null;
+  // Until the session is confirmed, render an empty themed shell. This keeps a
+  // stable top-level tree (always <ThemeProvider>) across checking → authed so
+  // React never reconciles two differently-shaped trees at this position.
+  if (!authed) {
+    return <ThemeProvider>{null}</ThemeProvider>;
+  }
 
   return (
     <ThemeProvider>

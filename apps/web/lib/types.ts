@@ -23,6 +23,8 @@ export interface Transaction {
   notes?: string;
   currency?: CurrencyCode | null; // optional per-transaction currency; null means use global setting
   tags?: string[];
+  source?: string; // 'web' | 'whatsapp' | 'shared'
+  recordedBy?: string | null; // user id who recorded it (shared wallet attribution)
   createdAt: string;
   updatedAt: string;
 }

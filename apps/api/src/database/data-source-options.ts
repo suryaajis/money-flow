@@ -6,6 +6,7 @@ import { Budget } from '../budgets/budget.entity';
 import { PasswordResetToken } from '../auth/password-reset-token.entity';
 import { RecurringTransaction } from '../recurring/recurring-transaction.entity';
 import { Debt } from '../debts/debt.entity';
+import { WaSession } from '../whatsapp/wa-session.entity';
 
 export const entities = [
   User,
@@ -15,6 +16,7 @@ export const entities = [
   PasswordResetToken,
   RecurringTransaction,
   Debt,
+  WaSession,
 ];
 
 /**

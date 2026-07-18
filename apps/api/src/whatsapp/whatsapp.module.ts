@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WaSession } from './wa-session.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -12,10 +14,20 @@ import { TemplateParserService } from './template-parser.service';
 import { WhatsappService } from './whatsapp.service';
 import { WhatsappController } from './whatsapp.controller';
 import { WhatsappSettingsController } from './whatsapp.controller.settings';
+import { ExportController } from './export.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([WaSession, User, Transaction, Category, Budget, Debt])],
-  controllers: [WhatsappController, WhatsappSettingsController],
+  imports: [
+    TypeOrmModule.forFeature([WaSession, User, Transaction, Category, Budget, Debt]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
+      }),
+    }),
+  ],
+  controllers: [WhatsappController, WhatsappSettingsController, ExportController],
   providers: [WhatsappService, WaNotifierService, MessageParserService, TemplateParserService],
   exports: [WhatsappService, WaNotifierService],
 })

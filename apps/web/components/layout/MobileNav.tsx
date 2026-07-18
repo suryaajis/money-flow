@@ -37,7 +37,7 @@ export const MobileNav: React.FC = () => {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="grid grid-cols-8">
+      <ul className="grid grid-cols-9">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

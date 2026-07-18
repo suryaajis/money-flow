@@ -7,6 +7,7 @@ import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 import { WaNotifierService } from './wa-notifier.service';
 import { MessageParserService } from './message-parser.service';
+import { VoiceService } from './voice.service';
 
 @Injectable()
 export class WhatsappService {
@@ -19,6 +20,7 @@ export class WhatsappService {
     @InjectRepository(Category) private catRepo: Repository<Category>,
     private notifier: WaNotifierService,
     private parser: MessageParserService,
+    private voice: VoiceService,
   ) {}
 
   async getLinkStatus(userId: string) {
@@ -76,13 +78,69 @@ export class WhatsappService {
     }
   }
 
-  async handleAudioMessage(from: string, _audioId: string) {
+  // ── VN-01 to VN-05: voice note → transcribe → parse → confirm → save ────────
+  async handleAudioMessage(from: string, audioId: string) {
     const user = await this.userRepo.findOne({ where: { waPhone: from } });
-    if (!user) return;
-    await this.notifier.sendText(
-      from,
-      '🎙️ Voice note diterima. Fitur ini sedang dikembangkan dan akan segera tersedia!',
-    );
+    if (!user) {
+      await this.notifier.sendText(
+        from,
+        '👋 Kamu belum menghubungkan nomor WA ini. Buka Settings → WhatsApp.',
+      );
+      return;
+    }
+
+    if (!this.voice.isConfigured) {
+      await this.notifier.sendText(
+        from,
+        '🎙️ Voice note belum aktif di server ini. Silakan ketik transaksimu, contoh: "kopi 15rb".',
+      );
+      return;
+    }
+
+    await this.notifier.sendText(from, '🎙️ Sedang mendengarkan voice note-mu...');
+
+    const transcript = await this.voice.transcribe(audioId);
+    if (!transcript) {
+      await this.notifier.sendText(
+        from,
+        '😕 Maaf, aku tidak bisa memahami voice note-nya. Coba rekam ulang atau ketik langsung.',
+      );
+      return;
+    }
+
+    const categories = await this.catRepo.find({ where: { userId: user.id } });
+    const result = await this.parser.parse(transcript, categories, new Date());
+
+    if (!result || result.transactions.length === 0) {
+      await this.notifier.sendText(
+        from,
+        `🎙️ Kamu bilang: "${transcript}"\n\n` +
+          '❓ Tapi aku tidak menemukan transaksi di dalamnya. Coba lagi ya.',
+      );
+      return;
+    }
+
+    // VN-04: preview transcript + parsed result and ask to confirm before saving
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
+    const catName = (id: string | null) =>
+      id ? categories.find(c => c.id === id)?.name ?? '' : '';
+    let preview = `🎙️ Kamu bilang: "${transcript}"\n\n📝 Aku catat:\n`;
+    for (const t of result.transactions) {
+      const sign = t.type === 'income' ? '+' : '-';
+      preview += `${sign}Rp${fmt(t.amount)} ${catName(t.categoryId)}${t.notes ? ` • ${t.notes}` : ''}\n`;
+    }
+
+    const session = await this.getOrCreateSession(from);
+    await this.sessionRepo.update(session.id, {
+      state: 'awaiting_voice_confirm',
+      context: { transactions: result.transactions, transcript },
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    });
+
+    await this.notifier.sendTextWithButtons(from, preview + '\nSimpan?', [
+      { id: 'voice_save', title: 'Ya, simpan' },
+      { id: 'voice_cancel', title: 'Bukan' },
+    ]);
   }
 
   async handleButtonReply(from: string, replyId: string, _replyTitle: string) {
@@ -107,6 +165,38 @@ export class WhatsappService {
         await this.saveTransaction(user, { ...partial, categoryId: catId }, from);
         await this.sessionRepo.update(session.id, { state: 'idle', context: null });
       }
+    } else if (session.state === 'awaiting_voice_confirm') {
+      await this.resolveVoiceConfirm(user, session, replyId === 'voice_save');
+    }
+  }
+
+  // VN-04/05: apply or discard the transactions parsed from a voice note.
+  private async resolveVoiceConfirm(user: User, session: WaSession, save: boolean) {
+    const from = user.waPhone;
+    const transactions: any[] = session.context?.transactions ?? [];
+    await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+
+    if (!save) {
+      await this.notifier.sendText(from, '❌ Oke, dibatalkan. Rekam ulang atau ketik ya.');
+      return;
+    }
+
+    let saved = 0;
+    for (const tx of transactions) {
+      if (!tx.categoryId) {
+        const categories = await this.catRepo.find({ where: { userId: user.id } });
+        const fallback = categories.find(c => c.type === tx.type || c.type === 'both');
+        tx.categoryId = fallback?.id ?? null;
+      }
+      if (tx.categoryId) {
+        await this.saveTransaction(user, tx, from);
+        saved++;
+      }
+    }
+    if (saved > 1) {
+      await this.notifier.sendText(from, `✅ ${saved} transaksi dari voice note tersimpan!`);
+    } else if (saved === 0) {
+      await this.notifier.sendText(from, '😕 Tidak ada transaksi yang bisa disimpan.');
     }
   }
 
@@ -311,7 +401,8 @@ export class WhatsappService {
         '*Catat transaksi:*\n' +
         '• kopi 15rb\n' +
         '• gajian 8jt\n' +
-        '• bensin 50k, parkir 3k\n\n' +
+        '• bensin 50k, parkir 3k\n' +
+        '• 🎙️ atau kirim voice note!\n\n' +
         '*Perintah:*\n' +
         '• *saldo* — Ringkasan bulan ini\n' +
         '• *rekap* — Laporan bulanan\n' +
@@ -323,11 +414,21 @@ export class WhatsappService {
   }
 
   private async handleSessionState(user: User, session: WaSession, text: string) {
-    if (new Date() > session.expiresAt) {
-      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
-    } else {
-      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+    const expired = new Date() > session.expiresAt;
+
+    // VN-05: allow confirming/cancelling a voice note by typing (not just buttons)
+    if (!expired && session.state === 'awaiting_voice_confirm') {
+      const t = text.trim().toLowerCase();
+      const yes = ['ya', 'iya', 'betul', 'benar', 'ok', 'oke', 'simpan', 'y'].includes(t);
+      const no = ['bukan', 'salah', 'batal', 'tidak', 'gak', 'nggak', 'no', 'n'].includes(t);
+      if (yes || no) {
+        await this.resolveVoiceConfirm(user, session, yes);
+        return;
+      }
+      // Any other text → discard the pending voice note and treat as a fresh message
     }
+
+    await this.sessionRepo.update(session.id, { state: 'idle', context: null });
     await this.handleTextMessage(user.waPhone, text);
   }
 

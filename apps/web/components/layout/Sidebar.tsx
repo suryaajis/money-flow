@@ -9,6 +9,7 @@ import {
   ChevronRight,
   HandCoins,
   LayoutDashboard,
+  MessageSquare,
   PiggyBank,
   Repeat,
   ScanLine,
@@ -31,6 +32,7 @@ const ICONS: Record<string, LucideIcon> = {
   Tags,
   BarChart3,
   UserCircle,
+  MessageSquare,
 };
 
 export const Sidebar: React.FC = () => {

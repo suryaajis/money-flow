@@ -11,6 +11,7 @@ import { RecurringModule } from './recurring/recurring.module';
 import { SharedWalletModule } from './shared-wallet/shared-wallet.module';
 import { DebtsModule } from './debts/debts.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { WaNotificationsModule } from './whatsapp/wa-notifications.module';
 import { buildDataSourceOptions } from './database/data-source-options';
 
 @Module({
@@ -32,6 +33,7 @@ import { buildDataSourceOptions } from './database/data-source-options';
     SharedWalletModule,
     DebtsModule,
     WhatsappModule,
+    WaNotificationsModule,
   ],
 })
 export class AppModule {}

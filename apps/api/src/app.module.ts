@@ -8,12 +8,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { BackupModule } from './backup/backup.module';
 import { RecurringModule } from './recurring/recurring.module';
-import { User } from './users/user.entity';
-import { Category } from './categories/category.entity';
-import { Transaction } from './transactions/transaction.entity';
-import { Budget } from './budgets/budget.entity';
-import { PasswordResetToken } from './auth/password-reset-token.entity';
-import { RecurringTransaction } from './recurring/recurring-transaction.entity';
+import { buildDataSourceOptions } from './database/data-source-options';
 
 @Module({
   imports: [
@@ -21,17 +16,8 @@ import { RecurringTransaction } from './recurring/recurring-transaction.entity';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get<string>('DB_USERNAME', 'postgres'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME', 'money_flow'),
-        entities: [User, Category, Transaction, Budget, PasswordResetToken, RecurringTransaction],
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
-        logging: config.get<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) =>
+        buildDataSourceOptions({ get: (key) => config.get<string>(key) }),
     }),
     AuthModule,
     UsersModule,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 
@@ -31,7 +31,10 @@ export class BackupService {
 
   async import(
     userId: string,
-    data: { transactions: any[]; categories: any[] },
+    data: {
+      transactions: DeepPartial<Transaction>[];
+      categories: DeepPartial<Category>[];
+    },
     mode: 'merge' | 'replace',
   ): Promise<{ imported: number }> {
     let importedCount = 0;
@@ -66,19 +69,19 @@ export class BackupService {
       // Merge mode: skip existing IDs
       const existingTransactions = await this.transactionRepo.find({
         where: { userId },
-        select: ['id'],
+        select: { id: true },
       });
       const existingTransactionIds = new Set(existingTransactions.map((t) => t.id));
 
       const existingCategories = await this.categoryRepo.find({
         where: { userId },
-        select: ['id'],
+        select: { id: true },
       });
       const existingCategoryIds = new Set(existingCategories.map((c) => c.id));
 
       // Save new categories (those whose IDs don't already exist)
       const newCategories = data.categories
-        .filter((c) => !existingCategoryIds.has(c.id))
+        .filter((c) => !c.id || !existingCategoryIds.has(c.id))
         .map((c) => this.categoryRepo.create({ ...c, userId }));
 
       if (newCategories.length > 0) {
@@ -88,7 +91,7 @@ export class BackupService {
 
       // Save new transactions (those whose IDs don't already exist)
       const newTransactions = data.transactions
-        .filter((t) => !existingTransactionIds.has(t.id))
+        .filter((t) => !t.id || !existingTransactionIds.has(t.id))
         .map((t) => this.transactionRepo.create({ ...t, userId }));
 
       if (newTransactions.length > 0) {

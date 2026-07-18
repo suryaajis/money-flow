@@ -9,13 +9,19 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
+import { numericTransformer } from '../database/numeric.transformer';
 
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: numericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'enum', enum: ['income', 'expense'] })
@@ -30,7 +36,9 @@ export class Transaction {
   @Column({ nullable: true, type: 'text' })
   notes: string;
 
-  @Column({ nullable: true, length: 3, default: null })
+  // `type` must be explicit: the `string | null` TS type emits design:type
+  // Object, which TypeORM cannot map to a Postgres column.
+  @Column({ type: 'varchar', nullable: true, length: 3, default: null })
   currency: string | null;
 
   @Column({ type: 'simple-array', nullable: true, default: null })

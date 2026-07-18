@@ -9,6 +9,11 @@
     "dev:api": "npm run start:dev --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
+    "migration:generate": "npm run migration:generate --workspace=apps/api --",
+    "migration:run": "npm run migration:run --workspace=apps/api",
+    "migration:revert": "npm run migration:revert --workspace=apps/api",
+    "migration:show": "npm run migration:show --workspace=apps/api",
+    "seed": "npm run seed --workspace=apps/api",
     "lint": "npm run lint --workspaces --if-present",
     "dev:install": "npm install --workspace=apps/api && npm install --workspace=apps/web"
   }

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
+import { numericTransformer } from '../database/numeric.transformer';
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -24,7 +25,12 @@ export class RecurringTransaction {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: numericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'enum', enum: ['income', 'expense'] })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { TransactionForm, type TransactionFormValues } from "@/components/transa
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useExport } from "@/hooks/useExport";
+import { sharedWalletApi } from "@/lib/api";
 import type { Transaction } from "@/lib/types";
 
 export default function TransactionsPage() {
@@ -30,6 +31,15 @@ export default function TransactionsPage() {
   const [bulkConfirming, setBulkConfirming] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  // SHARE-04: resolve recordedBy ids to names for shared-wallet attribution
+  const [recorders, setRecorders] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    sharedWalletApi
+      .getRecorders()
+      .then((list) => setRecorders(Object.fromEntries(list.map((r) => [r.id, r.name]))))
+      .catch(() => setRecorders({}));
+  }, []);
 
   const handleSubmit = async (values: TransactionFormValues) => {
     setSubmitting(true);
@@ -97,6 +107,7 @@ export default function TransactionsPage() {
         onDelete={(tx) => setConfirming(tx)}
         selected={selected}
         onSelectionChange={setSelected}
+        recorders={recorders}
       />
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add transaction">

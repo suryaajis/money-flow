@@ -1,8 +1,124 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, UserPlus, UserMinus, CheckCircle2, Clock, AlertCircle } from "lucide-react";
-import { sharedWalletApi, type ApiWalletMember } from "@/lib/api";
+import { Users, UserPlus, UserMinus, CheckCircle2, Clock, AlertCircle, PlusCircle, X } from "lucide-react";
+import { sharedWalletApi, type ApiWalletMember, type ApiCategory } from "@/lib/api";
+
+// SHARE-03: inline form for a member to record a transaction into an owner's wallet.
+function RecordToWallet({ ownerId, ownerName }: { ownerId: string; ownerName: string }) {
+  const [open, setOpen] = useState(false);
+  const [cats, setCats] = useState<ApiCategory[]>([]);
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [amount, setAmount] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    setDone(null);
+    if (next && cats.length === 0) {
+      try {
+        setCats(await sharedWalletApi.getOwnerCategories(ownerId));
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const options = cats.filter(c => c.type === type || c.type === "both");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!amount || !categoryId) return;
+    setSaving(true);
+    setDone(null);
+    try {
+      await sharedWalletApi.recordForOwner(ownerId, {
+        amount: parseFloat(amount),
+        type,
+        categoryId,
+        date: new Date().toISOString().split("T")[0],
+        notes: notes || undefined,
+      });
+      setDone(`Tercatat di dompet ${ownerName}.`);
+      setAmount("");
+      setNotes("");
+    } catch {
+      setDone("Gagal mencatat.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1 text-xs text-primary hover:underline"
+      >
+        {open ? <X className="h-3 w-3" /> : <PlusCircle className="h-3 w-3" />}
+        {open ? "Tutup" : "Catat transaksi"}
+      </button>
+      {open && (
+        <form onSubmit={submit} className="mt-2 space-y-2 rounded-md border border-border p-3">
+          <div className="flex gap-2">
+            {(["expense", "income"] as const).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setType(t); setCategoryId(""); }}
+                className={`flex-1 rounded-md border py-1 text-xs font-medium ${
+                  type === t ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
+                {t === "expense" ? "Pengeluaran" : "Pemasukan"}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="Jumlah"
+              min="0"
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              required
+            />
+            <select
+              value={categoryId}
+              onChange={e => setCategoryId(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              required
+            >
+              <option value="">Kategori…</option>
+              {options.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <input
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Catatan (opsional)"
+            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-md bg-primary py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {saving ? "Menyimpan…" : "Simpan ke dompet ini"}
+          </button>
+          {done && <p className="text-xs text-muted-foreground">{done}</p>}
+        </form>
+      )}
+    </div>
+  );
+}
 
 export default function SharedWalletPage() {
   const [myMembers, setMyMembers] = useState<ApiWalletMember[]>([]);
@@ -193,17 +309,22 @@ export default function SharedWalletPage() {
         ) : (
           <ul className="space-y-2">
             {sharedWithMe.map(m => (
-              <li key={m.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{m.owner?.name ?? "Unknown"}</p>
-                  <p className="text-xs text-muted-foreground">{m.owner?.email}</p>
+              <li key={m.id} className="border-b border-border last:border-0 pb-2 last:pb-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{m.owner?.name ?? "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground">{m.owner?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => handleLeave(m.id, m.owner?.name ?? "pemilik")}
+                    className="text-xs text-muted-foreground hover:text-destructive underline"
+                  >
+                    Tinggalkan
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleLeave(m.id, m.owner?.name ?? "pemilik")}
-                  className="text-xs text-muted-foreground hover:text-destructive underline"
-                >
-                  Tinggalkan
-                </button>
+                {m.owner?.id && (
+                  <RecordToWallet ownerId={m.owner.id} ownerName={m.owner.name} />
+                )}
               </li>
             ))}
           </ul>

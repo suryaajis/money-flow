@@ -20,6 +20,8 @@ interface TransactionTableProps {
   onDelete: (tx: Transaction) => void;
   selected: Set<string>;
   onSelectionChange: (next: Set<string>) => void;
+  // SHARE-04: id→name of people who may have recorded a transaction (shared wallet).
+  recorders?: Record<string, string>;
 }
 
 const PAGE_SIZE = 15;
@@ -31,6 +33,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   onDelete,
   selected,
   onSelectionChange,
+  recorders,
 }) => {
   const { getCategory } = useCategories();
   const { fmtSigned } = useCurrency();
@@ -170,8 +173,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       {isIncome ? "Income" : "Expense"}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 align-middle max-w-[280px] truncate text-muted-foreground">
-                    {tx.notes || "—"}
+                  <td className="px-3 py-2.5 align-middle max-w-[280px] text-muted-foreground">
+                    <span className="block truncate">{tx.notes || "—"}</span>
+                    {tx.source === "shared" && tx.recordedBy && recorders?.[tx.recordedBy] && (
+                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-primary">
+                        👥 dicatat oleh {recorders[tx.recordedBy]}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 align-middle">
                     {tx.tags && tx.tags.length > 0 ? (

@@ -22,7 +22,12 @@
     "migration:run": "ts-node src/database/migrate.ts run",
     "migration:revert": "ts-node src/database/migrate.ts revert",
     "migration:show": "ts-node src/database/migrate.ts show",
-    "seed": "ts-node src/database/seed.ts"
+    
+    "dist:migration:generate": "node dist/database/migrate.ts generate",
+    "dist:migration:run": "node dist/database/migrate.ts run",
+    "dist:migration:revert": "node dist/database/migrate.ts revert",
+    "dist:migration:show": "node dist/database/migrate.ts show",
+    "dist:seed": "node dist/database/seed.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

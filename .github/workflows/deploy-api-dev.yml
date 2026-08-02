@@ -23,7 +23,7 @@ jobs:
 
       - name: Build and push
         run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/money-flow-api-dev:latest ./apps/api
+          docker build --no-cache -f apps/api/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/money-flow-api-dev:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/money-flow-api-dev:latest
           
       - name: Setup SSH

@@ -14,6 +14,13 @@
     "migration:revert": "npm run migration:revert --workspace=apps/api",
     "migration:show": "npm run migration:show --workspace=apps/api",
     "seed": "npm run seed --workspace=apps/api",
+
+    "dist:migration:generate": "npm run dist:migration:generate --workspace=apps/api --",
+    "dist:migration:run": "npm run dist:migration:run --workspace=apps/api",
+    "dist:migration:revert": "npm run dist:migration:revert --workspace=apps/api",
+    "dist:migration:show": "npm run dist:migration:show --workspace=apps/api",
+    "dist:seed": "npm run dist:seed --workspace=apps/api",
+
     "lint": "npm run lint --workspaces --if-present",
     "dev:install": "npm install --workspace=apps/api && npm install --workspace=apps/web"
   }

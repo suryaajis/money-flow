@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { CloudOff } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Offline — Money Flow",
+  // Root template appends " · Money Flow", so keep this to just the page name
+  // to avoid "Offline — Money Flow · Money Flow".
+  title: "Offline",
   description: "You appear to be offline. Cached pages remain available.",
 };
 

@@ -20,6 +20,7 @@ WORKDIR /app
 
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/src ./src
 COPY apps/api/package*.json ./
 
 EXPOSE 3000

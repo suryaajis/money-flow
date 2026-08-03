@@ -201,16 +201,19 @@ export default function BudgetPage() {
         <div className="space-y-3">
           {budgets.map((b) => {
             const spent = getSpent(b.categoryId);
-            const cat = b.category;
+            // The API sends the category relation, but fall back to the loaded
+            // categories (and a neutral default) so a missing/deleted category
+            // can never crash the whole page.
+            const cat = b.category ?? categories.find((c) => c.id === b.categoryId);
             return (
               <div key={b.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full shrink-0"
-                      style={{ backgroundColor: cat.color }}
+                      style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
                     />
-                    <span className="font-medium text-sm">{cat.name}</span>
+                    <span className="truncate font-medium text-sm">{cat?.name ?? "Kategori dihapus"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-semibold">{formatCurrency(Number(b.amount), currency)}</span>

@@ -62,7 +62,7 @@ function DebtForm({
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium mb-1">Nama</label>
           <input
@@ -86,7 +86,7 @@ function DebtForm({
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium mb-1">Jatuh Tempo (opsional)</label>
           <input
@@ -171,7 +171,7 @@ function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
             <button
               onClick={() => onSettle(debt.id)}
               title="Tandai lunas"
-              className="rounded-md p-1.5 text-green-600 hover:bg-green-500/10"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-green-600 hover:bg-green-500/10"
             >
               <CheckCircle2 className="h-4 w-4" />
             </button>
@@ -179,7 +179,7 @@ function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
             <button
               onClick={() => onUnsettle(debt.id)}
               title="Batalkan lunas"
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
             >
               <Undo2 className="h-4 w-4" />
             </button>
@@ -187,7 +187,7 @@ function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
           <button
             onClick={() => onDelete(debt.id)}
             title="Hapus"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -251,20 +251,20 @@ export default function DebtsPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-2xl mx-auto">
+    <div className="space-y-6 py-2 md:py-4 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <HandCoins className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold">Hutang Piutang</h1>
-            <p className="text-sm text-muted-foreground">Kelola catatan hutang dan piutang</p>
+            <p className="truncate text-sm text-muted-foreground">Kelola catatan hutang dan piutang</p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="flex shrink-0 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           {showForm ? <XCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Tutup" : "Tambah"}
@@ -279,7 +279,7 @@ export default function DebtsPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4">
           <p className="text-xs text-muted-foreground">Piutang aktif</p>
           <p className="text-xl font-bold text-green-600 dark:text-green-400">{fmt(totalPiutang)}</p>

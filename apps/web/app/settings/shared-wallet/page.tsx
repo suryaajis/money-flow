@@ -78,7 +78,7 @@ function RecordToWallet({ ownerId, ownerName }: { ownerId: string; ownerName: st
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input
               type="number"
               value={amount}
@@ -203,7 +203,7 @@ export default function SharedWalletPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-6 p-4">
+    <div className="max-w-lg mx-auto space-y-6 py-2">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Users className="h-5 w-5" />
@@ -268,19 +268,19 @@ export default function SharedWalletPage() {
         ) : (
           <ul className="space-y-2">
             {myMembers.map(m => (
-              <li key={m.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">
+              <li key={m.id} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
                     {m.member?.name ?? m.memberEmail ?? "Unknown"}
                   </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1">
                     {m.acceptedAt ? (
                       <><CheckCircle2 className="h-3 w-3 text-green-500" /> Aktif</>
                     ) : (
                       <><Clock className="h-3 w-3" /> Menunggu konfirmasi</>
                     )}
                     {!m.acceptedAt && m.inviteToken && (
-                      <span className="ml-2 font-mono text-xs bg-muted px-1 rounded">
+                      <span className="font-mono text-xs bg-muted px-1 rounded">
                         Token: {m.inviteToken.slice(0, 8)}...
                       </span>
                     )}
@@ -288,8 +288,9 @@ export default function SharedWalletPage() {
                 </div>
                 <button
                   onClick={() => handleRemove(m.id, m.member?.name ?? m.memberEmail ?? "anggota ini")}
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   title="Hapus akses"
+                  aria-label="Hapus akses"
                 >
                   <UserMinus className="h-4 w-4" />
                 </button>
@@ -310,14 +311,14 @@ export default function SharedWalletPage() {
           <ul className="space-y-2">
             {sharedWithMe.map(m => (
               <li key={m.id} className="border-b border-border last:border-0 pb-2 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{m.owner?.name ?? "Unknown"}</p>
-                    <p className="text-xs text-muted-foreground">{m.owner?.email}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{m.owner?.name ?? "Unknown"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{m.owner?.email}</p>
                   </div>
                   <button
                     onClick={() => handleLeave(m.id, m.owner?.name ?? "pemilik")}
-                    className="text-xs text-muted-foreground hover:text-destructive underline"
+                    className="shrink-0 text-xs text-muted-foreground hover:text-destructive underline"
                   >
                     Tinggalkan
                   </button>

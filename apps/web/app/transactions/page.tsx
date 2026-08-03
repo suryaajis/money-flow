@@ -41,6 +41,17 @@ export default function TransactionsPage() {
       .catch(() => setRecorders({}));
   }, []);
 
+  // Open the add modal when arriving from the mobile FAB (/transactions?add=1),
+  // then strip the query so a refresh doesn't reopen it. Read from
+  // window.location to avoid needing a useSearchParams Suspense boundary.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("add") === "1") {
+      setAdding(true);
+      window.history.replaceState(null, "", "/transactions");
+    }
+  }, []);
+
   const handleSubmit = async (values: TransactionFormValues) => {
     setSubmitting(true);
     try {

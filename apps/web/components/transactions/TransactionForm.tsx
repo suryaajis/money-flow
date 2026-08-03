@@ -137,8 +137,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5 col-span-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label>Type</Label>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -193,7 +193,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           {errors.date ? <p className="text-xs text-destructive">{errors.date}</p> : null}
         </div>
 
-        <div className="space-y-1.5 col-span-2">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="tx-category">Category</Label>
           <Select
             id="tx-category"
@@ -215,7 +215,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           ) : null}
         </div>
 
-        <div className="space-y-1.5 col-span-2">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="tx-currency">
             Currency{" "}
             <span className="text-muted-foreground font-normal">(optional — defaults to {globalCurrency})</span>
@@ -234,7 +234,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           </Select>
         </div>
 
-        <div className="space-y-1.5 col-span-2">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="tx-tags">Tags (optional)</Label>
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 mb-1.5">
@@ -289,7 +289,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           <p className="text-xs text-muted-foreground">Press Enter or comma to add a tag.</p>
         </div>
 
-        <div className="space-y-1.5 col-span-2">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="tx-notes">Notes (optional)</Label>
           <Textarea
             id="tx-notes"

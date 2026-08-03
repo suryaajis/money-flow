@@ -23,11 +23,13 @@ const variantClasses: Record<Variant, string> = {
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-ring",
 };
 
+// Mobile-first heights hit the ~44px touch guideline; `sm:` trims them back to
+// the tighter desktop sizes where a cursor is precise.
 const sizeClasses: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5",
-  md: "h-10 px-4 text-sm gap-2",
+  sm: "h-9 px-3 text-xs gap-1.5 sm:h-8",
+  md: "h-11 px-4 text-sm gap-2 sm:h-10",
   lg: "h-11 px-6 text-base gap-2",
-  icon: "h-9 w-9 p-0",
+  icon: "h-10 w-10 p-0 sm:h-9 sm:w-9",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

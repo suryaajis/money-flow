@@ -31,11 +31,11 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   const { fmt } = useCurrency();
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className={cn("text-2xl font-semibold tracking-tight", toneAccent[tone].split(" ").slice(2).join(" "))}>
+            <p className={cn("break-words text-xl font-semibold tracking-tight sm:text-2xl", toneAccent[tone].split(" ").slice(2).join(" "))}>
               {fmt(amount)}
             </p>
             {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
@@ -43,7 +43,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           {icon ? (
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br",
                 toneAccent[tone],
               )}
             >

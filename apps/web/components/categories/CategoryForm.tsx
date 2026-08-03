@@ -120,7 +120,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initial, onSubmit, o
 
       <div className="space-y-2">
         <Label>Icon</Label>
-        <div className="grid grid-cols-8 gap-1.5">
+        <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 sm:gap-1.5">
           {ICON_OPTIONS.map(({ name: iconName, icon: IconComp }) => (
             <button
               key={iconName}

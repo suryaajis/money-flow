@@ -231,7 +231,7 @@ export function RecurringModal({ open, onClose, editing }: Props) {
           </div>
 
           {/* Start / End Dates */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="startDate" className={labelCls}>
                 Start Date

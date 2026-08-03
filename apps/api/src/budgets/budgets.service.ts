@@ -22,13 +22,18 @@ export class BudgetsService {
       where: { userId, categoryId: dto.categoryId, month: dto.month },
     });
 
+    let saved: Budget;
     if (existing) {
       existing.amount = dto.amount;
-      return this.budgetRepo.save(existing);
+      saved = await this.budgetRepo.save(existing);
+    } else {
+      saved = await this.budgetRepo.save(this.budgetRepo.create({ ...dto, userId }));
     }
 
-    const budget = this.budgetRepo.create({ ...dto, userId });
-    return this.budgetRepo.save(budget);
+    // `save()` doesn't populate the eager `category` relation on its return
+    // value; re-fetch so the response matches GET. The web budget list reads
+    // `budget.category.color`/`.name` and would crash on a missing relation.
+    return this.budgetRepo.findOneOrFail({ where: { id: saved.id } });
   }
 
   async remove(userId: string, id: string): Promise<void> {

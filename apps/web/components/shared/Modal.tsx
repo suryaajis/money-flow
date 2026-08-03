@@ -64,8 +64,8 @@ export const Modal: React.FC<ModalProps> = ({
           "mx-0 sm:mx-4",
         )}
       >
-        <div className="flex items-start justify-between gap-4 p-6 pb-4">
-          <div className="flex-1">
+        <div className="flex items-start justify-between gap-4 p-4 pb-3 sm:p-6 sm:pb-4">
+          <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
             {description ? (
               <p className="mt-1 text-sm text-muted-foreground">{description}</p>
@@ -75,12 +75,13 @@ export const Modal: React.FC<ModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="-m-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 pb-6">{children}</div>
+        {/* On the mobile bottom-sheet, pad past the home indicator. */}
+        <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6">{children}</div>
       </div>
     </div>
   );

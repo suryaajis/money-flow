@@ -102,7 +102,76 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="overflow-x-auto">
+      {/* Mobile: stacked cards (a table would force horizontal scrolling) */}
+      <ul className="divide-y divide-border sm:hidden">
+        {pageRows.map((tx) => {
+          const cat = getCategory(tx.categoryId);
+          const isIncome = tx.type === "income";
+          const checked = selected.has(tx.id);
+          return (
+            <li key={tx.id} className={cn("flex gap-3 p-3", checked && "bg-primary/5")}>
+              <input
+                type="checkbox"
+                aria-label={`Select transaction ${tx.id}`}
+                checked={checked}
+                onChange={() => toggleRow(tx.id)}
+                className="mt-1 h-5 w-5 shrink-0 rounded border-border accent-[var(--primary)]"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    {cat ? <CategoryBadge category={cat} /> : <span className="text-sm text-muted-foreground">Unknown</span>}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      <span>{formatDate(tx.date)}</span>
+                      <span aria-hidden>·</span>
+                      <span className={isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                        {isIncome ? "Income" : "Expense"}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 whitespace-nowrap text-right text-sm font-semibold tabular-nums",
+                      isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                    )}
+                  >
+                    {fmtSigned(tx.amount, tx.type)}
+                    {tx.currency && tx.currency !== "IDR" && (
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">≈ {tx.currency}</span>
+                    )}
+                  </span>
+                </div>
+
+                {tx.notes ? <p className="mt-1.5 break-words text-sm text-foreground/90">{tx.notes}</p> : null}
+                {tx.source === "shared" && tx.recordedBy && recorders?.[tx.recordedBy] && (
+                  <p className="mt-1 text-[11px] text-primary">👥 dicatat oleh {recorders[tx.recordedBy]}</p>
+                )}
+                {tx.tags && tx.tags.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {tx.tags.map((tag) => (
+                      <span key={tag} className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-2 flex justify-end gap-1">
+                  <Button variant="ghost" size="icon" aria-label="Edit" onClick={() => onEdit(tx)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Delete" onClick={() => onDelete(tx)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Desktop: full table */}
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr className="text-left">

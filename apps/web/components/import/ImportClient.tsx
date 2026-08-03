@@ -614,8 +614,8 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
         ) : null}
 
         <form className="space-y-4" onSubmit={onSubmit}>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5 col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label>Tipe</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -685,7 +685,7 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5 col-span-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="import-category">Kategori</Label>
               <Select
                 id="import-category"
@@ -704,7 +704,7 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
               </Select>
             </div>
 
-            <div className="space-y-1.5 col-span-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="import-notes">Catatan / Toko</Label>
               <Textarea
                 id="import-notes"

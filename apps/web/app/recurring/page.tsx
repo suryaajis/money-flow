@@ -121,7 +121,7 @@ export default function RecurringPage() {
                     {FREQ_LABELS[item.frequency]}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   <span>Category: {getCategoryName(item.categoryId)}</span>
                   <span>Next: {item.nextRunDate}</span>
                   {item.endDate && <span>Until: {item.endDate}</span>}
@@ -135,7 +135,7 @@ export default function RecurringPage() {
                 <button
                   onClick={() => toggleActive(item.id, !item.isActive)}
                   title={item.isActive ? "Pause" : "Resume"}
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   {item.isActive ? (
                     <PauseCircle className="h-4 w-4" />
@@ -146,14 +146,14 @@ export default function RecurringPage() {
                 <button
                   onClick={() => handleEdit(item)}
                   title="Edit"
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(item.id)}
                   title="Delete"
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-red-500"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-red-500"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

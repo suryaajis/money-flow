@@ -21,7 +21,9 @@ import { PasswordResetToken } from './password-reset-token.entity';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: (config.get<string>('JWT_EXPIRES_IN', '7d')) as `${number}${'s'|'m'|'h'|'d'}` },
+        // Long-lived by default so the installed PWA keeps users signed in
+        // across app restarts (override with JWT_EXPIRES_IN if needed).
+        signOptions: { expiresIn: (config.get<string>('JWT_EXPIRES_IN', '30d')) as `${number}${'s'|'m'|'h'|'d'}` },
       }),
     }),
   ],

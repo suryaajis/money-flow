@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { FloatingAddButton } from "@/components/layout/FloatingAddButton";
 import { Header } from "@/components/layout/Header";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
@@ -28,54 +29,58 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
-  // Which token has been confirmed valid by the API. We only mount the
-  // authenticated chrome — and the heavy chart subtrees inside it — once the
-  // current token matches this, so the render tree never flips shape mid-flight
-  // (which is what trips React's "rendered more hooks than during the previous
-  // render" invariant). Deriving `authed` during render (rather than storing a
-  // status) keeps setState out of the effect body.
-  const [validatedToken, setValidatedToken] = useState<string | null>(null);
-  const authed = !!token && validatedToken === token;
+  // The token lives in a zustand `persist` store backed by localStorage. On a
+  // cold start (especially the installed PWA) that store rehydrates *after* the
+  // first render, so `token` is momentarily null. We must NOT make any auth
+  // decision until hydration finishes, or a logged-in user gets bounced to
+  // /login on every app launch. Start false on both server and the client's
+  // first render (so they match — no hydration-mismatch warning), then resolve
+  // on mount: hasHydrated() covers a synchronous localStorage rehydrate,
+  // onFinishHydration covers a slower async one.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
+    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  // Optimistic session: once hydrated, a stored token is enough to render the
+  // app immediately — no blocking round-trip. This keeps the user logged in
+  // across app restarts and works even when the API is slow or offline on
+  // reopen. The token is still validated in the background below; a genuine
+  // 401 there evicts it (lib/api) and bounces to /login.
+  const authed = hydrated && !!token;
+
+  // Kick off validation + data load once per token (a ref, not state, so it
+  // never re-triggers a render or the effect).
+  const bootstrappedToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (isPublicRoute) return;
+    if (isPublicRoute || !hydrated) return;
 
     if (!token) {
       router.replace("/login");
       return;
     }
 
-    if (validatedToken === token) return; // already confirmed this token
+    if (bootstrappedToken.current === token) return;
+    bootstrappedToken.current = token;
 
-    // A token string is present, but it may be stale. Validate it against the
-    // API before mounting the authenticated tree or loading data. On failure,
-    // lib/api's global 401 handler evicts the token and redirects to /login.
-    let cancelled = false;
-    authApi
-      .me()
-      .then(() => {
-        if (cancelled) return;
-        setValidatedToken(token);
-        fetchCategories();
-        fetchTransactions();
-      })
-      .catch(() => {
-        /* handled globally in lib/api (evict + redirect) */
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, pathname, isPublicRoute, validatedToken, fetchCategories, fetchTransactions, router]);
+    // Validate the token in the background. A 401 evicts + redirects (lib/api).
+    // A network error (offline PWA) is intentionally ignored so the user stays
+    // in with cached data.
+    authApi.me().catch(() => {});
+    fetchCategories();
+    fetchTransactions();
+  }, [token, hydrated, pathname, isPublicRoute, fetchCategories, fetchTransactions, router]);
 
   // Login/register render on their own layout, without the sidebar/header shell.
   if (isPublicRoute) {
     return <ThemeProvider>{children}</ThemeProvider>;
   }
 
-  // Until the session is confirmed, render an empty themed shell. This keeps a
-  // stable top-level tree (always <ThemeProvider>) across checking → authed so
-  // React never reconciles two differently-shaped trees at this position.
+  // Until hydration settles (and a token is confirmed present) render an empty
+  // themed shell — never the login page — so we don't flash login for a user
+  // who is actually signed in.
   if (!authed) {
     return <ThemeProvider>{null}</ThemeProvider>;
   }
@@ -92,6 +97,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </main>
         </div>
         <MobileNav />
+        <FloatingAddButton />
         <InstallPrompt />
         <NotificationScheduler />
       </div>

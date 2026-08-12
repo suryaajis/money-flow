@@ -21,6 +21,66 @@ export function formatCurrency(
   }).format(value);
 }
 
+/**
+ * Format a numeric value (string or number) with locale-aware thousand
+ * separators, suitable for live display inside an <input>. The decimal part
+ * is preserved up to 2 digits (e.g. "100000" -> "100.000", "1500.5" ->
+ * "1.500,5" on id-ID locale).
+ *
+ * Empty / NaN inputs return an empty string so the field can be cleared.
+ */
+export function formatCurrencyInput(
+  value: string | number | null | undefined,
+  locale: string = "id-ID",
+): string {
+  if (value === null || value === undefined || value === "") return "";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (Number.isNaN(num)) return "";
+  return new Intl.NumberFormat(locale, {
+    useGrouping: true,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
+/**
+ * Parse a user-typed currency string back to a plain number. Strips any
+ * locale formatting characters (spaces, separators, currency symbols) and
+ * normalizes the decimal separator. Returns 0 for empty / invalid input so
+ * callers can safely feed the result into Number() math.
+ *
+ * Examples (id-ID):
+ *   "100.000"     -> 100000
+ *   "1.500,5"     -> 1500.5
+ *   "Rp 100.000"  -> 100000
+ */
+export function parseCurrencyInput(value: string | null | undefined): number {
+  if (!value) return 0;
+  // Strip everything except digits, the first decimal separator, and a sign.
+  let s = String(value).trim().replace(/[^0-9.,-]/g, "");
+  // Drop a trailing separator (user mid-typing: "100.")
+  if (/[.,]$/.test(s)) s = s.slice(0, -1);
+  if (!s || s === "-" || s === "." || s === ",") return 0;
+
+  // Detect decimal separator: the last occurrence of . or , that has exactly
+  // 1-2 digits after it is the decimal mark; any earlier ones are grouping.
+  const lastDot = s.lastIndexOf(".");
+  const lastComma = s.lastIndexOf(",");
+  const lastSepIdx = Math.max(lastDot, lastComma);
+  if (lastSepIdx === -1) return parseInt(s, 10) || 0;
+
+  const after = s.length - lastSepIdx - 1;
+  if (after <= 2) {
+    // last separator is decimal
+    const intPart = s.slice(0, lastSepIdx).replace(/[.,]/g, "");
+    const decPart = s.slice(lastSepIdx + 1);
+    const combined = `${intPart}.${decPart}`;
+    return parseFloat(combined) || 0;
+  }
+  // Otherwise all separators are grouping — strip them all.
+  return parseInt(s.replace(/[.,]/g, ""), 10) || 0;
+}
+
 /** Signed currency string: prefixed with `+` for income, `-` for expense. */
 export function formatSignedAmount(
   amount: number,

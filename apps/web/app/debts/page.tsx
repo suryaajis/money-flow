@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { HandCoins, Plus, CheckCircle2, Clock, Undo2, Trash2, XCircle } from "lucide-react";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { debtsApi, type ApiDebt, type CreateDebtInput } from "@/lib/api";
+import { parseCurrencyInput } from "@/lib/utils";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
@@ -32,7 +34,7 @@ function DebtForm({
     try {
       await onSave({
         direction,
-        amount: parseFloat(amount),
+        amount: parseCurrencyInput(amount),
         counterpartyName,
         notes: notes || undefined,
         dueDate: dueDate || undefined,
@@ -75,13 +77,11 @@ function DebtForm({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Jumlah</label>
-          <input
-            type="number"
+          <CurrencyInput
             value={amount}
-            onChange={e => setAmount(e.target.value)}
+            onChange={(val) => setAmount(val)}
             placeholder="0"
-            min="0"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="rounded-md border border-border focus:ring-2 focus:ring-primary"
             required
           />
         </div>

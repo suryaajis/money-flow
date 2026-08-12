@@ -178,7 +178,7 @@ export default function BackupPage() {
           {/* Mode selector */}
           <div className="space-y-2">
             <p className="text-sm font-medium leading-none">Import mode</p>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="radio"

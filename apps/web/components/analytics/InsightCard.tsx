@@ -26,19 +26,19 @@ export const InsightCard: React.FC<InsightCardProps> = ({
   icon,
 }) => (
   <Card>
-    <CardContent className="p-5">
+    <CardContent className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
-          <p className={cn("text-xl font-semibold", toneClasses[tone])}>{value}</p>
+          <p className={cn("break-words text-xl font-semibold", toneClasses[tone])}>{value}</p>
           {delta ? (
             <p className={cn("text-xs", toneClasses[tone])}>{delta}</p>
           ) : null}
         </div>
         {icon ? (
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             {icon}
           </div>
         ) : null}

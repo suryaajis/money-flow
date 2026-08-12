@@ -113,27 +113,27 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       {/* Month navigator */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setMonth(prevMonth)} className="p-1 rounded-lg hover:bg-accent transition-colors">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-center gap-2 sm:justify-start">
+          <button onClick={() => setMonth(prevMonth)} aria-label="Bulan sebelumnya" className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-accent transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="text-base font-semibold min-w-[140px] text-center capitalize">{monthLabel}</span>
-          <button onClick={() => setMonth(nextMonth)} className="p-1 rounded-lg hover:bg-accent transition-colors">
+          <span className="flex-1 text-center text-base font-semibold capitalize sm:min-w-[140px] sm:flex-none">{monthLabel}</span>
+          <button onClick={() => setMonth(nextMonth)} aria-label="Bulan berikutnya" className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-accent transition-colors">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => copyFromPreviousMonth(month)}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors sm:flex-none"
           >
             <Copy className="h-4 w-4" />
             Salin bulan lalu
           </button>
           <button
             onClick={() => { setEditBudget(null); setFormCategoryId(""); setFormAmount(""); setShowForm(true); }}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors sm:flex-none"
           >
             <Plus className="h-4 w-4" />
             Set Budget
@@ -207,30 +207,35 @@ export default function BudgetPage() {
         <div className="space-y-3">
           {budgets.map((b) => {
             const spent = getSpent(b.categoryId);
-            const cat = b.category;
+            // The API sends the category relation, but fall back to the loaded
+            // categories (and a neutral default) so a missing/deleted category
+            // can never crash the whole page.
+            const cat = b.category ?? categories.find((c) => c.id === b.categoryId);
             return (
               <div key={b.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full shrink-0"
-                      style={{ backgroundColor: cat.color }}
+                      style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
                     />
-                    <span className="font-medium text-sm">{cat.name}</span>
+                    <span className="truncate font-medium text-sm">{cat?.name ?? "Kategori dihapus"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-semibold">{formatCurrency(Number(b.amount), currency)}</span>
                     <button
                       onClick={() => openEdit(b)}
-                      className="ml-2 p-1 rounded hover:bg-accent text-muted-foreground transition-colors"
+                      aria-label="Edit budget"
+                      className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded hover:bg-accent text-muted-foreground transition-colors"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => deleteBudget(b.id)}
-                      className="p-1 rounded hover:bg-destructive/10 text-destructive transition-colors"
+                      aria-label="Hapus budget"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded hover:bg-destructive/10 text-destructive transition-colors"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

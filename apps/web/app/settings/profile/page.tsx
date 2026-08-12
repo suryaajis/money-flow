@@ -214,7 +214,7 @@ export default function ProfilePage() {
           <form onSubmit={handleDeleteAccount} className="space-y-3">
             {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
             <p className="text-sm text-muted-foreground">
-              Ketik email kamu <strong>{user.email}</strong> untuk konfirmasi:
+              Ketik email kamu <strong className="break-all">{user.email}</strong> untuk konfirmasi:
             </p>
             <input
               type="email"

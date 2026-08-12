@@ -80,6 +80,11 @@ html,
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Safety net: no page should ever scroll sideways on a phone. `clip` (not
+   * `hidden`) prevents horizontal overflow WITHOUT creating a scroll container,
+   * so it doesn't break the `position: sticky` header. */
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 body {
@@ -98,6 +103,18 @@ button,
 a,
 [role="button"] {
   touch-action: manipulation;
+}
+
+/* iOS Safari zooms the viewport when a focused form control has font-size < 16px
+ * and never zooms back out. Force 16px on phones for every control (including
+ * raw <input>/<select> that don't use the styled UI primitives). Desktop keeps
+ * the tighter 14px via the components themselves. */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* Recharts: keep tooltips legible in dark mode without prop overrides. */

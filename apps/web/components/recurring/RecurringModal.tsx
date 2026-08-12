@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useRecurringStore } from "@/store/recurringStore";
 import { useCategoryStore } from "@/store/categoryStore";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ApiRecurring, CreateRecurringInput } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, parseCurrencyInput } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -77,8 +78,8 @@ export function RecurringModal({ open, onClose, editing }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const amount = parseFloat(form.amount);
-    if (isNaN(amount) || amount <= 0) {
+    const amount = parseCurrencyInput(form.amount);
+    if (!amount || amount <= 0) {
       setError("Please enter a valid amount.");
       return;
     }
@@ -171,14 +172,11 @@ export function RecurringModal({ open, onClose, editing }: Props) {
             <label htmlFor="amount" className={labelCls}>
               Amount
             </label>
-            <input
+            <CurrencyInput
               id="amount"
-              type="number"
-              min="0"
-              step="any"
               placeholder="0"
               value={form.amount}
-              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+              onChange={(val) => setForm((f) => ({ ...f, amount: val }))}
               className={inputCls}
               required
             />

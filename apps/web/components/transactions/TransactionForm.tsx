@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,8 +12,8 @@ import { useCategories } from "@/hooks/useCategories";
 import { useUIStore } from "@/store/uiStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { CURRENCIES } from "@/lib/constants";
-import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
-import { todayISO } from "@/lib/utils";
+import type { Transaction, TransactionType } from "@/lib/types";
+import { todayISO, parseCurrencyInput } from "@/lib/utils";
 
 export interface TransactionFormValues {
   amount: number;
@@ -20,7 +21,7 @@ export interface TransactionFormValues {
   categoryId: string;
   date: string;
   notes?: string;
-  currency?: CurrencyCode | null;
+  currency?: string | null;
   tags?: string[];
 }
 
@@ -33,7 +34,6 @@ interface TransactionFormProps {
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
   const { categories } = useCategories();
-  const globalCurrency = useUIStore((s) => s.currency);
   const { transactions: allTransactions } = useTransactionStore();
 
   const allUsedTags = useMemo(() => {
@@ -49,7 +49,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? "");
   const [date, setDate] = useState<string>(initial?.date ?? todayISO());
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
-  const [currency, setCurrency] = useState<CurrencyCode | null>(initial?.currency ?? null);
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -110,8 +109,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
     e.preventDefault();
     const next: typeof errors = {};
 
-    const parsed = Number(amount);
-    if (!amount || Number.isNaN(parsed) || parsed <= 0) {
+    const parsed = parseCurrencyInput(amount);
+    if (!amount || parsed <= 0) {
       next.amount = "Enter a positive amount.";
     }
     if (!selectedCategoryId) {
@@ -130,7 +129,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       categoryId: selectedCategoryId,
       date,
       notes: notes.trim() || undefined,
-      currency: currency ?? null,
+      currency: "IDR",
       tags: tags.length > 0 ? tags : undefined,
     });
   };
@@ -168,15 +167,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
 
         <div className="space-y-1.5">
           <Label htmlFor="tx-amount">Amount</Label>
-          <Input
+          <CurrencyInput
             id="tx-amount"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
+            placeholder="0"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(val) => setAmount(val)}
           />
           {errors.amount ? <p className="text-xs text-destructive">{errors.amount}</p> : null}
         </div>
@@ -213,25 +208,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           {errors.categoryId ? (
             <p className="text-xs text-destructive">{errors.categoryId}</p>
           ) : null}
-        </div>
-
-        <div className="space-y-1.5 col-span-2">
-          <Label htmlFor="tx-currency">
-            Currency{" "}
-            <span className="text-muted-foreground font-normal">(optional — defaults to {globalCurrency})</span>
-          </Label>
-          <Select
-            id="tx-currency"
-            value={currency ?? ""}
-            onChange={(e) => setCurrency((e.target.value as CurrencyCode) || null)}
-          >
-            <option value="">Use global ({globalCurrency})</option>
-            {Object.values(CURRENCIES).map((cfg) => (
-              <option key={cfg.code} value={cfg.code}>
-                {cfg.code} — {cfg.symbol}
-              </option>
-            ))}
-          </Select>
         </div>
 
         <div className="space-y-1.5 col-span-2">

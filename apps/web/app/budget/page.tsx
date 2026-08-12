@@ -8,7 +8,9 @@ import { useBudgetStore } from "@/store/budgetStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useUIStore } from "@/store/uiStore";
-import { CURRENCIES } from "@/lib/constants";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/constants";
+import { parseCurrencyInput } from "@/lib/utils";
 import type { ApiBudget } from "@/lib/api";
 
 function formatCurrency(amount: number, currency: string) {
@@ -76,7 +78,13 @@ export default function BudgetPage() {
     e.preventDefault();
     setFormLoading(true);
     try {
-      await upsertBudget(formCategoryId, Number(formAmount), month);
+      const amount = parseCurrencyInput(formAmount);
+      if (!amount || amount <= 0) {
+        alert("Please enter a valid amount.");
+        setFormLoading(false);
+        return;
+      }
+      await upsertBudget(formCategoryId, amount, month);
       setShowForm(false);
       setEditBudget(null);
       setFormCategoryId("");
@@ -158,13 +166,11 @@ export default function BudgetPage() {
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Batas anggaran</label>
-              <input
-                type="number"
+              <CurrencyInput
                 required
-                min={1}
                 value={formAmount}
-                onChange={(e) => setFormAmount(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={(val) => setFormAmount(val)}
+                className="rounded-lg focus:ring-2 focus:ring-primary"
                 placeholder="0"
               />
             </div>

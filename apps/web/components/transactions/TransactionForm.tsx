@@ -12,7 +12,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useUIStore } from "@/store/uiStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { CURRENCIES } from "@/lib/constants";
-import type { Transaction, TransactionType } from "@/lib/types";
+import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
 import { todayISO, parseCurrencyInput } from "@/lib/utils";
 
 export interface TransactionFormValues {
@@ -21,7 +21,7 @@ export interface TransactionFormValues {
   categoryId: string;
   date: string;
   notes?: string;
-  currency?: string | null;
+  currency?: CurrencyCode | null;
   tags?: string[];
 }
 

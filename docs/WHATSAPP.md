@@ -3,6 +3,9 @@
 Dokumentasi lengkap fitur WhatsApp Money Flow (PRD v3): apa saja fungsinya,
 cara memakainya sebagai pengguna, dan cara men-deploy-nya ke produksi.
 
+Untuk konfigurasi hardened terbaru, template Meta, signature webhook, linking
+berbasis challenge, dan checklist deploy, lihat [`WHATSAPP-PRODUCTION.md`](./WHATSAPP-PRODUCTION.md).
+
 - **Versi:** v3
 - **Stack:** NestJS + TypeORM + PostgreSQL (API), Next.js (web)
 - **Channel:** Meta WhatsApp Cloud API
@@ -38,7 +41,7 @@ Kemampuan utama:
 | **Voice note** | Rekam suara → transkripsi otomatis → catat |
 | **Perintah bot** | `saldo`, `rekap`, `budget`, `utang`, `daftar`, `hapus`, `ekspor`, `bantuan` |
 | **Hutang piutang** | Catat & lunas dari chat (`pinjam ke budi 100rb`) |
-| **Notifikasi proaktif** | Rekap bulanan, alert budget, reminder jatuh tempo (opt-in) |
+| **Notifikasi proaktif** | Rekap bulanan, alert budget, reminder jatuh tempo (opt-in, template Utility) |
 | **Dompet bersama** | Anggota mencatat ke akun pemilik, dengan notifikasi |
 
 > **Mode dev tanpa kredensial:** Jika `WA_ACCESS_TOKEN` belum diset, bot tidak
@@ -184,8 +187,8 @@ Diatur dari **Settings → WhatsApp** (toggle per jenis).
 ### Menghubungkan nomor
 
 1. Buka web app → **Settings → WhatsApp**.
-2. Masukkan nomor WhatsApp (`08xxx` atau `628xxx`) → **Hubungkan**.
-3. Kirim pesan pertama ke nomor bot (mis. `bantuan`).
+2. Klik **Buat Link WhatsApp** lalu **Buka WhatsApp**.
+3. Kirim pesan `HUBUNGKAN <token>` yang sudah disiapkan. Nomor diverifikasi dari webhook Meta.
 
 Satu akun hanya bisa terhubung ke satu nomor, dan sebaliknya.
 
@@ -229,7 +232,12 @@ Semua di `apps/api/.env` (lihat `apps/api/.env.example`).
 |----------|--------|------------|
 | `WA_ACCESS_TOKEN` | untuk kirim WA | Access token permanen Meta Business → WhatsApp |
 | `WA_PHONE_NUMBER_ID` | untuk kirim WA | ID nomor pengirim di Meta |
+| `WA_WABA_ID` | kelola template | ID WhatsApp Business Account untuk sync template |
+| `WA_BUSINESS_PHONE_NUMBER` | untuk linking | Nomor publik pengirim, format internasional tanpa `+` |
+| `WA_APP_SECRET` | production | Memverifikasi signature POST webhook Meta |
 | `WA_VERIFY_TOKEN` | untuk webhook | String bebas untuk verifikasi webhook (samakan di Meta) |
+| `WA_GRAPH_API_VERSION` | disarankan | Versi Graph API, default `v25.0` |
+| `WA_TEMPLATE_*` | notifikasi | Nama empat template Utility yang sudah approved |
 | `PUBLIC_API_URL` | untuk `ekspor` | Base URL publik API, untuk menyusun link CSV (mis. `https://api.domain.com/api`) |
 | `GEMINI_API_KEY` | opsional | Google AI Studio (gratis). Kosong → pakai template parser |
 | `GROQ_API_KEY` | untuk voice | console.groq.com (gratis). Kosong → voice note nonaktif |
@@ -285,8 +293,7 @@ Migration yang relevan:
 
 `WaNotificationsModule` memakai `@nestjs/schedule` (in-process). Cukup pastikan
 proses API tetap hidup 24/7 (mis. PM2, systemd, atau container yang tidak
-di-scale-to-zero). Waktu cron mengikuti **zona waktu server** — set `TZ` bila perlu
-(mis. `TZ=Asia/Jakarta`).
+di-scale-to-zero). Jadwal cron dikunci ke zona waktu **Asia/Jakarta**.
 
 > ⚠️ Kalau API dijalankan multi-instance, cron akan berjalan di **setiap**
 > instance. Untuk saat ini jalankan scheduler di satu instance saja, atau

@@ -15,7 +15,7 @@ Key features:
 
 See [`docs/PRD-v1.md`](docs/PRD-v1.md) (released) and [`docs/PRD-v2.md`](docs/PRD-v2.md) (planning) for full product requirements.
 
-📱 **WhatsApp bot** — record transactions from chat/voice, bot commands, debt tracking, proactive notifications. See [`docs/WHATSAPP.md`](docs/WHATSAPP.md) for features, usage, and deployment.
+📱 **WhatsApp bot** — record transactions from chat/voice, bot commands, debt tracking, proactive notifications. See [`docs/WHATSAPP.md`](docs/WHATSAPP.md) for features and [`docs/WHATSAPP-PRODUCTION.md`](docs/WHATSAPP-PRODUCTION.md) for the hardened production setup.
 
 ## Tech Stack
 

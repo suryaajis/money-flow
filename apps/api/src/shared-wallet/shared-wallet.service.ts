@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { WalletMember } from './wallet-member.entity';
@@ -12,16 +13,19 @@ import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 import { CreateTransactionDto } from '../transactions/dto/create-transaction.dto';
-import { WaNotifierService } from '../whatsapp/wa-notifier.service';
+import { WaProactiveNotificationService } from '../whatsapp/wa-proactive-notification.service';
+import { WA_TEMPLATE_DEFAULT_NAMES } from '../whatsapp/wa-template-definitions';
 
 @Injectable()
 export class SharedWalletService {
   constructor(
-    @InjectRepository(WalletMember) private memberRepo: Repository<WalletMember>,
+    @InjectRepository(WalletMember)
+    private memberRepo: Repository<WalletMember>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
-    private notifier: WaNotifierService,
+    private proactive: WaProactiveNotificationService,
+    private config: ConfigService,
   ) {}
 
   // Returns all members of wallets I own
@@ -42,7 +46,10 @@ export class SharedWalletService {
     });
   }
 
-  async inviteByEmail(ownerUserId: string, email: string): Promise<WalletMember> {
+  async inviteByEmail(
+    ownerUserId: string,
+    email: string,
+  ): Promise<WalletMember> {
     const existing = await this.memberRepo.findOne({
       where: { ownerUserId, memberEmail: email },
     });
@@ -63,7 +70,9 @@ export class SharedWalletService {
   }
 
   async acceptInvite(token: string, userId: string): Promise<WalletMember> {
-    const invite = await this.memberRepo.findOne({ where: { inviteToken: token } });
+    const invite = await this.memberRepo.findOne({
+      where: { inviteToken: token },
+    });
     if (!invite) throw new NotFoundException('Invalid or expired invite token');
 
     invite.memberUserId = userId;
@@ -89,7 +98,10 @@ export class SharedWalletService {
   // ── SHARE-03/04/06: members writing into an owner's wallet ──────────────────
 
   /** Throws unless `memberUserId` is an accepted member of `ownerUserId`'s wallet. */
-  private async assertAcceptedMember(memberUserId: string, ownerUserId: string): Promise<void> {
+  private async assertAcceptedMember(
+    memberUserId: string,
+    ownerUserId: string,
+  ): Promise<void> {
     if (memberUserId === ownerUserId) return; // owner can always write to their own wallet
     const membership = await this.memberRepo.findOne({
       where: { ownerUserId, memberUserId },
@@ -100,7 +112,10 @@ export class SharedWalletService {
   }
 
   /** Owner's categories, for a member composing a transaction into the shared wallet. */
-  async getOwnerCategories(memberUserId: string, ownerUserId: string): Promise<Category[]> {
+  async getOwnerCategories(
+    memberUserId: string,
+    ownerUserId: string,
+  ): Promise<Category[]> {
     await this.assertAcceptedMember(memberUserId, ownerUserId);
     return this.catRepo.find({ where: { userId: ownerUserId } });
   }
@@ -122,7 +137,9 @@ export class SharedWalletService {
     const saved = await this.txRepo.save(tx);
 
     // SHARE-06: notify the owner that a member recorded something (fire-and-forget).
-    void this.notifyOwnerOfActivity(ownerUserId, memberUserId, saved).catch(() => undefined);
+    void this.notifyOwnerOfActivity(ownerUserId, memberUserId, saved).catch(
+      () => undefined,
+    );
     return saved;
   }
 
@@ -140,11 +157,21 @@ export class SharedWalletService {
     if (!owner?.waPhone) return;
     const sign = tx.type === 'income' ? '+' : '-';
     const amount = new Intl.NumberFormat('id-ID').format(Number(tx.amount));
-    await this.notifier.sendText(
-      owner.waPhone,
-      `👥 *${member?.name ?? 'Anggota'}* mencatat di dompet bersama:\n` +
-        `${sign}Rp${amount} ${category?.name ?? ''}${tx.notes ? ` • ${tx.notes}` : ''}`,
-    );
+    await this.proactive.sendOncePerDay({
+      userId: owner.id,
+      to: owner.waPhone,
+      kind: 'shared_wallet_activity',
+      templateName: this.config.get<string>(
+        'WA_TEMPLATE_SHARED_WALLET',
+        WA_TEMPLATE_DEFAULT_NAMES.sharedWallet,
+      ),
+      bodyParameters: [
+        member?.name ?? 'Anggota',
+        `${sign}Rp${amount}`,
+        category?.name ?? 'Tanpa kategori',
+        tx.notes || '-',
+      ],
+    });
   }
 
   /**

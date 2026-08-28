@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Link, Unlink, CheckCircle2, AlertCircle, Bell } from "lucide-react";
+import {
+  MessageSquare,
+  Link,
+  Unlink,
+  CheckCircle2,
+  AlertCircle,
+  Bell,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 
 interface WaStatus {
   linked: boolean;
@@ -15,20 +24,47 @@ interface NotificationPrefs {
   notifyDebtDue: boolean;
 }
 
+interface LinkChallenge {
+  linkUrl: string;
+  businessPhone: string;
+  expiresAt: string;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-const PREF_LABELS: { key: keyof NotificationPrefs; label: string; desc: string }[] = [
-  { key: "notifyMonthlyRecap", label: "Rekap awal bulan", desc: "Ringkasan bulan lalu setiap tanggal 1" },
-  { key: "notifyOverBudget", label: "Alert budget terlampaui", desc: "Peringatan saat pengeluaran melebihi budget" },
-  { key: "notifyDebtDue", label: "Pengingat jatuh tempo utang", desc: "Ingatkan H-1 dan hari-H utang piutang" },
+const PREF_LABELS: {
+  key: keyof NotificationPrefs;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    key: "notifyMonthlyRecap",
+    label: "Rekap awal bulan",
+    desc: "Ringkasan bulan lalu setiap tanggal 1",
+  },
+  {
+    key: "notifyOverBudget",
+    label: "Alert budget terlampaui",
+    desc: "Peringatan saat pengeluaran melebihi budget",
+  },
+  {
+    key: "notifyDebtDue",
+    label: "Pengingat jatuh tempo utang",
+    desc: "Ingatkan H-1 dan hari-H utang piutang",
+  },
 ];
 
 export default function WhatsAppSettingsPage() {
   const [status, setStatus] = useState<WaStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [phone, setPhone] = useState("");
+  const [linkChallenge, setLinkChallenge] = useState<LinkChallenge | null>(
+    null,
+  );
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
 
   useEffect(() => {
@@ -56,7 +92,10 @@ export default function WhatsAppSettingsPage() {
       const token = localStorage.getItem("mf:token");
       const res = await fetch(`${API_BASE}/users/notifications`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ [key]: next[key] }),
       });
       if (res.ok) setPrefs(await res.json());
@@ -81,9 +120,7 @@ export default function WhatsAppSettingsPage() {
     }
   }
 
-  async function handleLink(e: React.FormEvent) {
-    e.preventDefault();
-    if (!phone.trim()) return;
+  async function handleLink() {
     setSubmitting(true);
     setMessage(null);
     try {
@@ -92,17 +129,22 @@ export default function WhatsAppSettingsPage() {
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/users/whatsapp/link`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ phone }),
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
       if (res.ok) {
-        setMessage({ type: "success", text: "WhatsApp berhasil dihubungkan! Kirim pesan ke bot untuk memulai." });
-        setPhone("");
-        await fetchStatus();
+        const body = await res.json();
+        setLinkChallenge(body);
+        setMessage({
+          type: "success",
+          text: "Link siap. Buka WhatsApp lalu kirim pesan yang sudah disiapkan.",
+        });
       } else {
         const body = await res.json().catch(() => ({}));
-        setMessage({ type: "error", text: body.message ?? "Gagal menghubungkan WhatsApp." });
+        setMessage({
+          type: "error",
+          text: body.message ?? "Gagal menghubungkan WhatsApp.",
+        });
       }
     } catch {
       setMessage({ type: "error", text: "Terjadi kesalahan. Coba lagi." });
@@ -140,7 +182,9 @@ export default function WhatsAppSettingsPage() {
         </div>
         <div>
           <h1 className="text-xl font-semibold">WhatsApp Bot</h1>
-          <p className="text-sm text-muted-foreground">Catat transaksi langsung dari WhatsApp</p>
+          <p className="text-sm text-muted-foreground">
+            Catat transaksi langsung dari WhatsApp
+          </p>
         </div>
       </div>
 
@@ -155,12 +199,17 @@ export default function WhatsAppSettingsPage() {
             <span className="font-medium">WhatsApp Terhubung</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            <p>Nomor: <span className="font-mono text-foreground">+{status.phone}</span></p>
+            <p>
+              Nomor:{" "}
+              <span className="font-mono text-foreground">+{status.phone}</span>
+            </p>
             {status.linkedAt && (
               <p className="mt-1">
                 Dihubungkan:{" "}
                 {new Date(status.linkedAt).toLocaleDateString("id-ID", {
-                  day: "numeric", month: "long", year: "numeric",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
                 })}
               </p>
             )}
@@ -168,10 +217,22 @@ export default function WhatsAppSettingsPage() {
 
           <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
             <p className="font-medium text-foreground">Cara penggunaan:</p>
-            <p className="text-muted-foreground">• Ketik <code className="bg-muted px-1 rounded">kopi 15rb</code> untuk catat pengeluaran</p>
-            <p className="text-muted-foreground">• Ketik <code className="bg-muted px-1 rounded">gajian 5jt</code> untuk catat pemasukan</p>
-            <p className="text-muted-foreground">• Ketik <code className="bg-muted px-1 rounded">saldo</code> untuk cek saldo bulan ini</p>
-            <p className="text-muted-foreground">• Ketik <code className="bg-muted px-1 rounded">bantuan</code> untuk semua perintah</p>
+            <p className="text-muted-foreground">
+              • Ketik <code className="bg-muted px-1 rounded">kopi 15rb</code>{" "}
+              untuk catat pengeluaran
+            </p>
+            <p className="text-muted-foreground">
+              • Ketik <code className="bg-muted px-1 rounded">gajian 5jt</code>{" "}
+              untuk catat pemasukan
+            </p>
+            <p className="text-muted-foreground">
+              • Ketik <code className="bg-muted px-1 rounded">saldo</code> untuk
+              cek saldo bulan ini
+            </p>
+            <p className="text-muted-foreground">
+              • Ketik <code className="bg-muted px-1 rounded">bantuan</code>{" "}
+              untuk semua perintah
+            </p>
           </div>
 
           <button
@@ -186,30 +247,52 @@ export default function WhatsAppSettingsPage() {
       ) : (
         <div className="rounded-lg border border-border bg-card p-6 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Hubungkan nomor WhatsApp-mu untuk mulai mencatat transaksi langsung dari chat.
+            Hubungkan nomor WhatsApp-mu untuk mulai mencatat transaksi langsung
+            dari chat.
           </p>
-          <form onSubmit={handleLink} className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Nomor WhatsApp</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="08123456789 atau 628123456789"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-              <p className="mt-1 text-xs text-muted-foreground">Format: 08xxx atau 628xxx</p>
-            </div>
+          <div className="space-y-3">
             <button
-              type="submit"
+              type="button"
+              onClick={handleLink}
               disabled={submitting}
               className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Link className="h-4 w-4" />
-              {submitting ? "Menghubungkan..." : "Hubungkan WhatsApp"}
+              {submitting ? "Membuat link..." : "Buat Link WhatsApp"}
             </button>
-          </form>
+            {linkChallenge && (
+              <div className="rounded-md border border-border bg-muted/40 p-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Link berlaku sampai{" "}
+                  {new Date(linkChallenge.expiresAt).toLocaleTimeString(
+                    "id-ID",
+                    { hour: "2-digit", minute: "2-digit" },
+                  )}
+                  . Kirim pesan tersebut dari nomor WhatsApp yang ingin
+                  dihubungkan.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={linkChallenge.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Buka WhatsApp
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => fetchStatus()}
+                    className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Cek Status
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -220,11 +303,15 @@ export default function WhatsAppSettingsPage() {
             <h2 className="text-sm font-semibold">Notifikasi WhatsApp</h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            Semua notifikasi opt-in (default mati), maksimal 1 pesan proaktif per hari.
+            Semua notifikasi opt-in (default mati), maksimal 1 pesan proaktif
+            per hari.
           </p>
           <div className="space-y-3">
             {PREF_LABELS.map(({ key, label, desc }) => (
-              <label key={key} className="flex items-start justify-between gap-3 cursor-pointer">
+              <label
+                key={key}
+                className="flex items-start justify-between gap-3 cursor-pointer"
+              >
                 <div>
                   <p className="text-sm font-medium">{label}</p>
                   <p className="text-xs text-muted-foreground">{desc}</p>

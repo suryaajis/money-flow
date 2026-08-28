@@ -1,19 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 import { Budget } from '../budgets/budget.entity';
 import { Debt } from '../debts/debt.entity';
-import { WaNotifierService } from './wa-notifier.service';
+import { WaProactiveNotificationService } from './wa-proactive-notification.service';
+import { WA_TEMPLATE_DEFAULT_NAMES } from './wa-template-definitions';
 
-/**
- * Proactive WhatsApp notifications (NOT-WA-01/02/04). All are opt-in per-user
- * (default off). Cron times are server-local; keep them spread out so a user
- * never receives more than one proactive message per day.
- */
 @Injectable()
 export class WaNotificationsService {
   private readonly logger = new Logger(WaNotificationsService.name);
@@ -24,29 +21,29 @@ export class WaNotificationsService {
     @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Budget) private budgetRepo: Repository<Budget>,
     @InjectRepository(Debt) private debtRepo: Repository<Debt>,
-    private notifier: WaNotifierService,
+    private proactive: WaProactiveNotificationService,
+    private config: ConfigService,
   ) {}
 
   private fmt(n: number): string {
     return new Intl.NumberFormat('id-ID').format(n);
   }
 
-  // ── NOT-WA-01: recap of last month, sent 08:00 on the 1st ───────────────────
-  @Cron('0 8 1 * *')
+  @Cron('0 8 1 * *', { timeZone: 'Asia/Jakarta' })
   async sendMonthlyRecaps(now = new Date()): Promise<void> {
-    const users = await this.userRepo.find({
-      where: { notifyMonthlyRecap: true },
-    });
-    const recipients = users.filter(u => !!u.waPhone);
-    if (!recipients.length) return;
-
+    const users = (
+      await this.userRepo.find({ where: { notifyMonthlyRecap: true } })
+    ).filter((user) => !!user.waPhone);
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const label = start.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    const label = start.toLocaleString('id-ID', {
+      month: 'long',
+      year: 'numeric',
+    });
 
-    for (const user of recipients) {
+    for (const user of users) {
       try {
         const txs = await this.txRepo.find({
           where: { userId: user.id, date: Between(startStr, endStr) },
@@ -54,111 +51,185 @@ export class WaNotificationsService {
         });
         if (!txs.length) continue;
 
-        const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-        const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-
-        const catTotals = new Map<string, number>();
-        for (const t of txs.filter(t => t.type === 'expense')) {
-          const name = t.category?.name ?? 'Lain-lain';
-          catTotals.set(name, (catTotals.get(name) ?? 0) + Number(t.amount));
+        const income = txs
+          .filter((tx) => tx.type === 'income')
+          .reduce((sum, tx) => sum + Number(tx.amount), 0);
+        const expense = txs
+          .filter((tx) => tx.type === 'expense')
+          .reduce((sum, tx) => sum + Number(tx.amount), 0);
+        const categoryTotals = new Map<string, number>();
+        for (const tx of txs.filter((item) => item.type === 'expense')) {
+          const name = tx.category?.name ?? 'Lain-lain';
+          categoryTotals.set(
+            name,
+            (categoryTotals.get(name) ?? 0) + Number(tx.amount),
+          );
         }
-        const top3 = [...catTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const topSummary =
+          [...categoryTotals.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([name, total], index) => {
+              const percentage =
+                expense > 0 ? Math.round((total / expense) * 100) : 0;
+              return `${index + 1}. ${name}: Rp${this.fmt(total)} (${percentage}%)`;
+            })
+            .join('\n') || '-';
 
-        let msg = `📊 *Rekap Keuangan ${label}*\n\n`;
-        msg += `📈 Pemasukan:  Rp${this.fmt(income)}\n`;
-        msg += `📉 Pengeluaran: Rp${this.fmt(expense)}\n`;
-        msg += `💵 Saldo bersih: Rp${this.fmt(income - expense)}\n`;
-        if (top3.length) {
-          msg += `\n🏆 Top pengeluaran:\n`;
-          top3.forEach(([name, total], i) => {
-            const pct = expense > 0 ? Math.round((total / expense) * 100) : 0;
-            msg += `${i + 1}. ${name}: Rp${this.fmt(total)} (${pct}%)\n`;
-          });
-        }
-        await this.notifier.sendText(user.waPhone!, msg);
-      } catch (err) {
-        this.logger.error(`Monthly recap failed for user ${user.id}`, err as Error);
+        await this.proactive.sendOncePerDay(
+          {
+            userId: user.id,
+            to: user.waPhone!,
+            kind: 'monthly_recap',
+            templateName: this.config.get<string>(
+                'WA_TEMPLATE_MONTHLY_RECAP',
+                WA_TEMPLATE_DEFAULT_NAMES.monthlyRecap,
+            ),
+            bodyParameters: [
+              label,
+              this.fmt(income),
+              this.fmt(expense),
+              this.fmt(income - expense),
+              topSummary,
+            ],
+          },
+          now,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Monthly recap failed for user ${user.id}`,
+          error as Error,
+        );
       }
     }
   }
 
-  // ── NOT-WA-02: over-budget digest, sent 20:00 daily ─────────────────────────
-  @Cron('0 20 * * *')
+  @Cron('0 20 * * *', { timeZone: 'Asia/Jakarta' })
   async sendOverBudgetAlerts(now = new Date()): Promise<void> {
-    const users = (await this.userRepo.find({ where: { notifyOverBudget: true } })).filter(
-      u => !!u.waPhone,
-    );
-    if (!users.length) return;
-
+    const users = (
+      await this.userRepo.find({ where: { notifyOverBudget: true } })
+    ).filter((user) => !!user.waPhone);
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const startStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const endStr = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const startStr = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const endStr = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
 
     for (const user of users) {
       try {
-        const budgets = await this.budgetRepo.find({ where: { userId: user.id, month } });
-        if (!budgets.length) continue;
-
-        const txs = await this.txRepo.find({
-          where: { userId: user.id, type: 'expense', date: Between(startStr, endStr) },
+        const budgets = await this.budgetRepo.find({
+          where: { userId: user.id, month },
         });
-        const cats = await this.catRepo.find({ where: { userId: user.id } });
-        const catName = (id: string) => cats.find(c => c.id === id)?.name ?? 'Lainnya';
-
-        const spentByCat = new Map<string, number>();
-        for (const t of txs) {
-          spentByCat.set(t.categoryId, (spentByCat.get(t.categoryId) ?? 0) + Number(t.amount));
+        if (!budgets.length) continue;
+        const [transactions, categories] = await Promise.all([
+          this.txRepo.find({
+            where: {
+              userId: user.id,
+              type: 'expense',
+              date: Between(startStr, endStr),
+            },
+          }),
+          this.catRepo.find({ where: { userId: user.id } }),
+        ]);
+        const spentByCategory = new Map<string, number>();
+        for (const tx of transactions) {
+          spentByCategory.set(
+            tx.categoryId,
+            (spentByCategory.get(tx.categoryId) ?? 0) + Number(tx.amount),
+          );
         }
+        const categoryName = (id: string) =>
+          categories.find((category) => category.id === id)?.name ?? 'Lainnya';
+        const overBudget = budgets
+          .map((budget) => ({
+            name: categoryName(budget.categoryId),
+            spent: spentByCategory.get(budget.categoryId) ?? 0,
+            limit: Number(budget.amount),
+          }))
+          .filter((item) => item.limit > 0 && item.spent > item.limit);
+        if (!overBudget.length) continue;
 
-        const over = budgets
-          .map(b => ({ name: catName(b.categoryId), spent: spentByCat.get(b.categoryId) ?? 0, limit: Number(b.amount) }))
-          .filter(b => b.limit > 0 && b.spent > b.limit);
+        const details = overBudget
+          .map((item) => {
+            const percentage = Math.round((item.spent / item.limit) * 100);
+            return `${item.name}: Rp${this.fmt(item.spent)} / Rp${this.fmt(item.limit)} (${percentage}%)`;
+          })
+          .join('\n');
 
-        if (!over.length) continue;
-
-        let msg = '🚨 *Peringatan Budget Terlampaui*\n\n';
-        for (const b of over) {
-          const pct = Math.round((b.spent / b.limit) * 100);
-          msg += `🔴 ${b.name}: Rp${this.fmt(b.spent)} / Rp${this.fmt(b.limit)} (${pct}%)\n`;
-        }
-        msg += '\nCek dashboard untuk detail.';
-        await this.notifier.sendText(user.waPhone!, msg);
-      } catch (err) {
-        this.logger.error(`Over-budget alert failed for user ${user.id}`, err as Error);
+        await this.proactive.sendOncePerDay(
+          {
+            userId: user.id,
+            to: user.waPhone!,
+            kind: 'over_budget',
+            templateName: this.config.get<string>(
+              'WA_TEMPLATE_OVER_BUDGET',
+              WA_TEMPLATE_DEFAULT_NAMES.overBudget,
+            ),
+            bodyParameters: [details],
+          },
+          now,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Over-budget alert failed for user ${user.id}`,
+          error as Error,
+        );
       }
     }
   }
 
-  // ── NOT-WA-04: debt due reminder (H-1 and H), sent 09:00 daily ──────────────
-  @Cron('0 9 * * *')
+  @Cron('0 9 * * *', { timeZone: 'Asia/Jakarta' })
   async sendDebtDueReminders(now = new Date()): Promise<void> {
-    const users = (await this.userRepo.find({ where: { notifyDebtDue: true } })).filter(
-      u => !!u.waPhone,
-    );
-    if (!users.length) return;
-
+    const users = (
+      await this.userRepo.find({ where: { notifyDebtDue: true } })
+    ).filter((user) => !!user.waPhone);
     const today = now.toISOString().split('T')[0];
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const tomorrow = new Date(now.getTime() + 86_400_000)
+      .toISOString()
+      .split('T')[0];
 
     for (const user of users) {
       try {
         const debts = (
           await this.debtRepo.find({ where: { userId: user.id } })
-        ).filter(d => !d.settledAt && (d.dueDate === today || d.dueDate === tomorrow));
+        ).filter(
+          (debt) =>
+            !debt.settledAt &&
+            (debt.dueDate === today || debt.dueDate === tomorrow),
+        );
         if (!debts.length) continue;
+        const details = debts
+          .map((debt) => {
+            const when =
+              debt.dueDate === today
+                ? 'jatuh tempo hari ini'
+                : 'jatuh tempo besok';
+            return debt.direction === 'owed_to_me'
+              ? `${debt.counterpartyName} harus bayar Rp${this.fmt(Number(debt.amount))} — ${when}`
+              : `Kamu harus bayar Rp${this.fmt(Number(debt.amount))} ke ${debt.counterpartyName} — ${when}`;
+          })
+          .join('\n');
 
-        let msg = '⏰ *Pengingat Utang Piutang*\n\n';
-        for (const d of debts) {
-          const when = d.dueDate === today ? 'jatuh tempo *hari ini*' : 'jatuh tempo *besok*';
-          if (d.direction === 'owed_to_me') {
-            msg += `💰 ${d.counterpartyName} harus bayar Rp${this.fmt(Number(d.amount))} — ${when}\n`;
-          } else {
-            msg += `💸 Kamu harus bayar Rp${this.fmt(Number(d.amount))} ke ${d.counterpartyName} — ${when}\n`;
-          }
-        }
-        await this.notifier.sendText(user.waPhone!, msg);
-      } catch (err) {
-        this.logger.error(`Debt reminder failed for user ${user.id}`, err as Error);
+        await this.proactive.sendOncePerDay(
+          {
+            userId: user.id,
+            to: user.waPhone!,
+            kind: 'debt_due',
+            templateName: this.config.get<string>(
+              'WA_TEMPLATE_DEBT_DUE',
+              WA_TEMPLATE_DEFAULT_NAMES.debtDue,
+            ),
+            bodyParameters: [details],
+          },
+          now,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Debt reminder failed for user ${user.id}`,
+          error as Error,
+        );
       }
     }
   }

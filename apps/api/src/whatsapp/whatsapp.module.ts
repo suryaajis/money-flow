@@ -3,6 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WaSession } from './wa-session.entity';
+import { WaLinkChallenge } from './wa-link-challenge.entity';
+import { WaWebhookEvent } from './wa-webhook-event.entity';
+import { WaOutboundMessage } from './wa-outbound-message.entity';
+import { WaNotificationDelivery } from './wa-notification-delivery.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
@@ -16,10 +20,22 @@ import { WhatsappService } from './whatsapp.service';
 import { WhatsappController } from './whatsapp.controller';
 import { WhatsappSettingsController } from './whatsapp.controller.settings';
 import { ExportController } from './export.controller';
+import { WaProactiveNotificationService } from './wa-proactive-notification.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WaSession, User, Transaction, Category, Budget, Debt]),
+    TypeOrmModule.forFeature([
+      WaSession,
+      WaLinkChallenge,
+      WaWebhookEvent,
+      WaOutboundMessage,
+      WaNotificationDelivery,
+      User,
+      Transaction,
+      Category,
+      Budget,
+      Debt,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,8 +44,19 @@ import { ExportController } from './export.controller';
       }),
     }),
   ],
-  controllers: [WhatsappController, WhatsappSettingsController, ExportController],
-  providers: [WhatsappService, WaNotifierService, MessageParserService, TemplateParserService, VoiceService],
-  exports: [WhatsappService, WaNotifierService],
+  controllers: [
+    WhatsappController,
+    WhatsappSettingsController,
+    ExportController,
+  ],
+  providers: [
+    WhatsappService,
+    WaNotifierService,
+    WaProactiveNotificationService,
+    MessageParserService,
+    TemplateParserService,
+    VoiceService,
+  ],
+  exports: [WhatsappService, WaNotifierService, WaProactiveNotificationService],
 })
 export class WhatsappModule {}

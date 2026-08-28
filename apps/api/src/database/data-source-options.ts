@@ -8,6 +8,10 @@ import { RecurringTransaction } from '../recurring/recurring-transaction.entity'
 import { WalletMember } from '../shared-wallet/wallet-member.entity';
 import { Debt } from '../debts/debt.entity';
 import { WaSession } from '../whatsapp/wa-session.entity';
+import { WaLinkChallenge } from '../whatsapp/wa-link-challenge.entity';
+import { WaWebhookEvent } from '../whatsapp/wa-webhook-event.entity';
+import { WaOutboundMessage } from '../whatsapp/wa-outbound-message.entity';
+import { WaNotificationDelivery } from '../whatsapp/wa-notification-delivery.entity';
 
 export const entities = [
   User,
@@ -19,6 +23,10 @@ export const entities = [
   WalletMember,
   Debt,
   WaSession,
+  WaLinkChallenge,
+  WaWebhookEvent,
+  WaOutboundMessage,
+  WaNotificationDelivery,
 ];
 
 /**

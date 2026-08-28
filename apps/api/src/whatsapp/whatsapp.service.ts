@@ -1,6 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
+import { createHash, randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { WaSession } from './wa-session.entity';
@@ -12,6 +18,7 @@ import { Debt } from '../debts/debt.entity';
 import { WaNotifierService } from './wa-notifier.service';
 import { MessageParserService } from './message-parser.service';
 import { VoiceService } from './voice.service';
+import { WaLinkChallenge } from './wa-link-challenge.entity';
 
 @Injectable()
 export class WhatsappService {
@@ -24,6 +31,8 @@ export class WhatsappService {
     @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Budget) private budgetRepo: Repository<Budget>,
     @InjectRepository(Debt) private debtRepo: Repository<Debt>,
+    @InjectRepository(WaLinkChallenge)
+    private linkChallengeRepo: Repository<WaLinkChallenge>,
     private notifier: WaNotifierService,
     private parser: MessageParserService,
     private voice: VoiceService,
@@ -33,24 +42,69 @@ export class WhatsappService {
 
   async getLinkStatus(userId: string) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    return { linked: !!user?.waPhone, phone: user?.waPhone ?? null, linkedAt: user?.waLinkedAt ?? null };
+    return {
+      linked: !!user?.waPhone,
+      phone: user?.waPhone ?? null,
+      linkedAt: user?.waLinkedAt ?? null,
+    };
   }
 
-  async linkPhone(userId: string, phone: string) {
-    const normalized = this.normalizePhone(phone);
-    const existing = await this.userRepo.findOne({ where: { waPhone: normalized } });
-    if (existing && existing.id !== userId) {
-      throw new Error('Nomor WA sudah terhubung ke akun lain');
+  async createLinkChallenge(userId: string) {
+    if (
+      !this.config.get<string>('WA_ACCESS_TOKEN') ||
+      !this.config.get<string>('WA_PHONE_NUMBER_ID')
+    ) {
+      throw new ServiceUnavailableException(
+        'Integrasi WhatsApp belum dikonfigurasi',
+      );
     }
-    await this.userRepo.update(userId, { waPhone: normalized, waLinkedAt: new Date() });
-    return { success: true, phone: normalized };
+    const configuredNumber = this.config
+      .get<string>('WA_BUSINESS_PHONE_NUMBER', '')
+      .trim();
+    if (!configuredNumber) {
+      throw new ServiceUnavailableException(
+        'Nomor WhatsApp bisnis belum dikonfigurasi',
+      );
+    }
+
+    const businessPhone = this.normalizePhone(configuredNumber);
+    if (!/^62\d{8,13}$/.test(businessPhone)) {
+      throw new ServiceUnavailableException(
+        'WA_BUSINESS_PHONE_NUMBER tidak valid',
+      );
+    }
+    const token = randomBytes(24).toString('base64url');
+    const tokenHash = this.hashLinkToken(token);
+    const lifetimeMinutes =
+      Number(this.config.get<string>('WA_LINK_TOKEN_TTL_MINUTES', '10')) || 10;
+    const expiresAt = new Date(Date.now() + lifetimeMinutes * 60_000);
+
+    await this.linkChallengeRepo.delete({ userId });
+    await this.linkChallengeRepo.save(
+      this.linkChallengeRepo.create({
+        userId,
+        tokenHash,
+        expiresAt,
+        consumedAt: null,
+      }),
+    );
+
+    const linkText = `HUBUNGKAN ${token}`;
+    return {
+      linkUrl: `https://wa.me/${businessPhone}?text=${encodeURIComponent(linkText)}`,
+      businessPhone,
+      expiresAt,
+    };
   }
 
   async unlinkPhone(userId: string) {
-    await this.userRepo.update(userId, { waPhone: null as any, waLinkedAt: null as any });
+    await this.linkChallengeRepo.delete({ userId });
+    await this.userRepo.update(userId, { waPhone: null, waLinkedAt: null });
   }
 
   async handleTextMessage(from: string, text: string) {
+    if (await this.tryConsumeLinkChallenge(from, text)) return;
+
     const user = await this.userRepo.findOne({ where: { waPhone: from } });
     if (!user) {
       await this.notifier.sendText(
@@ -71,7 +125,10 @@ export class WhatsappService {
 
     if (['saldo', 'balance'].includes(trimmed)) {
       await this.handleSaldo(user);
-    } else if (['rekap', 'laporan'].includes(trimmed) || trimmed.startsWith('rekap ')) {
+    } else if (
+      ['rekap', 'laporan'].includes(trimmed) ||
+      trimmed.startsWith('rekap ')
+    ) {
       await this.handleRekap(user, trimmed);
     } else if (['hapus', 'batal', 'undo'].includes(trimmed)) {
       await this.handleHapus(user, session);
@@ -113,7 +170,10 @@ export class WhatsappService {
       return;
     }
 
-    await this.notifier.sendText(from, '🎙️ Sedang mendengarkan voice note-mu...');
+    await this.notifier.sendText(
+      from,
+      '🎙️ Sedang mendengarkan voice note-mu...',
+    );
 
     const transcript = await this.voice.transcribe(audioId);
     if (!transcript) {
@@ -139,7 +199,7 @@ export class WhatsappService {
     // VN-04: preview transcript + parsed result and ask to confirm before saving
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
     const catName = (id: string | null) =>
-      id ? categories.find(c => c.id === id)?.name ?? '' : '';
+      id ? (categories.find((c) => c.id === id)?.name ?? '') : '';
     let preview = `🎙️ Kamu bilang: "${transcript}"\n\n📝 Aku catat:\n`;
     for (const t of result.transactions) {
       const sign = t.type === 'income' ? '+' : '-';
@@ -168,18 +228,31 @@ export class WhatsappService {
       const txId = session.context?.txId;
       if (replyId === 'confirm_delete' && txId) {
         await this.txRepo.delete(txId);
-        await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+        await this.sessionRepo.update(session.id, {
+          state: 'idle',
+          context: null,
+        });
         await this.notifier.sendText(from, '✅ Transaksi berhasil dihapus.');
       } else {
-        await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+        await this.sessionRepo.update(session.id, {
+          state: 'idle',
+          context: null,
+        });
         await this.notifier.sendText(from, '❌ Penghapusan dibatalkan.');
       }
     } else if (session.state === 'awaiting_category') {
       const partial = session.context?.partial;
       if (partial && replyId.startsWith('cat_')) {
         const catId = replyId.replace('cat_', '');
-        await this.saveTransaction(user, { ...partial, categoryId: catId }, from);
-        await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+        await this.saveTransaction(
+          user,
+          { ...partial, categoryId: catId },
+          from,
+        );
+        await this.sessionRepo.update(session.id, {
+          state: 'idle',
+          context: null,
+        });
       }
     } else if (session.state === 'awaiting_voice_confirm') {
       await this.resolveVoiceConfirm(user, session, replyId === 'voice_save');
@@ -190,26 +263,40 @@ export class WhatsappService {
       } else {
         await this.notifier.sendText(from, '❌ Dibatalkan.');
       }
-      await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+      await this.sessionRepo.update(session.id, {
+        state: 'idle',
+        context: null,
+      });
     }
   }
 
   // VN-04/05: apply or discard the transactions parsed from a voice note.
-  private async resolveVoiceConfirm(user: User, session: WaSession, save: boolean) {
+  private async resolveVoiceConfirm(
+    user: User,
+    session: WaSession,
+    save: boolean,
+  ) {
     const from = user.waPhone!;
     const transactions: any[] = session.context?.transactions ?? [];
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
 
     if (!save) {
-      await this.notifier.sendText(from, '❌ Oke, dibatalkan. Rekam ulang atau ketik ya.');
+      await this.notifier.sendText(
+        from,
+        '❌ Oke, dibatalkan. Rekam ulang atau ketik ya.',
+      );
       return;
     }
 
     let saved = 0;
     for (const tx of transactions) {
       if (!tx.categoryId) {
-        const categories = await this.catRepo.find({ where: { userId: user.id } });
-        const fallback = categories.find(c => c.type === tx.type || c.type === 'both');
+        const categories = await this.catRepo.find({
+          where: { userId: user.id },
+        });
+        const fallback = categories.find(
+          (c) => c.type === tx.type || c.type === 'both',
+        );
         tx.categoryId = fallback?.id ?? null;
       }
       if (tx.categoryId) {
@@ -218,13 +305,23 @@ export class WhatsappService {
       }
     }
     if (saved > 1) {
-      await this.notifier.sendText(from, `✅ ${saved} transaksi dari voice note tersimpan!`);
+      await this.notifier.sendText(
+        from,
+        `✅ ${saved} transaksi dari voice note tersimpan!`,
+      );
     } else if (saved === 0) {
-      await this.notifier.sendText(from, '😕 Tidak ada transaksi yang bisa disimpan.');
+      await this.notifier.sendText(
+        from,
+        '😕 Tidak ada transaksi yang bisa disimpan.',
+      );
     }
   }
 
-  private async handleTransactionInput(user: User, session: WaSession, text: string) {
+  private async handleTransactionInput(
+    user: User,
+    session: WaSession,
+    text: string,
+  ) {
     const from = user.waPhone!;
     const categories = await this.catRepo.find({ where: { userId: user.id } });
     const result = await this.parser.parse(text, categories, new Date());
@@ -243,9 +340,9 @@ export class WhatsappService {
     for (const tx of result.transactions) {
       if (!tx.categoryId) {
         const options = categories
-          .filter(c => c.type === tx.type || c.type === 'both')
+          .filter((c) => c.type === tx.type || c.type === 'both')
           .slice(0, 3)
-          .map(c => ({ id: `cat_${c.id}`, title: c.name }));
+          .map((c) => ({ id: `cat_${c.id}`, title: c.name }));
 
         await this.sessionRepo.update(session.id, {
           state: 'awaiting_category',
@@ -265,7 +362,10 @@ export class WhatsappService {
     }
 
     if (saved > 1) {
-      await this.notifier.sendText(from, `✅ ${saved} transaksi berhasil dicatat!`);
+      await this.notifier.sendText(
+        from,
+        `✅ ${saved} transaksi berhasil dicatat!`,
+      );
     }
   }
 
@@ -294,17 +394,28 @@ export class WhatsappService {
   private async handleSaldo(user: User) {
     const from = user.waPhone!;
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
 
     const txs = await this.txRepo.find({
       where: { userId: user.id, date: Between(start, end) },
     });
 
-    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+    const income = txs
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const expense = txs
+      .filter((t) => t.type === 'expense')
+      .reduce((s, t) => s + Number(t.amount), 0);
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
-    const month = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    const month = now.toLocaleString('id-ID', {
+      month: 'long',
+      year: 'numeric',
+    });
 
     await this.notifier.sendText(
       from,
@@ -326,8 +437,12 @@ export class WhatsappService {
       end = now.toISOString().split('T')[0];
       label = '7 hari terakhir';
     } else {
-      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      start = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .split('T')[0];
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        .toISOString()
+        .split('T')[0];
       label = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
     }
 
@@ -336,13 +451,15 @@ export class WhatsappService {
       relations: { category: true },
     });
 
-    const expense = txs.filter(t => t.type === 'expense');
+    const expense = txs.filter((t) => t.type === 'expense');
     const catTotals = new Map<string, number>();
     for (const tx of expense) {
       const name = tx.category?.name ?? 'Lain-lain';
       catTotals.set(name, (catTotals.get(name) ?? 0) + Number(tx.amount));
     }
-    const top3 = [...catTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const top3 = [...catTotals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
     const totalExpense = expense.reduce((s, t) => s + Number(t.amount), 0);
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
 
@@ -350,7 +467,8 @@ export class WhatsappService {
     if (top3.length) {
       msg += `🏆 Top kategori:\n`;
       top3.forEach(([name, total], i) => {
-        const pct = totalExpense > 0 ? Math.round((total / totalExpense) * 100) : 0;
+        const pct =
+          totalExpense > 0 ? Math.round((total / totalExpense) * 100) : 0;
         msg += `${i + 1}. ${name}: Rp${fmt(total)} (${pct}%)\n`;
       });
     }
@@ -365,7 +483,10 @@ export class WhatsappService {
     });
 
     if (!last) {
-      await this.notifier.sendText(from, '❌ Tidak ada transaksi WA terbaru untuk dihapus.');
+      await this.notifier.sendText(
+        from,
+        '❌ Tidak ada transaksi WA terbaru untuk dihapus.',
+      );
       return;
     }
 
@@ -416,10 +537,16 @@ export class WhatsappService {
     const from = user.waPhone!;
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
 
-    const budgets = await this.budgetRepo.find({ where: { userId: user.id, month } });
+    const budgets = await this.budgetRepo.find({
+      where: { userId: user.id, month },
+    });
     if (!budgets.length) {
       await this.notifier.sendText(
         from,
@@ -432,15 +559,22 @@ export class WhatsappService {
       where: { userId: user.id, type: 'expense', date: Between(start, end) },
     });
     const cats = await this.catRepo.find({ where: { userId: user.id } });
-    const catName = (id: string) => cats.find(c => c.id === id)?.name ?? 'Lainnya';
+    const catName = (id: string) =>
+      cats.find((c) => c.id === id)?.name ?? 'Lainnya';
 
     const spentByCat = new Map<string, number>();
     for (const tx of txs) {
-      spentByCat.set(tx.categoryId, (spentByCat.get(tx.categoryId) ?? 0) + Number(tx.amount));
+      spentByCat.set(
+        tx.categoryId,
+        (spentByCat.get(tx.categoryId) ?? 0) + Number(tx.amount),
+      );
     }
 
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
-    const label = now.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    const label = now.toLocaleString('id-ID', {
+      month: 'long',
+      year: 'numeric',
+    });
     let msg = `💼 *Budget ${label}*\n\n`;
     for (const b of budgets) {
       const spent = spentByCat.get(b.categoryId) ?? 0;
@@ -459,15 +593,18 @@ export class WhatsappService {
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
     });
-    const active = debts.filter(d => !d.settledAt);
+    const active = debts.filter((d) => !d.settledAt);
     if (!active.length) {
-      await this.notifier.sendText(from, '📒 Tidak ada utang piutang aktif. 🎉');
+      await this.notifier.sendText(
+        from,
+        '📒 Tidak ada utang piutang aktif. 🎉',
+      );
       return;
     }
 
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
-    const piutang = active.filter(d => d.direction === 'owed_to_me');
-    const hutang = active.filter(d => d.direction === 'i_owe');
+    const piutang = active.filter((d) => d.direction === 'owed_to_me');
+    const hutang = active.filter((d) => d.direction === 'i_owe');
     let msg = '📒 *Utang Piutang Aktif*\n';
     if (piutang.length) {
       msg += '\n💰 *Piutang (mereka hutang ke kamu):*\n';
@@ -505,12 +642,19 @@ export class WhatsappService {
     const lower = text.toLowerCase();
 
     // Amount
-    const amountMatch = lower.match(/(\d[\d.,]*)\s*(rb|ribu|k|jt|juta|m|miliar)?/);
+    const amountMatch = lower.match(
+      /(\d[\d.,]*)\s*(rb|ribu|k|jt|juta|m|miliar)?/,
+    );
     if (!amountMatch) {
-      await this.notifier.sendText(from, '❓ Nominal tidak terbaca. Contoh: "pinjam ke budi 100rb"');
+      await this.notifier.sendText(
+        from,
+        '❓ Nominal tidak terbaca. Contoh: "pinjam ke budi 100rb"',
+      );
       return;
     }
-    let amount = parseFloat(amountMatch[1].replace(/\./g, '').replace(',', '.'));
+    let amount = parseFloat(
+      amountMatch[1].replace(/\./g, '').replace(',', '.'),
+    );
     const unit = (amountMatch[2] || '').toLowerCase();
     if (['rb', 'ribu', 'k'].includes(unit)) amount *= 1000;
     else if (['jt', 'juta'].includes(unit)) amount *= 1_000_000;
@@ -556,7 +700,10 @@ export class WhatsappService {
 
   // ── DEBT-03: settle a debt from chat ("budi udah bayar", "lunas ani") ───────
   private isDebtSettle(lower: string): boolean {
-    return /\b(udah|sudah|udh)\s+(bayar|lunas)\b/.test(lower) || /\blunas\b/.test(lower);
+    return (
+      /\b(udah|sudah|udh)\s+(bayar|lunas)\b/.test(lower) ||
+      /\blunas\b/.test(lower)
+    );
   }
 
   private async handleDebtSettle(user: User, session: WaSession, text: string) {
@@ -568,16 +715,24 @@ export class WhatsappService {
       .trim();
 
     const active = (
-      await this.debtRepo.find({ where: { userId: user.id }, order: { createdAt: 'DESC' } })
-    ).filter(d => !d.settledAt);
+      await this.debtRepo.find({
+        where: { userId: user.id },
+        order: { createdAt: 'DESC' },
+      })
+    ).filter((d) => !d.settledAt);
 
     if (!active.length) {
-      await this.notifier.sendText(from, '📒 Tidak ada utang piutang aktif untuk dilunaskan.');
+      await this.notifier.sendText(
+        from,
+        '📒 Tidak ada utang piutang aktif untuk dilunaskan.',
+      );
       return;
     }
 
     const matches = nameToken
-      ? active.filter(d => d.counterpartyName.toLowerCase().includes(nameToken.split(' ')[0]))
+      ? active.filter((d) =>
+          d.counterpartyName.toLowerCase().includes(nameToken.split(' ')[0]),
+        )
       : active;
 
     if (matches.length === 1) {
@@ -587,7 +742,7 @@ export class WhatsappService {
 
     // Ambiguous → ask which one via buttons (max 3)
     const fmt = (n: number) => new Intl.NumberFormat('id-ID').format(n);
-    const options = matches.slice(0, 3).map(d => ({
+    const options = matches.slice(0, 3).map((d) => ({
       id: `settle_${d.id}`,
       title: `${d.counterpartyName} ${fmt(Number(d.amount))}`,
     }));
@@ -596,12 +751,18 @@ export class WhatsappService {
       context: {},
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
-    await this.notifier.sendTextWithButtons(from, 'Utang/piutang mana yang lunas?', options);
+    await this.notifier.sendTextWithButtons(
+      from,
+      'Utang/piutang mana yang lunas?',
+      options,
+    );
   }
 
   private async settleDebtById(user: User, debtId: string) {
     const from = user.waPhone!;
-    const debt = await this.debtRepo.findOne({ where: { id: debtId, userId: user.id } });
+    const debt = await this.debtRepo.findOne({
+      where: { id: debtId, userId: user.id },
+    });
     if (!debt) {
       await this.notifier.sendText(from, '❌ Data tidak ditemukan.');
       return;
@@ -659,14 +820,36 @@ export class WhatsappService {
     );
   }
 
-  private async handleSessionState(user: User, session: WaSession, text: string) {
+  private async handleSessionState(
+    user: User,
+    session: WaSession,
+    text: string,
+  ) {
     const expired = new Date() > session.expiresAt;
 
     // VN-05: allow confirming/cancelling a voice note by typing (not just buttons)
     if (!expired && session.state === 'awaiting_voice_confirm') {
       const t = text.trim().toLowerCase();
-      const yes = ['ya', 'iya', 'betul', 'benar', 'ok', 'oke', 'simpan', 'y'].includes(t);
-      const no = ['bukan', 'salah', 'batal', 'tidak', 'gak', 'nggak', 'no', 'n'].includes(t);
+      const yes = [
+        'ya',
+        'iya',
+        'betul',
+        'benar',
+        'ok',
+        'oke',
+        'simpan',
+        'y',
+      ].includes(t);
+      const no = [
+        'bukan',
+        'salah',
+        'batal',
+        'tidak',
+        'gak',
+        'nggak',
+        'no',
+        'n',
+      ].includes(t);
       if (yes || no) {
         await this.resolveVoiceConfirm(user, session, yes);
         return;
@@ -697,5 +880,82 @@ export class WhatsappService {
     if (p.startsWith('0')) p = '62' + p.slice(1);
     if (!p.startsWith('62')) p = '62' + p;
     return p;
+  }
+
+  private async tryConsumeLinkChallenge(
+    from: string,
+    text: string,
+  ): Promise<boolean> {
+    const trimmed = text.trim();
+    if (!/^hubungkan\b/i.test(trimmed)) return false;
+
+    const match = trimmed.match(/^hubungkan\s+([A-Za-z0-9_-]{20,100})$/i);
+    if (!match) {
+      await this.notifier.sendText(
+        from,
+        'Link tidak valid. Buat link baru dari Settings → WhatsApp.',
+      );
+      return true;
+    }
+
+    const tokenHash = this.hashLinkToken(match[1]);
+    const challenge = await this.linkChallengeRepo.findOne({
+      where: { tokenHash },
+    });
+    if (
+      !challenge ||
+      challenge.consumedAt ||
+      challenge.expiresAt.getTime() <= Date.now()
+    ) {
+      await this.notifier.sendText(
+        from,
+        'Link sudah tidak valid atau kedaluwarsa. Buat link baru dari aplikasi.',
+      );
+      return true;
+    }
+
+    const normalizedFrom = this.normalizePhone(from);
+    const owner = await this.userRepo.findOne({
+      where: { waPhone: normalizedFrom },
+    });
+    if (owner && owner.id !== challenge.userId) {
+      await this.notifier.sendText(
+        from,
+        'Nomor WhatsApp ini sudah terhubung ke akun MoneyFlow lain.',
+      );
+      return true;
+    }
+
+    await this.linkChallengeRepo.manager.transaction(async (manager) => {
+      const challengeRepo = manager.getRepository(WaLinkChallenge);
+      const userRepo = manager.getRepository(User);
+      const current = await challengeRepo.findOne({
+        where: { id: challenge.id },
+      });
+      if (
+        !current ||
+        current.consumedAt ||
+        current.expiresAt.getTime() <= Date.now()
+      ) {
+        throw new ConflictException(
+          'Link WhatsApp sudah digunakan atau kedaluwarsa',
+        );
+      }
+      await userRepo.update(current.userId, {
+        waPhone: normalizedFrom,
+        waLinkedAt: new Date(),
+      });
+      await challengeRepo.update(current.id, { consumedAt: new Date() });
+    });
+
+    await this.notifier.sendText(
+      normalizedFrom,
+      '✅ WhatsApp berhasil dihubungkan ke MoneyFlow. Ketik *bantuan* untuk melihat perintah.',
+    );
+    return true;
+  }
+
+  private hashLinkToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }

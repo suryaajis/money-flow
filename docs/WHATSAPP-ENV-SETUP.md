@@ -1,5 +1,10 @@
 # Panduan Lengkap: Mendapatkan Environment Variables WhatsApp
 
+> Untuk deployment production terbaru—termasuk App Secret, signature webhook,
+> linking berbasis challenge, dan template Utility—ikuti
+> [`WHATSAPP-PRODUCTION.md`](./WHATSAPP-PRODUCTION.md). Dokumen ini tetap berguna
+> untuk mendapatkan kredensial dasar dan menjalankan setup lokal.
+
 Dokumen ini menjelaskan **langkah demi langkah** cara mendapatkan semua environment
 variable yang dibutuhkan untuk mengaktifkan WhatsApp bot Money Flow.
 

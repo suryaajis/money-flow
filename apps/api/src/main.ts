@@ -3,7 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Meta signs the exact request bytes. Keep rawBody available for webhook
+  // signature verification while Nest continues parsing JSON normally.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.setGlobalPrefix('api');
 
@@ -24,4 +26,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Backend berjalan di: http://localhost:${port}/api`);
 }
-bootstrap();
+void bootstrap();

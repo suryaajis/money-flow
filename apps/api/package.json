@@ -22,11 +22,12 @@
     "migration:run": "ts-node src/database/migrate.ts run",
     "migration:revert": "ts-node src/database/migrate.ts revert",
     "migration:show": "ts-node src/database/migrate.ts show",
-    
-    "dist:migration:generate": "node dist/database/migrate.ts generate",
-    "dist:migration:run": "node dist/database/migrate.ts run",
-    "dist:migration:revert": "node dist/database/migrate.ts revert",
-    "dist:migration:show": "node dist/database/migrate.ts show",
+    "whatsapp:templates:sync": "ts-node src/whatsapp/sync-message-templates.ts",
+    "dist:migration:generate": "node dist/database/migrate.js generate",
+    "dist:migration:run": "node dist/database/migrate.js run",
+    "dist:migration:revert": "node dist/database/migrate.js revert",
+    "dist:migration:show": "node dist/database/migrate.js show",
+    "dist:whatsapp:templates:sync": "node dist/whatsapp/sync-message-templates.js",
     "dist:seed": "node dist/database/seed.ts"
   },
   "dependencies": {

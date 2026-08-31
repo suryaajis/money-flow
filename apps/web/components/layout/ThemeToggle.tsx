@@ -6,7 +6,11 @@ import { useUIStore } from "@/store/uiStore";
 import type { Theme } from "@/lib/types";
 
 const order: Theme[] = ["light", "dark", "system"];
-const labelFor: Record<Theme, string> = { light: "Light", dark: "Dark", system: "System" };
+const labelFor: Record<Theme, string> = {
+  light: "Terang",
+  dark: "Gelap",
+  system: "Sistem",
+};
 
 export const ThemeToggle: React.FC = () => {
   const theme = useUIStore((s) => s.theme);
@@ -22,8 +26,9 @@ export const ThemeToggle: React.FC = () => {
       aria-label={`Theme: ${labelFor[theme]}. Click to switch to ${labelFor[next]}.`}
       title={`Theme: ${labelFor[theme]}`}
       onClick={() => setTheme(next)}
+      className="group relative overflow-hidden"
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
     </Button>
   );
 };

@@ -1,13 +1,26 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { HandCoins, Plus, CheckCircle2, Clock, Undo2, Trash2, XCircle } from "lucide-react";
+import {
+  HandCoins,
+  Plus,
+  CheckCircle2,
+  Clock,
+  Undo2,
+  Trash2,
+  XCircle,
+  Sparkles,
+} from "lucide-react";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { debtsApi, type ApiDebt, type CreateDebtInput } from "@/lib/api";
 import { parseCurrencyInput } from "@/lib/utils";
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(n);
 
 const isOverdue = (debt: ApiDebt) =>
   !debt.settledAt && debt.dueDate && new Date(debt.dueDate) < new Date();
@@ -21,9 +34,13 @@ function DebtForm({
   onCancel: () => void;
   initial?: Partial<CreateDebtInput>;
 }) {
-  const [direction, setDirection] = useState<"owed_to_me" | "i_owe">(initial?.direction ?? "owed_to_me");
+  const [direction, setDirection] = useState<"owed_to_me" | "i_owe">(
+    initial?.direction ?? "owed_to_me",
+  );
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
-  const [counterpartyName, setCounterpartyName] = useState(initial?.counterpartyName ?? "");
+  const [counterpartyName, setCounterpartyName] = useState(
+    initial?.counterpartyName ?? "",
+  );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [saving, setSaving] = useState(false);
@@ -47,7 +64,7 @@ function DebtForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex gap-2">
-        {(["owed_to_me", "i_owe"] as const).map(d => (
+        {(["owed_to_me", "i_owe"] as const).map((d) => (
           <button
             key={d}
             type="button"
@@ -60,7 +77,9 @@ function DebtForm({
                 : "border-border text-muted-foreground"
             }`}
           >
-            {d === "owed_to_me" ? "💰 Piutang (Mereka Hutang)" : "💸 Hutang (Aku Hutang)"}
+            {d === "owed_to_me"
+              ? "💰 Piutang (Mereka Hutang)"
+              : "💸 Hutang (Aku Hutang)"}
           </button>
         ))}
       </div>
@@ -69,7 +88,7 @@ function DebtForm({
           <label className="block text-sm font-medium mb-1">Nama</label>
           <input
             value={counterpartyName}
-            onChange={e => setCounterpartyName(e.target.value)}
+            onChange={(e) => setCounterpartyName(e.target.value)}
             placeholder="Nama orang"
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             required
@@ -88,19 +107,23 @@ function DebtForm({
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Jatuh Tempo (opsional)</label>
+          <label className="block text-sm font-medium mb-1">
+            Jatuh Tempo (opsional)
+          </label>
           <input
             type="date"
             value={dueDate}
-            onChange={e => setDueDate(e.target.value)}
+            onChange={(e) => setDueDate(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Catatan (opsional)</label>
+          <label className="block text-sm font-medium mb-1">
+            Catatan (opsional)
+          </label>
           <input
             value={notes}
-            onChange={e => setNotes(e.target.value)}
+            onChange={(e) => setNotes(e.target.value)}
             placeholder="Untuk apa..."
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
@@ -126,7 +149,12 @@ function DebtForm({
   );
 }
 
-function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
+function DebtCard({
+  debt,
+  onSettle,
+  onUnsettle,
+  onDelete,
+}: {
   debt: ApiDebt;
   onSettle: (id: string) => void;
   onUnsettle: (id: string) => void;
@@ -136,11 +164,15 @@ function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
   const isPiutang = debt.direction === "owed_to_me";
 
   return (
-    <div className={`rounded-lg border p-4 space-y-2 ${overdue ? "border-red-400/60 bg-red-500/5" : "border-border bg-card"}`}>
+    <div
+      className={`mf-card interactive-lift rounded-2xl border p-4 space-y-2 ${overdue ? "border-expense/50 bg-expense-soft/30" : "border-border bg-card"}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+            <span
+              className={`text-sm font-medium ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+            >
               {isPiutang ? "💰 Piutang" : "💸 Hutang"}
             </span>
             {debt.settledAt && (
@@ -154,13 +186,22 @@ function DebtCard({ debt, onSettle, onUnsettle, onDelete }: {
               </span>
             )}
           </div>
-          <p className="font-semibold text-base mt-0.5">{debt.counterpartyName}</p>
-          <p className={`text-lg font-bold ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-            {isPiutang ? "+" : "-"}{fmt(Number(debt.amount))}
+          <p className="font-semibold text-base mt-0.5">
+            {debt.counterpartyName}
           </p>
-          {debt.notes && <p className="text-xs text-muted-foreground">{debt.notes}</p>}
+          <p
+            className={`text-lg font-bold ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+          >
+            {isPiutang ? "+" : "-"}
+            {fmt(Number(debt.amount))}
+          </p>
+          {debt.notes && (
+            <p className="text-xs text-muted-foreground">{debt.notes}</p>
+          )}
           {debt.dueDate && (
-            <p className={`text-xs flex items-center gap-1 mt-1 ${overdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+            <p
+              className={`text-xs flex items-center gap-1 mt-1 ${overdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}
+            >
               <Clock className="h-3 w-3" />
               Jatuh tempo: {new Date(debt.dueDate).toLocaleDateString("id-ID")}
             </p>
@@ -217,16 +258,26 @@ export default function DebtsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const active = debts.filter(d => !d.settledAt);
-  const settled = debts.filter(d => !!d.settledAt);
+  const active = debts.filter((d) => !d.settledAt);
+  const settled = debts.filter((d) => !!d.settledAt);
   const displayed = tab === "active" ? active : settled;
 
-  const totalPiutang = active.filter(d => d.direction === "owed_to_me").reduce((s, d) => s + Number(d.amount), 0);
-  const totalHutang = active.filter(d => d.direction === "i_owe").reduce((s, d) => s + Number(d.amount), 0);
-  const overduePiutang = active.filter(d => d.direction === "owed_to_me" && isOverdue(d)).length;
-  const overdueHutang = active.filter(d => d.direction === "i_owe" && isOverdue(d)).length;
+  const totalPiutang = active
+    .filter((d) => d.direction === "owed_to_me")
+    .reduce((s, d) => s + Number(d.amount), 0);
+  const totalHutang = active
+    .filter((d) => d.direction === "i_owe")
+    .reduce((s, d) => s + Number(d.amount), 0);
+  const overduePiutang = active.filter(
+    (d) => d.direction === "owed_to_me" && isOverdue(d),
+  ).length;
+  const overdueHutang = active.filter(
+    (d) => d.direction === "i_owe" && isOverdue(d),
+  ).length;
 
   async function handleCreate(data: CreateDebtInput) {
     await debtsApi.create(data);
@@ -251,28 +302,39 @@ export default function DebtsPage() {
   }
 
   return (
-    <div className="space-y-6 py-2 md:py-4 max-w-2xl mx-auto">
+    <div className="mx-auto max-w-3xl space-y-6 py-2 md:py-4">
       <div className="flex items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
             <HandCoins className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold">Hutang Piutang</h1>
-            <p className="truncate text-sm text-muted-foreground">Kelola catatan hutang dan piutang</p>
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> Janji yang tetap tercatat
+            </p>
+            <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+              Hutang Piutang
+            </h1>
+            <p className="truncate text-sm text-muted-foreground">
+              Biar hubungan tetap hangat, catatannya tetap jelas.
+            </p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex shrink-0 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
         >
-          {showForm ? <XCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showForm ? (
+            <XCircle className="h-4 w-4" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           {showForm ? "Tutup" : "Tambah"}
         </button>
       </div>
 
       {showForm && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mf-card page-enter rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-semibold mb-3">Catat Baru</h2>
           <DebtForm onSave={handleCreate} onCancel={() => setShowForm(false)} />
         </div>
@@ -280,49 +342,67 @@ export default function DebtsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+        <div className="mf-card rounded-2xl border border-income/30 bg-income-soft/30 p-4">
           <p className="text-xs text-muted-foreground">Piutang aktif</p>
-          <p className="text-xl font-bold text-green-600 dark:text-green-400">{fmt(totalPiutang)}</p>
+          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+            {fmt(totalPiutang)}
+          </p>
           {overduePiutang > 0 && (
-            <p className="text-xs text-red-500 mt-1">{overduePiutang} jatuh tempo</p>
+            <p className="text-xs text-red-500 mt-1">
+              {overduePiutang} jatuh tempo
+            </p>
           )}
         </div>
-        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+        <div className="mf-card rounded-2xl border border-expense/30 bg-expense-soft/30 p-4">
           <p className="text-xs text-muted-foreground">Hutang aktif</p>
-          <p className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalHutang)}</p>
+          <p className="text-xl font-bold text-red-600 dark:text-red-400">
+            {fmt(totalHutang)}
+          </p>
           {overdueHutang > 0 && (
-            <p className="text-xs text-red-500 mt-1">{overdueHutang} jatuh tempo</p>
+            <p className="text-xs text-red-500 mt-1">
+              {overdueHutang} jatuh tempo
+            </p>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted rounded-lg p-1">
-        {(["active", "settled"] as const).map(t => (
+      <div className="flex gap-1 rounded-xl bg-muted p-1.5">
+        {(["active", "settled"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
-              tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              tab === t
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground"
             }`}
           >
-            {t === "active" ? `Aktif (${active.length})` : `Lunas (${settled.length})`}
+            {t === "active"
+              ? `Aktif (${active.length})`
+              : `Lunas (${settled.length})`}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Memuat...</div>
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          Memuat...
+        </div>
       ) : error ? (
         <div className="text-center py-8 text-destructive text-sm">{error}</div>
       ) : displayed.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <HandCoins className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">{tab === "active" ? "Tidak ada hutang/piutang aktif" : "Belum ada yang lunas"}</p>
+          <p className="text-sm">
+            {tab === "active"
+              ? "Tidak ada hutang/piutang aktif"
+              : "Belum ada yang lunas"}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {displayed.map(debt => (
+          {displayed.map((debt) => (
             <DebtCard
               key={debt.id}
               debt={debt}

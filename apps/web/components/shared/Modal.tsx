@@ -52,13 +52,13 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
+        className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
         className={cn(
-          "relative z-10 w-full bg-card text-card-foreground border border-border shadow-xl",
-          "rounded-t-xl sm:rounded-xl",
+          "page-enter relative z-10 w-full border border-border bg-card/95 text-card-foreground shadow-2xl backdrop-blur-xl",
+          "rounded-t-[1.5rem] sm:rounded-[1.5rem]",
           "max-h-[90vh] overflow-y-auto",
           sizeClasses[size],
           "mx-0 sm:mx-4",
@@ -68,20 +68,24 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
             {description ? (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </p>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-m-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="focus-ring -m-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
         {/* On the mobile bottom-sheet, pad past the home indicator. */}
-        <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6">{children}</div>
+        <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/categories/CategoryBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -55,9 +63,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
-  const pageRows = sorted.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const pageRows = sorted.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id));
+  const allOnPageSelected =
+    pageRows.length > 0 && pageRows.every((r) => selected.has(r.id));
 
   const togglePageSelection = () => {
     const next = new Set(selected);
@@ -101,7 +113,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="mf-card overflow-hidden rounded-2xl border border-border bg-card/95">
       {/* Mobile: stacked cards (a table would force horizontal scrolling) */}
       <ul className="divide-y divide-border sm:hidden">
         {pageRows.map((tx) => {
@@ -109,7 +121,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
           const isIncome = tx.type === "income";
           const checked = selected.has(tx.id);
           return (
-            <li key={tx.id} className={cn("flex gap-3 p-3", checked && "bg-primary/5")}>
+            <li
+              key={tx.id}
+              className={cn(
+                "flex gap-3 p-3 transition-colors active:bg-muted/60",
+                checked && "bg-primary/5",
+              )}
+            >
               <input
                 type="checkbox"
                 aria-label={`Select transaction ${tx.id}`}
@@ -120,11 +138,19 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    {cat ? <CategoryBadge category={cat} /> : <span className="text-sm text-muted-foreground">Unknown</span>}
+                    {cat ? (
+                      <CategoryBadge category={cat} />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        Unknown
+                      </span>
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                       <span>{formatDate(tx.date)}</span>
                       <span aria-hidden>·</span>
-                      <span className={isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                      <span
+                        className={isIncome ? "text-income" : "text-expense"}
+                      >
                         {isIncome ? "Income" : "Expense"}
                       </span>
                     </div>
@@ -132,24 +158,37 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   <span
                     className={cn(
                       "shrink-0 whitespace-nowrap text-right text-sm font-semibold tabular-nums",
-                      isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                      isIncome ? "text-income" : "text-expense",
                     )}
                   >
                     {fmtSigned(tx.amount, tx.type)}
                     {tx.currency && tx.currency !== "IDR" && (
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">≈ {tx.currency}</span>
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        ≈ {tx.currency}
+                      </span>
                     )}
                   </span>
                 </div>
 
-                {tx.notes ? <p className="mt-1.5 break-words text-sm text-foreground/90">{tx.notes}</p> : null}
-                {tx.source === "shared" && tx.recordedBy && recorders?.[tx.recordedBy] && (
-                  <p className="mt-1 text-[11px] text-primary">👥 dicatat oleh {recorders[tx.recordedBy]}</p>
-                )}
+                {tx.notes ? (
+                  <p className="mt-1.5 break-words text-sm text-foreground/90">
+                    {tx.notes}
+                  </p>
+                ) : null}
+                {tx.source === "shared" &&
+                  tx.recordedBy &&
+                  recorders?.[tx.recordedBy] && (
+                    <p className="mt-1 text-[11px] text-primary">
+                      👥 dicatat oleh {recorders[tx.recordedBy]}
+                    </p>
+                  )}
                 {tx.tags && tx.tags.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {tx.tags.map((tag) => (
-                      <span key={tag} className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      <span
+                        key={tag}
+                        className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -157,10 +196,20 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 )}
 
                 <div className="mt-2 flex justify-end gap-1">
-                  <Button variant="ghost" size="icon" aria-label="Edit" onClick={() => onEdit(tx)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Edit"
+                    onClick={() => onEdit(tx)}
+                  >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" aria-label="Delete" onClick={() => onDelete(tx)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Delete"
+                    onClick={() => onDelete(tx)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -173,7 +222,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       {/* Desktop: full table */}
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-muted-foreground">
+          <thead className="bg-muted/55 text-muted-foreground backdrop-blur">
             <tr className="text-left">
               <th className="px-3 py-2 w-10">
                 <input
@@ -214,7 +263,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
               const cat = getCategory(tx.categoryId);
               const isIncome = tx.type === "income";
               return (
-                <tr key={tx.id} className="border-t border-border hover:bg-muted/30">
+                <tr
+                  key={tx.id}
+                  className="border-t border-border transition-colors hover:bg-primary/[0.035]"
+                >
                   <td className="px-3 py-2.5 align-middle">
                     <input
                       type="checkbox"
@@ -228,15 +280,17 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                     {formatDate(tx.date)}
                   </td>
                   <td className="px-3 py-2.5 align-middle">
-                    {cat ? <CategoryBadge category={cat} /> : <span className="text-muted-foreground">Unknown</span>}
+                    {cat ? (
+                      <CategoryBadge category={cat} />
+                    ) : (
+                      <span className="text-muted-foreground">Unknown</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 align-middle">
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 text-xs font-medium",
-                        isIncome
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400",
+                        isIncome ? "text-income" : "text-expense",
                       )}
                     >
                       {isIncome ? "Income" : "Expense"}
@@ -244,11 +298,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   </td>
                   <td className="px-3 py-2.5 align-middle max-w-[280px] text-muted-foreground">
                     <span className="block truncate">{tx.notes || "—"}</span>
-                    {tx.source === "shared" && tx.recordedBy && recorders?.[tx.recordedBy] && (
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-primary">
-                        👥 dicatat oleh {recorders[tx.recordedBy]}
-                      </span>
-                    )}
+                    {tx.source === "shared" &&
+                      tx.recordedBy &&
+                      recorders?.[tx.recordedBy] && (
+                        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-primary">
+                          👥 dicatat oleh {recorders[tx.recordedBy]}
+                        </span>
+                      )}
                   </td>
                   <td className="px-3 py-2.5 align-middle">
                     {tx.tags && tx.tags.length > 0 ? (
@@ -269,14 +325,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td
                     className={cn(
                       "px-3 py-2.5 align-middle text-right tabular-nums font-medium whitespace-nowrap",
-                      isIncome
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400",
+                      isIncome ? "text-income" : "text-expense",
                     )}
                   >
                     {fmtSigned(tx.amount, tx.type)}
                     {tx.currency && tx.currency !== "IDR" && (
-                      <span className="ml-1 text-xs text-muted-foreground">≈ {tx.currency}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ≈ {tx.currency}
+                      </span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 align-middle text-right">
@@ -345,8 +401,19 @@ interface SortableHeaderProps {
   align?: "left" | "right";
 }
 
-const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, dir, onClick, align = "left" }) => (
-  <th className={cn("px-3 py-2 font-medium select-none", align === "right" && "text-right")}>
+const SortableHeader: React.FC<SortableHeaderProps> = ({
+  label,
+  active,
+  dir,
+  onClick,
+  align = "left",
+}) => (
+  <th
+    className={cn(
+      "px-3 py-2 font-medium select-none",
+      align === "right" && "text-right",
+    )}
+  >
     <button
       type="button"
       onClick={onClick}

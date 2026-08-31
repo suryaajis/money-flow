@@ -24,52 +24,78 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-income: var(--income);
+  --color-income-soft: var(--income-soft);
+  --color-expense: var(--expense);
+  --color-expense-soft: var(--expense-soft);
+  --color-warning: var(--warning);
+  --color-surface-raised: var(--surface-raised);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+  --background: #f5f7fc;
+  --foreground: #101828;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #6366f1;
+  --card-foreground: #101828;
+  --surface-raised: #fafbff;
+  --muted: #eef2f7;
+  --muted-foreground: #667085;
+  --border: #e4e7ec;
+  --input: #d5dae3;
+  --ring: #4f46e5;
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --accent: #eef2ff;
+  --accent-foreground: #312e81;
+  --destructive: #b42318;
   --destructive-foreground: #ffffff;
-  --success: #10b981;
+  --success: #047857;
   --success-foreground: #ffffff;
+  --income: #047857;
+  --income-soft: #d1fae5;
+  --expense: #c2415a;
+  --expense-soft: #ffe4e9;
+  --warning: #b45309;
+  --glass: rgba(255, 255, 255, 0.76);
+  --shadow-color: 73 82 123;
+  --chart-grid: #e6e9f2;
 }
 
 .dark {
-  --background: #0b1120;
-  --foreground: #e2e8f0;
-  --card: #111827;
-  --card-foreground: #e2e8f0;
-  --muted: #1e293b;
+  color-scheme: dark;
+  --background: #080b14;
+  --foreground: #f5f7ff;
+  --card: #101625;
+  --card-foreground: #f5f7ff;
+  --surface-raised: #161e30;
+  --muted: #1b2437;
   --muted-foreground: #94a3b8;
-  --border: #1f2937;
-  --input: #1f2937;
+  --border: #273149;
+  --input: #3a4661;
   --ring: #818cf8;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --accent: #1e293b;
-  --accent-foreground: #e2e8f0;
-  --destructive: #f87171;
+  --primary: #818cf8;
+  --primary-foreground: #080b14;
+  --accent: #202653;
+  --accent-foreground: #e0e7ff;
+  --destructive: #fda29b;
   --destructive-foreground: #0b1120;
   --success: #34d399;
   --success-foreground: #0b1120;
+  --income: #34d399;
+  --income-soft: #103a32;
+  --expense: #fb7185;
+  --expense-soft: #451b2a;
+  --warning: #fbbf24;
+  --glass: rgba(16, 22, 37, 0.78);
+  --shadow-color: 0 0 0;
+  --chart-grid: #222c42;
 }
 
 * {
@@ -87,8 +113,19 @@ body {
   max-width: 100%;
 }
 
+html {
+  background: var(--background);
+}
+
 body {
-  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /* Remove the 300ms tap delay on iOS Safari & let the browser short-circuit
@@ -96,6 +133,276 @@ body {
    * `viewport-fit=cover` viewport meta this gives a near-native feel inside
    * the installed PWA. */
   touch-action: manipulation;
+  font-variant-numeric: lining-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+/* Cinematic Financial Calm -------------------------------------------------
+ * Decorative layers are isolated from the content and never receive input.
+ * They are deliberately static; motion is reserved for state changes.
+ */
+.app-canvas {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 8% 2%,
+      color-mix(in srgb, var(--primary) 11%, transparent),
+      transparent 31rem
+    ),
+    radial-gradient(
+      circle at 92% 15%,
+      color-mix(in srgb, var(--income) 8%, transparent),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 48% 105%,
+      color-mix(in srgb, #38bdf8 7%, transparent),
+      transparent 32rem
+    ),
+    var(--background);
+}
+
+.app-canvas::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--border) 42%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--border) 42%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 68%);
+}
+
+.glass-surface {
+  background: var(--glass);
+  border-color: color-mix(in srgb, var(--border) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+}
+
+.page-enter {
+  animation: page-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mf-card {
+  position: relative;
+  box-shadow:
+    0 1px 2px rgb(var(--shadow-color) / 0.05),
+    0 12px 32px rgb(var(--shadow-color) / 0.07);
+}
+
+.mf-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.17),
+    transparent 38%
+  );
+}
+
+.interactive-lift {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .interactive-lift:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+    box-shadow:
+      0 2px 4px rgb(var(--shadow-color) / 0.05),
+      0 18px 42px rgb(var(--shadow-color) / 0.11);
+  }
+}
+
+.hero-vault {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  background:
+    radial-gradient(
+      circle at 92% 10%,
+      rgba(255, 255, 255, 0.28),
+      transparent 24%
+    ),
+    linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #0f8b8d 120%);
+  box-shadow:
+    0 24px 60px rgba(79, 70, 229, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.dark .hero-vault {
+  background:
+    radial-gradient(
+      circle at 90% 4%,
+      rgba(165, 180, 252, 0.2),
+      transparent 25%
+    ),
+    linear-gradient(135deg, #202653 0%, #3730a3 52%, #0f686c 130%);
+  box-shadow:
+    0 26px 70px rgba(49, 46, 129, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.hero-vault::before,
+.hero-vault::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.hero-vault::before {
+  width: 19rem;
+  height: 19rem;
+  right: -6rem;
+  bottom: -12rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 28px rgba(255, 255, 255, 0.05),
+    0 0 0 62px rgba(255, 255, 255, 0.035);
+}
+
+.hero-vault::after {
+  width: 7rem;
+  height: 7rem;
+  right: 12%;
+  top: -4rem;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(2px);
+}
+
+.hero-vault-content {
+  position: relative;
+  z-index: 1;
+  transform: translateZ(20px);
+}
+
+.cute-orb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1rem;
+  color: #312e81;
+  background: linear-gradient(145deg, #ffffff, #c7d2fe);
+  box-shadow:
+    0 10px 22px rgba(30, 27, 75, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.cute-orb::before {
+  content: "• ᴗ •";
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.cute-orb-sm {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.75rem;
+}
+
+.cute-orb-sm::before {
+  font-size: 0.56rem;
+}
+
+.metric-sheen {
+  overflow: hidden;
+}
+
+.metric-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 92% 8%,
+    currentColor 0%,
+    transparent 34%
+  );
+  opacity: 0.055;
+}
+
+.progress-flow {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-flow > * {
+  position: relative;
+}
+
+.progress-flow > *::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.32),
+    transparent
+  );
+  transform: translateX(-110%);
+  animation: progress-once 900ms 250ms ease-out both;
+}
+
+@keyframes progress-once {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+.nav-indicator {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.tabular-nums,
+[data-numeric] {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 /* Buttons / anchors are the most common tap targets — make them feel snappy. */
@@ -119,15 +426,32 @@ a,
 
 /* Recharts: keep tooltips legible in dark mode without prop overrides. */
 .recharts-default-tooltip {
-  background-color: var(--card) !important;
+  background-color: var(--glass) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.5rem !important;
+  border-radius: 0.875rem !important;
   color: var(--foreground) !important;
+  box-shadow: 0 16px 38px rgb(var(--shadow-color) / 0.14) !important;
+  backdrop-filter: blur(16px);
 }
 
 .recharts-tooltip-label,
 .recharts-tooltip-item {
   color: var(--foreground) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .interactive-lift:hover {
+    transform: none;
+  }
 }
 
 /* Subtle scrollbar styling */

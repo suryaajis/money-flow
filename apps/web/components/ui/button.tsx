@@ -13,12 +13,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<Variant, string> = {
   default:
-    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring",
+    "bg-primary text-primary-foreground shadow-[0_8px_20px_color-mix(in_srgb,var(--primary)_22%,transparent)] hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-[0_12px_28px_color-mix(in_srgb,var(--primary)_28%,transparent)] focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
   secondary:
-    "bg-muted text-foreground hover:bg-muted/80 focus-visible:ring-ring",
+    "border border-border/70 bg-muted/80 text-foreground hover:-translate-y-0.5 hover:bg-muted focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
   outline:
-    "border border-border bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring",
-  ghost: "bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring",
+    "border border-border bg-card/65 text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-accent focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
+  ghost:
+    "bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring active:scale-[0.97]",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-ring",
 };
@@ -33,13 +34,16 @@ const sizeClasses: Record<Size, string> = {
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "md", type = "button", ...props }, ref) => (
+  (
+    { className, variant = "default", size = "md", type = "button", ...props },
+    ref,
+  ) => (
     <button
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium",
-        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-xl font-semibold",
+        "transition-[transform,background-color,border-color,box-shadow,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],

@@ -19,7 +19,9 @@ import { useUIStore } from "@/store/uiStore";
 // Routes that render without the authenticated app chrome or the auth gate.
 const PUBLIC_ROUTES = ["/login", "/register"];
 
-export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppShell: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const router = useRouter();
   const pathname = usePathname();
   const { token } = useAuthStore();
@@ -71,7 +73,15 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     authApi.me().catch(() => {});
     fetchCategories();
     fetchTransactions();
-  }, [token, hydrated, pathname, isPublicRoute, fetchCategories, fetchTransactions, router]);
+  }, [
+    token,
+    hydrated,
+    pathname,
+    isPublicRoute,
+    fetchCategories,
+    fetchTransactions,
+    router,
+  ]);
 
   // Login/register render on their own layout, without the sidebar/header shell.
   if (isPublicRoute) {
@@ -88,12 +98,20 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <ThemeProvider>
       <ServiceWorkerRegistrar />
-      <div className="min-h-screen bg-background">
+      <div className="app-canvas min-h-screen bg-background">
         <Sidebar />
-        <div className={sidebarCollapsed ? "md:pl-16" : "md:pl-64"}>
+        <div
+          className={
+            sidebarCollapsed
+              ? "transition-[padding] duration-300 md:pl-[4.5rem]"
+              : "transition-[padding] duration-300 md:pl-[17rem]"
+          }
+        >
           <Header />
-          <main className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10">
-            {children}
+          <main className="mx-auto w-full max-w-[1440px] px-4 py-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-7 md:px-8 md:pb-12 xl:px-10">
+            <div key={pathname} className="page-enter">
+              {children}
+            </div>
           </main>
         </div>
         <MobileNav />

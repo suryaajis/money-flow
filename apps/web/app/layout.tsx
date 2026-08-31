@@ -18,7 +18,10 @@ const APP_DESCRIPTION =
   "Track income and expenses, categorize transactions, view analytics, and export your financial data.";
 
 export const metadata: Metadata = {
-  title: { default: `${APP_NAME} — Personal finance tracker`, template: `%s · ${APP_NAME}` },
+  title: {
+    default: `${APP_NAME} — Personal finance tracker`,
+    template: `%s · ${APP_NAME}`,
+  },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   appleWebApp: {
@@ -35,7 +38,13 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
     shortcut: ["/favicon.ico"],
   },
 };
@@ -49,9 +58,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#4f46e5" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
+    { media: "(prefers-color-scheme: dark)", color: "#080b14" },
   ],
 };
+
+const themeBootstrap = `
+  try {
+    const raw = localStorage.getItem("money-flow:ui");
+    const selected = raw ? JSON.parse(raw)?.state?.theme : "system";
+    const dark = selected === "dark" || (selected !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  } catch (_) {}
+`;
 
 export default function RootLayout({
   children,
@@ -60,11 +79,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      // Avoid hydration flash: theme class is applied client-side after mount.
+      lang="id"
+      // Theme is applied by the tiny head script before the first paint.
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body className="min-h-full">
         <AppShell>{children}</AppShell>
       </body>

@@ -1,13 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/shared/Modal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterBar } from "@/components/transactions/FilterBar";
-import { TransactionForm, type TransactionFormValues } from "@/components/transactions/TransactionForm";
+import {
+  TransactionForm,
+  type TransactionFormValues,
+} from "@/components/transactions/TransactionForm";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useExport } from "@/hooks/useExport";
@@ -37,7 +46,9 @@ export default function TransactionsPage() {
   useEffect(() => {
     sharedWalletApi
       .getRecorders()
-      .then((list) => setRecorders(Object.fromEntries(list.map((r) => [r.id, r.name]))))
+      .then((list) =>
+        setRecorders(Object.fromEntries(list.map((r) => [r.id, r.name]))),
+      )
       .catch(() => setRecorders({}));
   }, []);
 
@@ -68,19 +79,32 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-7">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Transactions</h2>
-          <p className="text-sm text-muted-foreground">
-            Add, edit, and review your income and expenses.
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" /> Ledger harian
+          </p>
+          <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+            Transaksi
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Semua jejak uangmu, tersusun rapi dan gampang dicari.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => exportCSV(filtered)} disabled={filtered.length === 0}>
+          <Button
+            variant="outline"
+            onClick={() => exportCSV(filtered)}
+            disabled={filtered.length === 0}
+          >
             <Download className="h-4 w-4" /> CSV
           </Button>
-          <Button variant="outline" onClick={() => exportXLSX(filtered)} disabled={filtered.length === 0}>
+          <Button
+            variant="outline"
+            onClick={() => exportXLSX(filtered)}
+            disabled={filtered.length === 0}
+          >
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
           <Button onClick={() => setAdding(true)}>
@@ -89,22 +113,30 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-4">
           <FilterBar />
         </CardContent>
       </Card>
 
       {selected.size > 0 ? (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-2.5">
+        <div className="glass-surface page-enter flex items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 shadow-lg">
           <span className="text-sm">
             <strong>{selected.size}</strong> selected
           </span>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelected(new Set())}
+            >
               Clear
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => setBulkConfirming(true)}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkConfirming(true)}
+            >
               <Trash2 className="h-3.5 w-3.5" /> Delete selected
             </Button>
           </div>
@@ -121,11 +153,23 @@ export default function TransactionsPage() {
         recorders={recorders}
       />
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="Add transaction">
-        <TransactionForm onSubmit={handleSubmit} onCancel={() => setAdding(false)} submitting={submitting} />
+      <Modal
+        open={adding}
+        onClose={() => setAdding(false)}
+        title="Add transaction"
+      >
+        <TransactionForm
+          onSubmit={handleSubmit}
+          onCancel={() => setAdding(false)}
+          submitting={submitting}
+        />
       </Modal>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit transaction">
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Edit transaction"
+      >
         {editing ? (
           <TransactionForm
             initial={editing}

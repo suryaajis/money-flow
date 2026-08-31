@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Wallet, LogOut } from "lucide-react";
+import { LogOut, Sparkles, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { CurrencyToggle } from "@/components/layout/CurrencyToggle";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -42,24 +42,32 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 sm:gap-4 border-b border-border bg-background/80 backdrop-blur px-4 sm:px-6 md:px-8">
+    <header className="glass-surface sticky top-0 z-20 flex h-[4.25rem] items-center justify-between gap-2 border-b px-4 sm:gap-4 sm:px-6 md:px-8 xl:px-10">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        <div className="md:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-primary-foreground shadow-lg shadow-primary/20 md:hidden">
           <Wallet className="h-4 w-4" />
+          <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-amber-300" />
         </div>
-        <h1 className="truncate text-base sm:text-lg font-semibold tracking-tight">{title}</h1>
+        <div className="min-w-0">
+          <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:block">
+            MoneyFlow space
+          </p>
+          <h1 className="truncate text-base font-semibold tracking-[-0.02em] sm:text-lg">
+            {title}
+          </h1>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <CurrencyToggle />
         <ThemeToggle />
         {user && (
-          <div className="flex items-center gap-1 pl-1 sm:gap-2 sm:pl-2 border-l border-border">
+          <div className="ml-1 flex items-center gap-1 border-l border-border/80 pl-2 sm:gap-2 sm:pl-3">
             <Link
               href="/settings/profile"
               title="Profil"
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="group flex items-center gap-2 rounded-xl p-0.5 transition-opacity hover:opacity-90"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 transition-transform group-hover:-rotate-2 group-hover:scale-105">
                 {getInitials(user.name)}
               </div>
               <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
@@ -70,7 +78,7 @@ export const Header: React.FC = () => {
               onClick={handleLogout}
               title="Keluar"
               aria-label="Keluar"
-              className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
             </button>

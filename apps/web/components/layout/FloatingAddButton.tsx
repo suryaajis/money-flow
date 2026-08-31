@@ -18,7 +18,7 @@ export const FloatingAddButton: React.FC = () => {
     <Link
       href="/transactions?add=1"
       aria-label="Tambah transaksi"
-      className="group fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-[1.15rem] border border-white/20 bg-gradient-to-br from-primary via-indigo-500 to-violet-600 text-primary-foreground shadow-[0_16px_34px_color-mix(in_srgb,var(--primary)_36%,transparent)] transition-transform active:scale-95 md:hidden bottom-[calc(env(safe-area-inset-bottom)+5.75rem)]"
+      className="neo-sticker group fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-lime text-brand-navy shadow-[5px_6px_0_color-mix(in_srgb,var(--brand-navy)_25%,transparent),0_18px_34px_color-mix(in_srgb,var(--brand-navy)_20%,transparent)] transition-[transform,box-shadow] hover:-translate-y-1 hover:-rotate-3 active:translate-y-1 active:scale-95 active:shadow-[1px_1px_0_color-mix(in_srgb,var(--brand-navy)_25%,transparent)] md:hidden bottom-[calc(env(safe-area-inset-bottom)+5.75rem)]"
     >
       <Plus className="h-6 w-6 transition-transform group-hover:rotate-90" />
     </Link>

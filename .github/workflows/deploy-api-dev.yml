@@ -43,6 +43,7 @@ jobs:
             # before replacing the running API. A migration failure aborts the
             # deploy while the previous container remains available.
             docker compose run --rm api npm run dist:migration:run
-            docker compose up -d --remove-orphans
+            # Do not remove containers owned by other applications sharing this VPS.
+            docker compose up -d
             docker compose ps
           EOF

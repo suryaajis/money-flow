@@ -34,7 +34,7 @@ export default function LoginPage() {
   return (
     <div className="min-w-0 w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center gap-2 lg:items-start">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-violet-500 text-primary-foreground shadow-lg shadow-primary/25 lg:hidden">
+        <div className="neo-sticker flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-lime text-brand-navy lg:hidden">
           <Wallet className="h-6 w-6" />
         </div>
         <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-primary lg:block">

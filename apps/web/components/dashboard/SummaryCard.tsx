@@ -16,9 +16,17 @@ interface SummaryCardProps {
 }
 
 const toneAccent: Record<Tone, string> = {
-  neutral: "bg-primary/10 text-primary",
-  income: "bg-income-soft text-income",
-  expense: "bg-expense-soft text-expense",
+  neutral: "bg-muted text-foreground",
+  income: "bg-brand-navy text-brand-lime",
+  expense: "bg-brand-lime text-brand-navy",
+};
+
+const toneSurface: Record<Tone, string> = {
+  neutral: "border-brand-navy/15 bg-card text-foreground",
+  income:
+    "rounded-[2rem] rounded-br-[0.85rem] border-brand-navy/25 bg-brand-lime text-brand-navy",
+  expense:
+    "rounded-[2rem] rounded-tl-[0.85rem] border-brand-navy bg-brand-navy text-white",
 };
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({
@@ -32,34 +40,45 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   return (
     <Card
       className={cn(
-        "interactive-lift metric-sheen h-full overflow-hidden",
-        tone === "income"
-          ? "text-income"
-          : tone === "expense"
-            ? "text-expense"
-            : "text-primary",
+        "group interactive-lift metric-sheen neo-sticker h-full overflow-hidden",
+        toneSurface[tone],
       )}
     >
       <CardContent className="flex h-full items-center p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex w-full items-start justify-between gap-3">
           <div className="min-w-0 space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p
+              className={cn(
+                "text-xs font-bold uppercase tracking-[0.12em]",
+                tone === "expense" ? "text-white/55" : "text-brand-navy/60",
+              )}
+            >
               {label}
             </p>
             <p
               data-numeric
-              className="break-words text-2xl font-bold tracking-[-0.035em] text-foreground sm:text-[1.7rem]"
+              className={cn(
+                "display-number break-words text-2xl font-black sm:text-[1.7rem]",
+                tone === "expense" ? "text-white" : "text-brand-navy",
+              )}
             >
               {fmt(amount)}
             </p>
             {hint ? (
-              <p className="text-xs text-muted-foreground">{hint}</p>
+              <p
+                className={cn(
+                  "text-xs",
+                  tone === "expense" ? "text-white/50" : "text-brand-navy/65",
+                )}
+              >
+                {hint}
+              </p>
             ) : null}
           </div>
           {icon ? (
             <div
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] shadow-sm transition-transform group-hover:rotate-6",
                 toneAccent[tone],
               )}
             >

@@ -82,7 +82,7 @@ export const BudgetOverviewWidget: React.FC = () => {
                   ? "bg-destructive"
                   : warn
                     ? "bg-warning"
-                    : "bg-gradient-to-r from-primary to-cyan-500",
+                    : "bg-gradient-to-r from-brand-navy via-[#86a941] to-brand-lime",
               )}
               style={{ width: `${pct}%` }}
             />

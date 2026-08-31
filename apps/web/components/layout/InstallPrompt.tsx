@@ -89,36 +89,26 @@ export const InstallPrompt: React.FC = () => {
     <div
       role="dialog"
       aria-label="Install Money Flow"
-      className="fixed inset-x-3 z-40 bottom-[calc(env(safe-area-inset-bottom)+72px)] md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm rounded-xl border border-border bg-card text-card-foreground shadow-lg"
+      className="neo-sticker fixed inset-x-3 z-40 rounded-[1.55rem] bg-brand-navy text-white shadow-[0_16px_42px_rgba(0,0,0,.28)] bottom-[calc(env(safe-area-inset-bottom)+76px)] md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm"
     >
-      <div className="flex items-start gap-3 p-4">
-        <div className="grid place-items-center h-10 w-10 rounded-lg bg-primary/10 text-primary shrink-0">
-          <Download className="h-5 w-5" aria-hidden />
+      <div className="flex items-center gap-3 p-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-lime text-brand-navy">
+          <Download className="h-4.5 w-4.5" aria-hidden />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">Install Money Flow</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-sm font-bold">Install MoneyFlow</p>
+          <p className="mt-0.5 hidden text-xs text-white/55 sm:block">
             Add to your home screen for offline access and a full-screen experience.
           </p>
-          <div className="mt-3 flex items-center gap-2">
-            <Button size="sm" onClick={handleInstall} className="touch-manipulation">
-              Install
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleDismiss}
-              className="touch-manipulation"
-            >
-              Not now
-            </Button>
-          </div>
         </div>
+        <Button size="sm" onClick={handleInstall} className="touch-manipulation">
+          Install
+        </Button>
         <button
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss install prompt"
-          className="text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
+          className="flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

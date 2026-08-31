@@ -73,7 +73,7 @@ export default function RecurringPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Sekali atur, lanjut mengalir
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">

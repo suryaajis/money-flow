@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6 sm:space-y-7">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Cerita di balik angka
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-kicker">
             Arus kas
           </p>
           <CardTitle>Tren pemasukan & pengeluaran</CardTitle>

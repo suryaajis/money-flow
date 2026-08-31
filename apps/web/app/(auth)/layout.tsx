@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 };
 
 const highlights = [
-  { icon: BarChart3, label: "Analitik jernih" },
-  { icon: MessageCircleMore, label: "Catat lewat WA" },
-  { icon: ShieldCheck, label: "Data tetap aman" },
+  { icon: BarChart3, label: "Analitik jernih", tone: "bg-brand-lime" },
+  { icon: MessageCircleMore, label: "Catat lewat WA", tone: "bg-white" },
+  { icon: ShieldCheck, label: "Data tetap aman", tone: "bg-accent" },
 ];
 
 export default function AuthLayout({
@@ -27,13 +27,13 @@ export default function AuthLayout({
 }) {
   return (
     <div className="app-canvas flex min-h-screen items-center justify-center p-3 sm:p-6">
-      <div className="mf-card grid min-w-0 w-full max-w-[calc(100vw-1.5rem)] grid-cols-1 overflow-hidden rounded-[1.75rem] border border-border bg-card/88 shadow-[0_28px_90px_rgba(30,41,90,.16)] backdrop-blur-xl sm:max-w-6xl lg:min-h-[680px] lg:grid-cols-[1.05fr_.95fr]">
+      <div className="mf-card grid min-w-0 w-full max-w-[calc(100vw-1.5rem)] grid-cols-1 overflow-hidden rounded-[2.25rem] border border-brand-navy/15 bg-card/88 shadow-[0_12px_0_rgba(0,0,0,.08),0_32px_90px_rgba(0,0,0,.16)] backdrop-blur-xl sm:max-w-6xl lg:min-h-[680px] lg:grid-cols-[1.05fr_.95fr]">
         <aside className="hero-vault relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="hero-vault-content">
             <div className="flex items-center gap-3">
               <FlowBuddy />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-lime">
                   MoneyFlow
                 </p>
                 <p className="text-sm text-white/80">
@@ -44,13 +44,13 @@ export default function AuthLayout({
 
             <div className="mt-20 max-w-md">
               <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-amber-300" /> Lebih rapi,
+                <Sparkles className="h-3.5 w-3.5 text-brand-lime" /> Lebih rapi,
                 lebih lega
               </p>
-              <h1 className="text-5xl font-bold leading-[1.02] tracking-[-0.055em]">
+              <h1 className="text-5xl font-black leading-[.98] tracking-[-0.075em]">
                 Uangmu punya cerita. Yuk, baca dengan tenang.
               </h1>
-              <p className="mt-5 max-w-sm text-base leading-relaxed text-indigo-100/85">
+              <p className="mt-5 max-w-sm text-base leading-relaxed text-white/70">
                 Catat yang masuk, pahami yang keluar, lalu rayakan kemajuan
                 kecilmu.
               </p>
@@ -58,14 +58,14 @@ export default function AuthLayout({
           </div>
 
           <div className="hero-vault-content grid grid-cols-3 gap-3">
-            {highlights.map(({ icon: ItemIcon, label }) => {
+            {highlights.map(({ icon: ItemIcon, label, tone }) => {
               return (
                 <div
                   key={label}
-                  className="rounded-2xl border border-white/12 bg-white/[0.08] p-3 backdrop-blur"
+                  className={`neo-sticker rounded-[1.2rem] p-3 text-brand-navy transition-transform hover:-translate-y-1 hover:-rotate-1 ${tone}`}
                 >
-                  <ItemIcon className="mb-2 h-4 w-4 text-amber-200" />
-                  <p className="text-xs font-medium text-white/85">{label}</p>
+                  <ItemIcon className="mb-2 h-4 w-4" />
+                  <p className="text-xs font-bold">{label}</p>
                 </div>
               );
             })}

@@ -42,17 +42,17 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="glass-surface sticky top-0 z-20 flex h-[4.25rem] items-center justify-between gap-2 border-b px-4 sm:gap-4 sm:px-6 md:px-8 xl:px-10">
+    <header className="glass-surface sticky top-0 z-20 flex h-[4.75rem] items-center justify-between gap-2 border-b border-brand-navy/10 px-4 sm:gap-4 sm:px-6 md:px-8 xl:px-10">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-primary-foreground shadow-lg shadow-primary/20 md:hidden">
+        <div className="neo-sticker relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-lime text-brand-navy md:hidden">
           <Wallet className="h-4 w-4" />
-          <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-amber-300" />
+          <Sparkles className="absolute -right-1 -top-1 h-3 w-3 text-brand-navy" />
         </div>
         <div className="min-w-0">
-          <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:block">
+          <p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/45 sm:block">
             MoneyFlow space
           </p>
-          <h1 className="truncate text-base font-semibold tracking-[-0.02em] sm:text-lg">
+          <h1 className="truncate text-base font-bold tracking-[-0.035em] sm:text-lg">
             {title}
           </h1>
         </div>
@@ -67,7 +67,7 @@ export const Header: React.FC = () => {
               title="Profil"
               className="group flex items-center gap-2 rounded-xl p-0.5 transition-opacity hover:opacity-90"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 transition-transform group-hover:-rotate-2 group-hover:scale-105">
+              <div className="neo-sticker flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-lime text-xs font-black text-brand-navy transition-transform group-hover:-rotate-3 group-hover:scale-105">
                 {getInitials(user.name)}
               </div>
               <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">

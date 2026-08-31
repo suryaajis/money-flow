@@ -71,7 +71,20 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
             dataKey="income"
             name="Pemasukan"
             stroke="var(--income)"
-            strokeWidth={2.5}
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{
+              r: 3,
+              fill: "var(--brand-lime)",
+              stroke: "var(--brand-navy)",
+              strokeWidth: 1.5,
+            }}
+            activeDot={{
+              r: 6,
+              fill: "var(--brand-lime)",
+              stroke: "var(--brand-navy)",
+              strokeWidth: 2,
+            }}
             fill="url(#incomeGradient)"
             isAnimationActive={!reducedMotion}
             animationDuration={650}
@@ -81,7 +94,10 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
             dataKey="expense"
             name="Pengeluaran"
             stroke="var(--expense)"
-            strokeWidth={2.5}
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{ r: 3, fill: "var(--brand-navy)", strokeWidth: 1.5 }}
+            activeDot={{ r: 6, fill: "var(--brand-navy)", strokeWidth: 2 }}
             fill="url(#expenseGradient)"
             isAnimationActive={!reducedMotion}
             animationDuration={650}

@@ -21,8 +21,8 @@ export const FilterBar: React.FC = () => {
     !!filters.tag;
 
   return (
-    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-      <div className="relative lg:col-span-2">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
+      <div className="relative lg:col-span-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           aria-label="Search notes"
@@ -33,6 +33,7 @@ export const FilterBar: React.FC = () => {
         />
       </div>
       <Select
+        className="lg:col-span-2"
         aria-label="Type"
         value={filters.type ?? "all"}
         onChange={(e) => setFilters({ type: e.target.value as TransactionType | "all" })}
@@ -42,6 +43,7 @@ export const FilterBar: React.FC = () => {
         <option value="expense">Expense</option>
       </Select>
       <Select
+        className="lg:col-span-2"
         aria-label="Category"
         value={filters.categoryId ?? ""}
         onChange={(e) => setFilters({ categoryId: e.target.value || undefined })}
@@ -53,7 +55,7 @@ export const FilterBar: React.FC = () => {
           </option>
         ))}
       </Select>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 lg:col-span-4">
         <Input
           aria-label="From date"
           type="date"
@@ -72,11 +74,11 @@ export const FilterBar: React.FC = () => {
         placeholder="Filter by tag..."
         value={filters.tag ?? ""}
         onChange={(e) => setFilters({ tag: e.target.value || undefined })}
-        className="lg:col-span-5"
+        className="lg:col-span-12"
       />
 
       {hasActiveFilters ? (
-        <div className="sm:col-span-2 lg:col-span-5 flex justify-end">
+        <div className="flex justify-end sm:col-span-2 lg:col-span-12">
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             <X className="h-3.5 w-3.5" /> Clear filters
           </Button>

@@ -12,6 +12,14 @@ interface CategoryPieChartProps {
   data: CategoryAggregate[];
 }
 
+const PLAYFUL_PALETTE = [
+  "var(--brand-lime)",
+  "var(--brand-navy)",
+  "#86a941",
+  "#e0f2bd",
+  "#b6c0a8",
+];
+
 export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -46,8 +54,11 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
                 isAnimationActive={!reducedMotion}
                 animationDuration={650}
               >
-                {data.map((d) => (
-                  <Cell key={d.categoryId} fill={d.color} />
+                {data.map((d, index) => (
+                  <Cell
+                    key={d.categoryId}
+                    fill={PLAYFUL_PALETTE[index % PLAYFUL_PALETTE.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip formatter={(value) => fmt(Number(value) || 0)} />
@@ -56,7 +67,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
         )}
       </div>
       <ul className="space-y-2 text-sm">
-        {data.slice(0, 6).map((d) => (
+        {data.slice(0, 6).map((d, index) => (
           <li
             key={d.categoryId}
             className="flex items-center justify-between gap-3"
@@ -64,7 +75,10 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: d.color }}
+                style={{
+                  backgroundColor:
+                    PLAYFUL_PALETTE[index % PLAYFUL_PALETTE.length],
+                }}
                 aria-hidden
               />
               <span className="truncate">{d.categoryName}</span>

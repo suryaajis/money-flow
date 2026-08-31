@@ -7,7 +7,7 @@ interface FlowBuddyProps {
   label?: string;
 }
 
-/** A tiny, calm MoneyFlow companion. Decorative unless a label is supplied. */
+/** A tiny MoneyFlow companion. Decorative unless a label is supplied. */
 export const FlowBuddy: React.FC<FlowBuddyProps> = ({
   size = "md",
   className,
@@ -21,7 +21,7 @@ export const FlowBuddy: React.FC<FlowBuddyProps> = ({
   >
     <Sparkles
       className={cn(
-        "absolute -right-1 -top-1 text-amber-300 drop-shadow-sm",
+        "absolute -right-1 -top-1 text-brand-navy drop-shadow-sm",
         size === "sm" ? "h-3 w-3" : "h-4 w-4",
       )}
       aria-hidden

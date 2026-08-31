@@ -13,7 +13,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<Variant, string> = {
   default:
-    "bg-primary text-primary-foreground shadow-[0_8px_20px_color-mix(in_srgb,var(--primary)_22%,transparent)] hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-[0_12px_28px_color-mix(in_srgb,var(--primary)_28%,transparent)] focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
+    "neo-sticker bg-brand-lime text-brand-navy shadow-[4px_4px_0_color-mix(in_srgb,var(--brand-navy)_16%,transparent)] hover:-translate-y-1 hover:-rotate-1 hover:bg-brand-lime/90 hover:shadow-[6px_7px_0_color-mix(in_srgb,var(--brand-navy)_18%,transparent)] focus-visible:ring-ring active:translate-x-0.5 active:translate-y-0.5 active:rotate-0 active:scale-[0.97] active:shadow-[1px_1px_0_color-mix(in_srgb,var(--brand-navy)_18%,transparent)]",
   secondary:
     "border border-border/70 bg-muted/80 text-foreground hover:-translate-y-0.5 hover:bg-muted focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
   outline:
@@ -42,7 +42,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-xl font-semibold",
+        "wiggle-on-hover inline-flex items-center justify-center whitespace-nowrap rounded-[1rem] font-bold",
         "transition-[transform,background-color,border-color,box-shadow,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],

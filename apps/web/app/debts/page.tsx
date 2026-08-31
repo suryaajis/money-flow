@@ -309,7 +309,7 @@ export default function DebtsPage() {
             <HandCoins className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
               <Sparkles className="h-3.5 w-3.5" /> Janji yang tetap tercatat
             </p>
             <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">

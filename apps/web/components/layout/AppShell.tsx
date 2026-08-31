@@ -108,7 +108,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
           }
         >
           <Header />
-          <main className="mx-auto w-full max-w-[1440px] px-4 py-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-7 md:px-8 md:pb-12 xl:px-10">
+          <main className="mx-auto w-full max-w-[1440px] px-4 py-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 md:px-8 md:pb-12 xl:px-10">
             <div key={pathname} className="page-enter">
               {children}
             </div>

@@ -82,7 +82,7 @@ export default function TransactionsPage() {
     <div className="space-y-6 sm:space-y-7">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Ledger harian
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
@@ -113,8 +113,8 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-4">
+      <Card className="overflow-hidden border-brand-navy/15 bg-card/90">
+        <CardContent className="p-5 sm:p-6">
           <FilterBar />
         </CardContent>
       </Card>

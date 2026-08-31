@@ -43,22 +43,22 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        "glass-surface z-30 hidden transition-all duration-300 md:fixed md:inset-y-0 md:flex md:flex-col md:border-r",
+        "z-30 hidden overflow-hidden bg-brand-navy text-white shadow-[12px_0_38px_rgba(0,0,0,.16)] transition-all duration-300 md:fixed md:inset-y-0 md:flex md:flex-col",
         sidebarCollapsed ? "md:w-[4.5rem]" : "md:w-[17rem]",
       )}
     >
       {/* Logo */}
-      <div className="flex h-[4.25rem] items-center overflow-hidden border-b border-border/80 px-4">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-gradient-to-br from-primary via-indigo-500 to-cyan-600 text-primary-foreground shadow-lg shadow-primary/25">
+      <div className="flex h-[4.75rem] items-center overflow-hidden border-b border-white/12 px-4">
+        <div className="neo-sticker relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-brand-lime text-brand-navy">
           <Wallet className="h-[1.1rem] w-[1.1rem]" />
-          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-amber-300" />
+          <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border-2 border-brand-navy bg-white" />
         </div>
         {!sidebarCollapsed && (
           <div className="ml-3 flex flex-col">
             <span className="text-[15px] font-bold leading-none tracking-[-0.02em]">
               MoneyFlow
             </span>
-            <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white/55">
               uang, tapi santai
             </span>
           </div>
@@ -80,8 +80,8 @@ export const Sidebar: React.FC = () => {
                 "focus-ring group flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-[background-color,color,transform,box-shadow]",
                 sidebarCollapsed && "justify-center",
                 active
-                  ? "nav-indicator bg-primary/10 text-primary shadow-[0_8px_22px_color-mix(in_srgb,var(--primary)_8%,transparent)]"
-                  : "text-muted-foreground hover:translate-x-0.5 hover:bg-accent/80 hover:text-foreground",
+                  ? "bg-brand-lime font-bold text-brand-navy shadow-[4px_5px_0_rgba(0,0,0,.18)]"
+                  : "text-white/62 hover:translate-x-1 hover:bg-white/10 hover:text-white",
               )}
             >
               {Icon ? (
@@ -89,8 +89,8 @@ export const Sidebar: React.FC = () => {
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
                     active
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/70 group-hover:bg-card",
+                      ? "bg-brand-navy text-brand-lime"
+                      : "bg-white/10 group-hover:bg-brand-lime group-hover:text-brand-navy",
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -103,11 +103,11 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer + Toggle */}
-      <div className="border-t border-border/80 px-3 py-3">
+      <div className="border-t border-white/12 px-3 py-3">
         {!sidebarCollapsed && (
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary/10 bg-primary/[0.055] p-2.5">
+          <div className="mb-3 flex items-center gap-2 rounded-[1.15rem] border border-white/12 bg-white/[0.07] p-2.5">
             <FlowBuddy size="sm" />
-            <p className="text-[11px] leading-snug text-muted-foreground">
+            <p className="text-[11px] leading-snug text-white/60">
               Pelan-pelan, uangmu mulai lebih tertata ✨
             </p>
           </div>
@@ -116,7 +116,7 @@ export const Sidebar: React.FC = () => {
           onClick={toggleSidebar}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={cn(
-            "focus-ring flex w-full items-center gap-2 rounded-xl px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+            "focus-ring flex w-full items-center gap-2 rounded-xl px-2 py-2 text-xs text-white/55 transition-colors hover:bg-white/10 hover:text-white",
             sidebarCollapsed && "justify-center",
           )}
         >

@@ -23,7 +23,7 @@ const root = path.resolve(__dirname, "..");
 const srcSvg = path.join(root, "public", "icons", "icon.svg");
 const outDir = path.join(root, "public", "icons");
 
-const BG = { r: 0x4f, g: 0x46, b: 0xe5, alpha: 1 }; // brand primary
+const BG = { r: 0x15, g: 0x15, b: 0x15, alpha: 1 }; // brand navy
 
 async function generate() {
   const svgBuffer = await fs.readFile(srcSvg);

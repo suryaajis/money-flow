@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -57,20 +58,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#4f46e5" },
-    { media: "(prefers-color-scheme: dark)", color: "#080b14" },
+    { media: "(prefers-color-scheme: light)", color: "#C9F45A" },
+    { media: "(prefers-color-scheme: dark)", color: "#151515" },
   ],
 };
-
-const themeBootstrap = `
-  try {
-    const raw = localStorage.getItem("money-flow:ui");
-    const selected = raw ? JSON.parse(raw)?.state?.theme : "system";
-    const dark = selected === "dark" || (selected !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-  } catch (_) {}
-`;
 
 export default function RootLayout({
   children,
@@ -84,8 +75,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      <head suppressHydrationWarning>
+        <Script
+          src="/theme-init.js"
+          strategy="beforeInteractive"
+          suppressHydrationWarning
+        />
       </head>
       <body className="min-h-full">
         <AppShell>{children}</AppShell>

@@ -13,7 +13,7 @@ Key features:
 - 🎨 **UI** — light/dark/system theme, IDR/USD currency switch, responsive layout, mobile bottom nav
 - 📱 **PWA** — installable, offline page, service worker caching, app shortcuts
 
-See [`docs/PRD-v1.md`](docs/PRD-v1.md) (released) and [`docs/PRD-v2.md`](docs/PRD-v2.md) (planning) for full product requirements.
+See [`docs/PRD-v1.md`](docs/PRD-v1.md) (released), [`docs/PRD-v1.1-theme.md`](docs/PRD-v1.1-theme.md) (cinematic theme refresh), and [`docs/PRD-v2.md`](docs/PRD-v2.md) (planning) for full product requirements.
 
 📱 **WhatsApp bot** — record transactions from chat/voice, bot commands, debt tracking, proactive notifications. See [`docs/WHATSAPP.md`](docs/WHATSAPP.md) for features and [`docs/WHATSAPP-PRODUCTION.md`](docs/WHATSAPP-PRODUCTION.md) for the hardened production setup.
 

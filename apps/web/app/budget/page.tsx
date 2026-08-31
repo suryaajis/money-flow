@@ -68,7 +68,7 @@ function BudgetProgress({
       </div>
       <div className="progress-flow h-2.5 overflow-hidden rounded-full bg-muted">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${over ? "bg-destructive" : warn ? "bg-warning" : "bg-gradient-to-r from-primary to-cyan-500"}`}
+          className={`h-full rounded-full transition-all duration-700 ${over ? "bg-destructive" : warn ? "bg-warning" : "bg-gradient-to-r from-brand-navy via-[#86a941] to-brand-lime"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -163,7 +163,7 @@ export default function BudgetPage() {
       <div className="flex items-center gap-3">
         <FlowBuddy className="hidden sm:inline-flex" />
         <div>
-          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Rencana yang ramah
           </p>
           <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">

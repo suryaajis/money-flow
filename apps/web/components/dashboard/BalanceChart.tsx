@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import type { MonthlyAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface BalanceChartProps {
   data: MonthlyAggregate[];
@@ -22,6 +23,7 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { fmt } = useCurrency();
+  const reducedMotion = useReducedMotion();
 
   if (!mounted) return <div className="h-[300px] w-full" />;
 
@@ -29,7 +31,11 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <CartesianGrid
+            strokeDasharray="4 5"
+            stroke="var(--chart-grid)"
+            vertical={false}
+          />
           <XAxis
             dataKey="month"
             stroke="var(--muted-foreground)"
@@ -50,8 +56,20 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
             cursor={{ fill: "var(--muted)", opacity: 0.4 }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="income" name="Pemasukan" fill="#10b981" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="expense" name="Pengeluaran" fill="#ef4444" radius={[6, 6, 0, 0]} />
+          <Bar
+            dataKey="income"
+            name="Pemasukan"
+            fill="var(--income)"
+            radius={[8, 8, 3, 3]}
+            isAnimationActive={!reducedMotion}
+          />
+          <Bar
+            dataKey="expense"
+            name="Pengeluaran"
+            fill="var(--expense)"
+            radius={[8, 8, 3, 3]}
+            isAnimationActive={!reducedMotion}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

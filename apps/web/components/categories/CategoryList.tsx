@@ -13,7 +13,8 @@ import { useTransactions } from "@/hooks/useTransactions";
 import type { Category } from "@/lib/types";
 
 export const CategoryList: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { categories, addCategory, updateCategory, deleteCategory } =
+    useCategories();
   const { transactions } = useTransactions();
 
   const [editing, setEditing] = useState<Category | null>(null);
@@ -23,7 +24,8 @@ export const CategoryList: React.FC = () => {
   // Quick lookup of how many transactions each category has, for context.
   const usageById = useMemo(() => {
     const m = new Map<string, number>();
-    for (const tx of transactions) m.set(tx.categoryId, (m.get(tx.categoryId) ?? 0) + 1);
+    for (const tx of transactions)
+      m.set(tx.categoryId, (m.get(tx.categoryId) ?? 0) + 1);
     return m;
   }, [transactions]);
 
@@ -40,7 +42,7 @@ export const CategoryList: React.FC = () => {
         {categories.map((c) => {
           const usage = usageById.get(c.id) ?? 0;
           return (
-            <Card key={c.id}>
+            <Card key={c.id} className="interactive-lift overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-2">
@@ -82,7 +84,11 @@ export const CategoryList: React.FC = () => {
         })}
       </div>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="New category">
+      <Modal
+        open={adding}
+        onClose={() => setAdding(false)}
+        title="New category"
+      >
         <CategoryForm
           onSubmit={async (values) => {
             await addCategory(values);
@@ -92,7 +98,11 @@ export const CategoryList: React.FC = () => {
         />
       </Modal>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} title="Edit category">
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Edit category"
+      >
         {editing ? (
           <CategoryForm
             initial={editing}

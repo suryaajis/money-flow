@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Repeat, Plus, Pencil, Trash2, PauseCircle, PlayCircle } from "lucide-react";
+import {
+  Repeat,
+  Plus,
+  Pencil,
+  Trash2,
+  PauseCircle,
+  PlayCircle,
+  Sparkles,
+} from "lucide-react";
 import { useRecurringStore } from "@/store/recurringStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useProcessOverdueRecurring } from "@/hooks/useProcessOverdueRecurring";
@@ -19,8 +27,14 @@ const FREQ_LABELS: Record<string, string> = {
 export default function RecurringPage() {
   useProcessOverdueRecurring();
 
-  const { recurrings, loading, hasLoaded, fetchRecurrings, toggleActive, deleteRecurring } =
-    useRecurringStore();
+  const {
+    recurrings,
+    loading,
+    hasLoaded,
+    fetchRecurrings,
+    toggleActive,
+    deleteRecurring,
+  } = useRecurringStore();
   const { categories } = useCategoryStore();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,7 +60,12 @@ export default function RecurringPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this recurring template? Already-generated transactions will not be deleted.")) return;
+    if (
+      !confirm(
+        "Delete this recurring template? Already-generated transactions will not be deleted.",
+      )
+    )
+      return;
     await deleteRecurring(id);
   }
 
@@ -54,26 +73,29 @@ export default function RecurringPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Recurring Transactions</h2>
-          <p className="text-sm text-muted-foreground">
-            Auto-generate transactions on a schedule. Overdue entries are created when you open the app.
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" /> Sekali atur, lanjut mengalir
+          </p>
+          <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+            Transaksi Berulang
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gaji, tagihan, dan langganan rutin—biar Flow yang ingat.
           </p>
         </div>
         <button
           onClick={handleNew}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           New
         </button>
       </div>
 
-      {loading && (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      )}
+      {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {!loading && recurrings.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-primary/20 bg-primary/[0.035] py-16 text-center">
           <Repeat className="mb-3 h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm font-medium">No recurring templates yet</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -89,12 +111,12 @@ export default function RecurringPage() {
       )}
 
       {recurrings.length > 0 && (
-        <div className="divide-y divide-border rounded-lg border border-border bg-card">
+        <div className="mf-card divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
           {recurrings.map((item) => (
             <div
               key={item.id}
               className={cn(
-                "flex items-center justify-between gap-4 px-4 py-3",
+                "flex items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-primary/[0.03]",
                 !item.isActive && "opacity-50",
               )}
             >

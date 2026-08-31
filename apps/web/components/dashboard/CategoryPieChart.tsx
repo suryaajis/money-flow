@@ -6,6 +6,7 @@ import type { CategoryAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PieChart as PieChartIcon } from "lucide-react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface CategoryPieChartProps {
   data: CategoryAggregate[];
@@ -15,6 +16,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { fmt } = useCurrency();
+  const reducedMotion = useReducedMotion();
 
   if (data.length === 0) {
     return (
@@ -40,6 +42,9 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
                 outerRadius={92}
                 paddingAngle={2}
                 stroke="var(--card)"
+                cornerRadius={5}
+                isAnimationActive={!reducedMotion}
+                animationDuration={650}
               >
                 {data.map((d) => (
                   <Cell key={d.categoryId} fill={d.color} />
@@ -52,7 +57,10 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
       </div>
       <ul className="space-y-2 text-sm">
         {data.slice(0, 6).map((d) => (
-          <li key={d.categoryId} className="flex items-center justify-between gap-3">
+          <li
+            key={d.categoryId}
+            className="flex items-center justify-between gap-3"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
@@ -63,7 +71,9 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
             </div>
             <div className="flex items-center gap-3 text-muted-foreground tabular-nums">
               <span>{fmt(d.total)}</span>
-              <span className="text-xs w-10 text-right">{d.percentage.toFixed(0)}%</span>
+              <span className="text-xs w-10 text-right">
+                {d.percentage.toFixed(0)}%
+              </span>
             </div>
           </li>
         ))}

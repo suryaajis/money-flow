@@ -58,21 +58,31 @@ export const BudgetOverviewWidget: React.FC = () => {
       {items.map(({ b, spent, pct, over, warn }) => (
         <div key={b.id} className="space-y-1">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium truncate">{b.category?.name ?? "—"}</span>
+            <span className="font-medium truncate">
+              {b.category?.name ?? "—"}
+            </span>
             <span
               className={cn(
                 "text-xs shrink-0",
-                over ? "text-destructive font-medium" : warn ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+                over
+                  ? "text-destructive font-medium"
+                  : warn
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-muted-foreground",
               )}
             >
               {fmt(spent, currency)} / {fmt(b.amount, currency)}
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="progress-flow h-2 overflow-hidden rounded-full bg-muted">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                over ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary",
+                over
+                  ? "bg-destructive"
+                  : warn
+                    ? "bg-warning"
+                    : "bg-gradient-to-r from-primary to-cyan-500",
               )}
               style={{ width: `${pct}%` }}
             />
@@ -80,7 +90,9 @@ export const BudgetOverviewWidget: React.FC = () => {
         </div>
       ))}
       {monthBudgets.length > 4 && (
-        <p className="text-xs text-muted-foreground">+{monthBudgets.length - 4} more categories</p>
+        <p className="text-xs text-muted-foreground">
+          +{monthBudgets.length - 4} more categories
+        </p>
       )}
       <Link
         href="/budget"

@@ -16,9 +16,17 @@ interface SummaryCardProps {
 }
 
 const toneAccent: Record<Tone, string> = {
-  neutral: "from-blue-500/15 to-blue-500/0 text-blue-600 dark:text-blue-400",
-  income: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
-  expense: "from-rose-500/15 to-rose-500/0 text-rose-600 dark:text-rose-400",
+  neutral: "bg-muted text-foreground",
+  income: "bg-brand-navy text-brand-lime",
+  expense: "bg-brand-lime text-brand-navy",
+};
+
+const toneSurface: Record<Tone, string> = {
+  neutral: "border-brand-navy/15 bg-card text-foreground",
+  income:
+    "rounded-[2rem] rounded-br-[0.85rem] border-brand-navy/25 bg-brand-lime text-brand-navy",
+  expense:
+    "rounded-[2rem] rounded-tl-[0.85rem] border-brand-navy bg-brand-navy text-white",
 };
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({
@@ -30,20 +38,47 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
 }) => {
   const { fmt } = useCurrency();
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className={cn("break-words text-xl font-semibold tracking-tight sm:text-2xl", toneAccent[tone].split(" ").slice(2).join(" "))}>
+    <Card
+      className={cn(
+        "group interactive-lift metric-sheen neo-sticker h-full overflow-hidden",
+        toneSurface[tone],
+      )}
+    >
+      <CardContent className="flex h-full items-center p-5 sm:p-6">
+        <div className="flex w-full items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1.5">
+            <p
+              className={cn(
+                "text-xs font-bold uppercase tracking-[0.12em]",
+                tone === "expense" ? "text-white/55" : "text-brand-navy/60",
+              )}
+            >
+              {label}
+            </p>
+            <p
+              data-numeric
+              className={cn(
+                "display-number break-words text-2xl font-black sm:text-[1.7rem]",
+                tone === "expense" ? "text-white" : "text-brand-navy",
+              )}
+            >
               {fmt(amount)}
             </p>
-            {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+            {hint ? (
+              <p
+                className={cn(
+                  "text-xs",
+                  tone === "expense" ? "text-white/50" : "text-brand-navy/65",
+                )}
+              >
+                {hint}
+              </p>
+            ) : null}
           </div>
           {icon ? (
             <div
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] shadow-sm transition-transform group-hover:rotate-6",
                 toneAccent[tone],
               )}
             >

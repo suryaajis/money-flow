@@ -24,7 +24,10 @@ export function CurrencyInput({
   locale?: string;
   placeholder?: string;
   className?: string;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "value" | "onChange">) {
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type" | "value" | "onChange"
+>) {
   const [display, setDisplay] = React.useState(() =>
     formatCurrencyInput(value, locale),
   );
@@ -57,9 +60,9 @@ export function CurrencyInput({
       onChange={handleChange}
       onBlur={handleBlur}
       className={cn(
-        "flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm",
+        "flex h-11 w-full rounded-xl border border-input bg-card/80 px-3.5 py-2 text-base shadow-sm transition-[border-color,box-shadow,background-color] sm:h-10 sm:text-sm",
         "placeholder:text-muted-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "focus-visible:border-primary/60 focus-visible:bg-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10",
         className,
       )}
       {...rest}

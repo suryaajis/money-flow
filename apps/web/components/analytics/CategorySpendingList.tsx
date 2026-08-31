@@ -34,7 +34,9 @@ export const CategorySpendingList: React.FC<CategorySpendingListProps> = ({
             </div>
             <div className="flex gap-3 text-muted-foreground tabular-nums">
               <span>{fmt(row.total)}</span>
-              <span className="text-xs w-10 text-right">{row.percentage.toFixed(0)}%</span>
+              <span className="text-xs w-10 text-right">
+                {row.percentage.toFixed(0)}%
+              </span>
             </div>
           </div>
           <div
@@ -45,7 +47,7 @@ export const CategorySpendingList: React.FC<CategorySpendingListProps> = ({
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-[width] duration-700 ease-out"
               style={{
                 width: `${Math.min(100, row.percentage)}%`,
                 backgroundColor: row.color,

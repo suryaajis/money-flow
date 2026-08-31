@@ -21,6 +21,7 @@ import {
 import { NAV_ITEMS } from "@/lib/constants";
 import { useUIStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
+import { FlowBuddy } from "@/components/shared/FlowBuddy";
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -42,42 +43,59 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        "hidden md:flex md:flex-col md:fixed md:inset-y-0 md:border-r md:border-border md:bg-card transition-all duration-300",
-        sidebarCollapsed ? "md:w-16" : "md:w-64",
+        "z-30 hidden overflow-hidden bg-brand-navy text-white shadow-[12px_0_38px_rgba(0,0,0,.16)] transition-all duration-300 md:fixed md:inset-y-0 md:flex md:flex-col",
+        sidebarCollapsed ? "md:w-[4.5rem]" : "md:w-[17rem]",
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-border px-3 overflow-hidden">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Wallet className="h-4 w-4" />
+      <div className="flex h-[4.75rem] items-center overflow-hidden border-b border-white/12 px-4">
+        <div className="neo-sticker relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-brand-lime text-brand-navy">
+          <Wallet className="h-[1.1rem] w-[1.1rem]" />
+          <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border-2 border-brand-navy bg-white" />
         </div>
         {!sidebarCollapsed && (
-          <div className="ml-2 flex flex-col">
-            <span className="text-sm font-semibold leading-none">Money Flow</span>
-            <span className="text-xs text-muted-foreground mt-0.5">Personal finance</span>
+          <div className="ml-3 flex flex-col">
+            <span className="text-[15px] font-bold leading-none tracking-[-0.02em]">
+              MoneyFlow
+            </span>
+            <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white/55">
+              uang, tapi santai
+            </span>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {NAV_ITEMS.map((item) => {
           const Icon = ICONS[item.icon];
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
               href={item.href}
               title={sidebarCollapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                "focus-ring group flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-[background-color,color,transform,box-shadow]",
                 sidebarCollapsed && "justify-center",
                 active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "bg-brand-lime font-bold text-brand-navy shadow-[4px_5px_0_rgba(0,0,0,.18)]"
+                  : "text-white/62 hover:translate-x-1 hover:bg-white/10 hover:text-white",
               )}
             >
-              {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+              {Icon ? (
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    active
+                      ? "bg-brand-navy text-brand-lime"
+                      : "bg-white/10 group-hover:bg-brand-lime group-hover:text-brand-navy",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+              ) : null}
               {!sidebarCollapsed && item.label}
             </Link>
           );
@@ -85,17 +103,20 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer + Toggle */}
-      <div className="border-t border-border px-2 py-3">
+      <div className="border-t border-white/12 px-3 py-3">
         {!sidebarCollapsed && (
-          <p className="px-1 mb-2 text-xs text-muted-foreground">
-            Stored in your account.
-          </p>
+          <div className="mb-3 flex items-center gap-2 rounded-[1.15rem] border border-white/12 bg-white/[0.07] p-2.5">
+            <FlowBuddy size="sm" />
+            <p className="text-[11px] leading-snug text-white/60">
+              Pelan-pelan, uangmu mulai lebih tertata ✨
+            </p>
+          </div>
         )}
         <button
           onClick={toggleSidebar}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors",
+            "focus-ring flex w-full items-center gap-2 rounded-xl px-2 py-2 text-xs text-white/55 transition-colors hover:bg-white/10 hover:text-white",
             sidebarCollapsed && "justify-center",
           )}
         >

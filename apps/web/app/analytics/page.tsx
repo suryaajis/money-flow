@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -58,29 +65,42 @@ export default function AnalyticsPage() {
       .sort((a, b) => b.total - a.total);
   }, [inRange]);
 
-  const momTone = momChange === null
-    ? "neutral"
-    : momChange.delta >= 0
-      ? "positive"
-      : "negative";
-  const momIcon = momTone === "positive"
-    ? <TrendingUp className="h-4 w-4" />
-    : momTone === "negative"
-      ? <TrendingDown className="h-4 w-4" />
-      : <Wallet className="h-4 w-4" />;
+  const momTone =
+    momChange === null
+      ? "neutral"
+      : momChange.delta >= 0
+        ? "positive"
+        : "negative";
+  const momIcon =
+    momTone === "positive" ? (
+      <TrendingUp className="h-4 w-4" />
+    ) : momTone === "negative" ? (
+      <TrendingDown className="h-4 w-4" />
+    ) : (
+      <Wallet className="h-4 w-4" />
+    );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-7">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Analitik</h2>
-          <p className="text-sm text-muted-foreground">
-            Tren dan wawasan keuangan pada periode yang dipilih.
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
+            <Sparkles className="h-3.5 w-3.5" /> Cerita di balik angka
+          </p>
+          <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+            Analitik
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Biar grafik yang cerita—kamu tinggal ambil keputusan.
           </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="range">Periode</Label>
-          <Select id="range" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
+          <Select
+            id="range"
+            value={months}
+            onChange={(e) => setMonths(Number(e.target.value))}
+          >
             {RANGES.map((r) => (
               <option key={r.months} value={r.months}>
                 {r.label}
@@ -128,9 +148,15 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-kicker">
+            Arus kas
+          </p>
           <CardTitle>Tren pemasukan & pengeluaran</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Dua aliran, satu gambaran keuangan yang utuh.
+          </p>
         </CardHeader>
         <CardContent>
           <TrendChart data={monthly} />
@@ -138,7 +164,7 @@ export default function AnalyticsPage() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Perbandingan bulanan</CardTitle>
           </CardHeader>
@@ -146,12 +172,15 @@ export default function AnalyticsPage() {
             <BalanceChart data={monthly} />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Kategori pengeluaran terbesar</CardTitle>
             {topCategory ? (
               <p className="text-sm text-muted-foreground">
-                Tertinggi: <span className="font-medium text-foreground">{topCategory.categoryName}</span>{" "}
+                Tertinggi:{" "}
+                <span className="font-medium text-foreground">
+                  {topCategory.categoryName}
+                </span>{" "}
                 sebesar {fmt(topCategory.total)}
               </p>
             ) : null}
@@ -162,7 +191,7 @@ export default function AnalyticsPage() {
         </Card>
       </div>
       {expenseByTag.length > 0 && (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Pengeluaran per tag</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -177,7 +206,9 @@ export default function AnalyticsPage() {
                 return (
                   <div key={tag} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-muted-foreground">{tag}</span>
+                      <span className="font-medium text-muted-foreground">
+                        {tag}
+                      </span>
                       <span>{fmt(total)}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">

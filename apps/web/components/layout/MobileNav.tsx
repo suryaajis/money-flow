@@ -63,7 +63,7 @@ export const MobileNav: React.FC = () => {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl">
+          <div className="glass-surface absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t border-brand-navy/15 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30" />
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Menu lainnya</h2>
@@ -85,14 +85,16 @@ export const MobileNav: React.FC = () => {
                       href={item.href}
                       onClick={() => setMoreOpen(false)}
                       className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-center transition-colors",
+                        "focus-ring flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-center transition-[transform,background-color,border-color] active:scale-[0.98]",
                         active
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                          ? "neo-sticker border-brand-navy/50 bg-brand-lime font-bold text-brand-navy"
+                          : "border-border text-muted-foreground hover:-rotate-1 hover:bg-accent hover:text-foreground",
                       )}
                     >
                       {Icon ? <Icon className="h-5 w-5" /> : null}
-                      <span className="text-xs leading-tight">{item.label}</span>
+                      <span className="text-xs leading-tight">
+                        {item.label}
+                      </span>
                     </Link>
                   </li>
                 );
@@ -105,7 +107,7 @@ export const MobileNav: React.FC = () => {
       {/* Bottom tab bar */}
       <nav
         aria-label="Primary"
-        className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+        className="glass-surface fixed inset-x-2 bottom-2 z-30 rounded-[1.35rem] border border-brand-navy/15 shadow-[0_18px_45px_rgba(15,23,42,.16)] md:hidden"
       >
         <ul className="grid grid-cols-5">
           {primary.map((item) => {
@@ -115,13 +117,19 @@ export const MobileNav: React.FC = () => {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  aria-label={item.label}
+                  title={item.label}
                   className={cn(
-                    "flex min-h-[3.25rem] flex-col items-center justify-center gap-1 px-1 py-1.5 text-xs transition-colors",
-                    active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    "focus-ring relative m-1 flex min-h-[3.25rem] flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-xs transition-[color,background-color,transform] active:scale-95",
+                    active
+                      ? "bg-brand-lime font-semibold text-brand-navy"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   {Icon ? <Icon className="h-5 w-5 shrink-0" /> : null}
-                  <span className="text-[11px] leading-none truncate max-w-full">{item.label}</span>
+                  <span className="max-w-full truncate text-[11px] leading-none">
+                    {item.label}
+                  </span>
                 </Link>
               </li>
             );
@@ -130,10 +138,13 @@ export const MobileNav: React.FC = () => {
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="Menu lainnya"
+              title="Menu lainnya"
               aria-expanded={moreOpen}
               className={cn(
-                "flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 px-1 py-1.5 text-xs transition-colors",
-                secondaryActive || moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                "focus-ring relative m-1 flex min-h-[3.25rem] w-[calc(100%_-_0.5rem)] flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-xs transition-[color,background-color,transform] active:scale-95",
+                secondaryActive || moreOpen
+                  ? "bg-brand-lime font-semibold text-brand-navy"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
               <MoreHorizontal className="h-5 w-5 shrink-0" />

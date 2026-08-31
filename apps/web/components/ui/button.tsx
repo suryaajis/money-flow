@@ -13,12 +13,13 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<Variant, string> = {
   default:
-    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring",
+    "neo-sticker bg-brand-lime text-brand-navy shadow-[4px_4px_0_color-mix(in_srgb,var(--brand-navy)_16%,transparent)] hover:-translate-y-1 hover:-rotate-1 hover:bg-brand-lime/90 hover:shadow-[6px_7px_0_color-mix(in_srgb,var(--brand-navy)_18%,transparent)] focus-visible:ring-ring active:translate-x-0.5 active:translate-y-0.5 active:rotate-0 active:scale-[0.97] active:shadow-[1px_1px_0_color-mix(in_srgb,var(--brand-navy)_18%,transparent)]",
   secondary:
-    "bg-muted text-foreground hover:bg-muted/80 focus-visible:ring-ring",
+    "border border-border/70 bg-muted/80 text-foreground hover:-translate-y-0.5 hover:bg-muted focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
   outline:
-    "border border-border bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring",
-  ghost: "bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring",
+    "border border-border bg-card/65 text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/25 hover:bg-accent focus-visible:ring-ring active:translate-y-0 active:scale-[0.98]",
+  ghost:
+    "bg-transparent text-foreground hover:bg-accent focus-visible:ring-ring active:scale-[0.97]",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-ring",
 };
@@ -33,13 +34,16 @@ const sizeClasses: Record<Size, string> = {
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "md", type = "button", ...props }, ref) => (
+  (
+    { className, variant = "default", size = "md", type = "button", ...props },
+    ref,
+  ) => (
     <button
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium",
-        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "wiggle-on-hover inline-flex items-center justify-center whitespace-nowrap rounded-[1rem] font-bold",
+        "transition-[transform,background-color,border-color,box-shadow,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],

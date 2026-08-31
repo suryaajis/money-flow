@@ -36,16 +36,23 @@ export const RecentTransactions: React.FC = () => {
         const cat = getCategory(tx.categoryId);
         const isIncome = tx.type === "income";
         return (
-          <li key={tx.id} className="flex items-center gap-3 py-3">
+          <li
+            key={tx.id}
+            className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-muted/55"
+          >
             <div
               className={
                 isIncome
-                  ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "flex h-9 w-9 items-center justify-center rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  ? "flex h-10 w-10 items-center justify-center rounded-xl bg-income-soft text-income transition-transform group-hover:-rotate-3 group-hover:scale-105"
+                  : "flex h-10 w-10 items-center justify-center rounded-xl bg-expense-soft text-expense transition-transform group-hover:rotate-3 group-hover:scale-105"
               }
               aria-hidden
             >
-              {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+              {isIncome ? (
+                <ArrowUpRight className="h-4 w-4" />
+              ) : (
+                <ArrowDownLeft className="h-4 w-4" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
@@ -53,14 +60,16 @@ export const RecentTransactions: React.FC = () => {
               </p>
               <div className="flex items-center gap-2 mt-0.5">
                 {cat ? <CategoryBadge category={cat} /> : null}
-                <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(tx.date)}
+                </span>
               </div>
             </div>
             <div
               className={
                 isIncome
-                  ? "text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400"
-                  : "text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400"
+                  ? "text-sm font-semibold tabular-nums text-income"
+                  : "text-sm font-semibold tabular-nums text-expense"
               }
             >
               {fmtSigned(tx.amount, tx.type)}

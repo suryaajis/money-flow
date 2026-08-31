@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import type { MonthlyAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface TrendChartProps {
   data: MonthlyAggregate[];
@@ -22,24 +23,32 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { fmt } = useCurrency();
+  const reducedMotion = useReducedMotion();
 
   if (!mounted) return <div className="h-[320px] w-full" />;
 
   return (
     <div className="h-[320px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <AreaChart
+          data={data}
+          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+        >
           <defs>
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor="var(--income)" stopOpacity={0.42} />
+              <stop offset="100%" stopColor="var(--income)" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="0%" stopColor="var(--expense)" stopOpacity={0.36} />
+              <stop offset="100%" stopColor="var(--expense)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <CartesianGrid
+            strokeDasharray="4 5"
+            stroke="var(--chart-grid)"
+            vertical={false}
+          />
           <XAxis
             dataKey="month"
             stroke="var(--muted-foreground)"
@@ -61,17 +70,37 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
             type="monotone"
             dataKey="income"
             name="Pemasukan"
-            stroke="#10b981"
-            strokeWidth={2}
+            stroke="var(--income)"
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{
+              r: 3,
+              fill: "var(--brand-lime)",
+              stroke: "var(--brand-navy)",
+              strokeWidth: 1.5,
+            }}
+            activeDot={{
+              r: 6,
+              fill: "var(--brand-lime)",
+              stroke: "var(--brand-navy)",
+              strokeWidth: 2,
+            }}
             fill="url(#incomeGradient)"
+            isAnimationActive={!reducedMotion}
+            animationDuration={650}
           />
           <Area
             type="monotone"
             dataKey="expense"
             name="Pengeluaran"
-            stroke="#ef4444"
-            strokeWidth={2}
+            stroke="var(--expense)"
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{ r: 3, fill: "var(--brand-navy)", strokeWidth: 1.5 }}
+            activeDot={{ r: 6, fill: "var(--brand-navy)", strokeWidth: 2 }}
             fill="url(#expenseGradient)"
+            isAnimationActive={!reducedMotion}
+            animationDuration={650}
           />
         </AreaChart>
       </ResponsiveContainer>

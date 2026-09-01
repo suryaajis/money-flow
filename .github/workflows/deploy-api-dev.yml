@@ -37,13 +37,16 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST << 'EOF'
+            set -e
             cd /home/ops/development/money-flow/api
             docker compose pull
             # Run the additive database migration from the newly pulled image
             # before replacing the running API. A migration failure aborts the
-            # deploy while the previous container remains available.
-            docker compose run --rm api npm run dist:migration:run
+            # deploy while the previous container remains available. Disable
+            # interactive stdin so compose run cannot consume the remaining heredoc.
+            docker compose run --rm -T --interactive=false api npm run dist:migration:run
             # Do not remove containers owned by other applications sharing this VPS.
-            docker compose up -d
-            docker compose ps
+            docker compose up -d --force-recreate api
+            docker compose ps api
+            docker compose images api
           EOF

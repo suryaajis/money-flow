@@ -13,9 +13,21 @@ Key features:
 - 🎨 **UI** — light/dark/system theme, IDR/USD currency switch, responsive layout, mobile bottom nav
 - 📱 **PWA** — installable, offline page, service worker caching, app shortcuts
 
-See [`docs/PRD-v1.0.md`](docs/PRD-v1.0.md) (released), [`docs/PRD-v1.1.md`](docs/PRD-v1.1.md) (cinematic theme refresh), [`docs/PRD-v1.2.md`](docs/PRD-v1.2.md), [`docs/PRD-v1.3.md`](docs/PRD-v1.3.md), and [`docs/PRD-v1.4.md`](docs/PRD-v1.4.md) (gap-closure release) for full product requirements.
+Product requirements and roadmap:
 
-📱 **WhatsApp bot** — record transactions from chat/voice, bot commands, debt tracking, proactive notifications. See [`docs/WHATSAPP.md`](docs/WHATSAPP.md) for features and [`docs/WHATSAPP-PRODUCTION.md`](docs/WHATSAPP-PRODUCTION.md) for the hardened production setup.
+- [`docs/PRD-v1.0.md`](docs/PRD-v1.0.md) — core personal finance MVP
+- [`docs/PRD-v1.1.md`](docs/PRD-v1.1.md) — cinematic experience refresh
+- [`docs/PRD-v1.2.md`](docs/PRD-v1.2.md) — planning, recurring, budget, backup, and notifications
+- [`docs/PRD-v1.3.md`](docs/PRD-v1.3.md) — WhatsApp, debt, and shared wallet
+- [`docs/PRD-v1.4.md`](docs/PRD-v1.4.md) — reliability and integration completion
+- [`docs/PRD-v1.5.md`](docs/PRD-v1.5.md) — up to three WhatsApp numbers per user
+- [`docs/PRD-v1.6.md`](docs/PRD-v1.6.md) — accounts, transfers, smart rules, and financial health
+- [`docs/PRD-v1.7.md`](docs/PRD-v1.7.md) — membership and WhatsApp entitlements
+- [`docs/PRD-v2.0.md`](docs/PRD-v2.0.md) — goals, forecast, subscriptions, and net worth
+- [`docs/PRD-v2.1.md`](docs/PRD-v2.1.md) — split bill, PDF reports, and CSV statement import
+- [`docs/PRD-v3.0.md`](docs/PRD-v3.0.md) — bank, marketplace, and QRIS integrations
+
+📱 **WhatsApp bot** — record transactions from chat/voice, bot commands, debt tracking, proactive notifications. See [`docs/WHATSAPP.md`](docs/WHATSAPP.md) for features, [`docs/WHATSAPP-PRODUCTION.md`](docs/WHATSAPP-PRODUCTION.md) for production setup, [`docs/WHATSAPP-RATE-LIMITS.md`](docs/WHATSAPP-RATE-LIMITS.md) for quota/rate limits, and [`docs/WHATSAPP-PRICING-META.md`](docs/WHATSAPP-PRICING-META.md) for Meta/Kirimdev costs.
 
 ## Tech Stack
 

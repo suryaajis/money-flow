@@ -1,5 +1,11 @@
 # WhatsApp Production Setup — MoneyFlow
 
+> Membership quota, distributed rate limit, dan outbound cost guard v1.7
+> dijelaskan di [`WHATSAPP-RATE-LIMITS.md`](./WHATSAPP-RATE-LIMITS.md).
+> Kebijakan pricing Meta dan biaya platform Kirimdev dijelaskan terpisah di
+> [`WHATSAPP-PRICING-META.md`](./WHATSAPP-PRICING-META.md). Rate dan harga wajib
+> diverifikasi ulang sebelum production launch.
+
 Dokumen ini adalah checklist deployment integrasi Meta WhatsApp Cloud API untuk
 MoneyFlow. Balasan terhadap chat pengguna memakai pesan biasa selama customer
 service window 24 jam. Semua pesan yang dimulai sistem memakai template Utility

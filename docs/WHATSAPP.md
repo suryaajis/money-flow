@@ -6,6 +6,12 @@ cara memakainya sebagai pengguna, dan cara men-deploy-nya ke produksi.
 Untuk konfigurasi hardened terbaru, template Meta, signature webhook, linking
 berbasis challenge, dan checklist deploy, lihat [`WHATSAPP-PRODUCTION.md`](./WHATSAPP-PRODUCTION.md).
 
+Untuk membership v1.7, definisi 100 chat Free, anti-abuse limit, dan cost guard,
+lihat [`PRD-v1.7.md`](./PRD-v1.7.md) dan
+[`WHATSAPP-RATE-LIMITS.md`](./WHATSAPP-RATE-LIMITS.md). Referensi biaya Meta dan
+Kirimdev yang terpisah tersedia di
+[`WHATSAPP-PRICING-META.md`](./WHATSAPP-PRICING-META.md).
+
 - **Versi:** v1.3
 - **Stack:** NestJS + TypeORM + PostgreSQL (API), Next.js (web)
 - **Channel:** Meta WhatsApp Cloud API

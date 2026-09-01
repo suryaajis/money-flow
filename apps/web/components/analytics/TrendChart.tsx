@@ -14,6 +14,7 @@ import {
 import type { MonthlyAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { AccessibleChartSummary } from "@/components/charts/AccessibleChartSummary";
 
 interface TrendChartProps {
   data: MonthlyAggregate[];
@@ -28,8 +29,9 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
   if (!mounted) return <div className="h-[320px] w-full" />;
 
   return (
-    <div className="h-[320px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full">
+      <div className="h-[320px]" aria-hidden="true">
+        <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
           margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
@@ -103,7 +105,15 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
             animationDuration={650}
           />
         </AreaChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
+      <AccessibleChartSummary
+        title="Tren pemasukan dan pengeluaran"
+        data={data.map((item) => ({ label: item.month, values: [
+          { name: "Pemasukan", value: fmt(item.income) },
+          { name: "Pengeluaran", value: fmt(item.expense) },
+        ] }))}
+      />
     </div>
   );
 };

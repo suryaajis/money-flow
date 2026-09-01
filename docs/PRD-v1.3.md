@@ -1,17 +1,17 @@
-# Product Requirements Document — Money Flow v3
+# Product Requirements Document — Money Flow v1.3
 
-**Versi:** 3.0  
+**Versi:** 1.3
 **Status:** Planning  
 **Terakhir diperbarui:** Juli 2026  
-**Berdasarkan:** PRD v2 (In Development)
+**Berdasarkan:** PRD v1.2 (In Development)
 
 ---
 
 ## 1. Overview
 
-Money Flow v3 menghadirkan antarmuka pencatatan baru melalui **WhatsApp** — channel yang sudah dibuka pengguna setiap hari. Tidak perlu buka aplikasi, tidak perlu isi form; cukup chat biasa seperti ngobrol dengan teman. AI memproses pesan dan langsung menyimpan transaksi ke database yang sama dengan web dashboard.
+Money Flow v1.3 menghadirkan antarmuka pencatatan baru melalui **WhatsApp** — channel yang sudah dibuka pengguna setiap hari. Tidak perlu buka aplikasi, tidak perlu isi form; cukup chat biasa seperti ngobrol dengan teman. AI memproses pesan dan langsung menyimpan transaksi ke database yang sama dengan web dashboard.
 
-V3 juga menambahkan fitur sosial pertama: **Catat Bersama** untuk pasangan atau keluarga, dan **Utang Piutang** untuk mencatat pinjaman informal.
+v1.3 juga menambahkan fitur sosial pertama: **Catat Bersama** untuk pasangan atau keluarga, dan **Utang Piutang** untuk mencatat pinjaman informal.
 
 ---
 
@@ -26,11 +26,11 @@ V3 juga menambahkan fitur sosial pertama: **Catat Bersama** untuk pasangan atau 
 
 ---
 
-## 3. Target User v3
+## 3. Target User v1.3
 
 | Segmen | Kebutuhan Utama |
 |--------|----------------|
-| **Existing user v1/v2** | Cara catat yang lebih cepat dari web |
+| **Existing user v1/v1.2** | Cara catat yang lebih cepat dari web |
 | **Ibu rumah tangga** | Catat belanja harian tanpa buka aplikasi |
 | **Mahasiswa** | Catat uang jajan spontan via voice note |
 | **UMKM/warung** | Catat pemasukan kasir cepat, share dengan pasangan/rekan |
@@ -38,13 +38,13 @@ V3 juga menambahkan fitur sosial pertama: **Catat Bersama** untuk pasangan atau 
 
 ---
 
-## 4. Fitur v3
+## 4. Fitur v1.3
 
 ---
 
 ### 4.1 WhatsApp Bot — Core Infrastructure
 
-**Latar Belakang:** Fondasi semua fitur v3. Menghubungkan nomor WA pengguna dengan akun Money Flow mereka.
+**Latar Belakang:** Fondasi semua fitur v1.3. Menghubungkan nomor WA pengguna dengan akun Money Flow mereka.
 
 | ID | Fitur | Deskripsi |
 |----|-------|-----------|
@@ -257,7 +257,7 @@ Bot: "✅ Hutang Budi Rp100.000 ditandai lunas"
 
 ---
 
-## 5. Arsitektur Teknis v3
+## 5. Arsitektur Teknis v1.3
 
 ### Stack Tambahan
 
@@ -338,7 +338,7 @@ ALTER TABLE transactions ADD COLUMN recorded_by UUID REFERENCES users(id) ON DEL
 ALTER TABLE transactions ADD COLUMN source VARCHAR(20) DEFAULT 'web';  -- 'web' | 'whatsapp'
 ```
 
-### Endpoint API Baru v3
+### Endpoint API Baru v1.3
 
 | Method | Path | Keterangan |
 |--------|------|------------|
@@ -354,7 +354,7 @@ ALTER TABLE transactions ADD COLUMN source VARCHAR(20) DEFAULT 'web';  -- 'web' 
 | POST | `/shared-wallet/invite` | Kirim undangan ke nomor WA |
 | DELETE | `/shared-wallet/members/:id` | Hapus akses anggota |
 
-### Halaman Web Baru v3
+### Halaman Web Baru v1.3
 
 | Halaman | Route | Deskripsi |
 |---------|-------|-----------|
@@ -382,7 +382,7 @@ ALTER TABLE transactions ADD COLUMN source VARCHAR(20) DEFAULT 'web';  -- 'web' 
 │               │                  │                 │
 │ Cek apakah   │ Download audio   │ Forward ke OCR  │
 │ perintah bot │ → Whisper API    │ (fitur import   │
-│ atau transaksi│ → teks hasil    │ via WA, v3.1)   │
+│ atau transaksi│ → teks hasil    │ via WA, v1.3.1) │
 │               │ → lanjut ke NLP │                 │
 └──────┬────────┴────────┬─────────┘                 │
        ↓ transaksi       ↓ perintah
@@ -413,7 +413,7 @@ ALTER TABLE transactions ADD COLUMN source VARCHAR(20) DEFAULT 'web';  -- 'web' 
 
 ## 8. Monetisasi & Kuota (Opsional untuk masa depan)
 
-> Catatan: Money Flow saat ini gratis. Tabel ini disiapkan jika v3 ingin menerapkan freemium.
+> Catatan: Money Flow saat ini gratis. Tabel ini disiapkan jika v1.3 ingin menerapkan freemium.
 
 | Tier | Harga | Kuota WA/bulan | Shared Wallet |
 |------|-------|----------------|---------------|
@@ -424,20 +424,20 @@ ALTER TABLE transactions ADD COLUMN source VARCHAR(20) DEFAULT 'web';  -- 'web' 
 
 ---
 
-## 9. Out of Scope (v3)
+## 9. Out of Scope (v1.3)
 
 Fitur berikut ditunda ke v4 atau later:
 
 - **Import struk via WA** — Foto struk dikirim ke WA, langsung di-OCR (butuh integrasi dengan modul OCR yang sudah ada)
 - **WhatsApp Pay integration** — Catat otomatis saat bayar via WA Pay
 - **Multi-bahasa bot** — Saat ini hanya Bahasa Indonesia
-- **Bot Telegram / LINE** — Hanya WA untuk v3
+- **Bot Telegram / LINE** — Hanya WA untuk v1.3
 - **Analitik AI proaktif** — "Pengeluaran makanmu naik 40% bulan ini" tanpa user tanya
 - **Group WA** — Bot di group WA untuk pencatatan tim/komunitas
 
 ---
 
-## 10. Dependensi & Prasyarat v3
+## 10. Dependensi & Prasyarat v1.3
 
 | Kebutuhan | Detail | Estimasi Biaya |
 |-----------|--------|----------------|
@@ -464,12 +464,12 @@ Fitur berikut ditunda ke v4 atau later:
 
 ---
 
-## 12. Metrik Keberhasilan v3
+## 12. Metrik Keberhasilan v1.3
 
 | Metrik | Target |
 |--------|--------|
 | % user yang link nomor WA | > 40% dari total user aktif |
 | Transaksi via WA vs web | > 30% transaksi masuk via WA dalam 3 bulan |
 | Akurasi NLP parser | > 90% pesan teks berhasil dicatat tanpa klarifikasi |
-| Retensi D30 (30-hari) | Naik 25% dibanding v2 baseline |
+| Retensi D30 (30-hari) | Naik 25% dibanding v1.2 baseline |
 | Response time bot | < 3 detik untuk teks, < 8 detik untuk voice note |

@@ -27,10 +27,7 @@ export class BackupController {
   import(
     @Request() req: AuthRequest,
     @Body()
-    body: {
-      data: { transactions: any[]; categories: any[] };
-      mode: 'merge' | 'replace';
-    },
+    body: { data: unknown; mode: 'merge' | 'replace' },
   ) {
     return this.backupService.import(req.user.id, body.data, body.mode);
   }

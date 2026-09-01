@@ -8,6 +8,6 @@ try {
 
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-} catch (_) {
+} catch {
   // The client ThemeProvider applies the fallback after hydration.
 }

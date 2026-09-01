@@ -1,12 +1,12 @@
 # Money Flow — Integrasi WhatsApp Bot
 
-Dokumentasi lengkap fitur WhatsApp Money Flow (PRD v3): apa saja fungsinya,
+Dokumentasi lengkap fitur WhatsApp Money Flow (PRD v1.3): apa saja fungsinya,
 cara memakainya sebagai pengguna, dan cara men-deploy-nya ke produksi.
 
 Untuk konfigurasi hardened terbaru, template Meta, signature webhook, linking
 berbasis challenge, dan checklist deploy, lihat [`WHATSAPP-PRODUCTION.md`](./WHATSAPP-PRODUCTION.md).
 
-- **Versi:** v3
+- **Versi:** v1.3
 - **Stack:** NestJS + TypeORM + PostgreSQL (API), Next.js (web)
 - **Channel:** Meta WhatsApp Cloud API
 - **AI:** Google Gemini 1.5 Flash (NLP teks) + Groq Whisper (voice note)
@@ -342,5 +342,11 @@ Endpoint internal (butuh JWT kecuali webhook & export):
 
 ## Referensi PRD
 
-Fitur ini mengimplementasikan **PRD v3** — lihat [`docs/PRD-v3.md`](./PRD-v3.md):
+Fitur ini mengimplementasikan **PRD v1.3** — lihat [`docs/PRD-v1.3.md`](./PRD-v1.3.md):
 WA-01..07, NLP-01..07, VN-01..05, CMD-01..09, NOT-WA-01/02/04, DEBT-01..06, SHARE-01..06.
+# MoneyFlow WhatsApp
+
+> v1.4 menambahkan `AI_PROVIDER=claude|gemini|auto`, export `ekspor xlsx`,
+> reminder input harian, undangan shared-wallet terverifikasi, dan pencatatan ke
+> wallet bersama dengan format `dompet Nama: kopi 15rb`. Lihat
+> [`PRD-v1.4.md`](./PRD-v1.4.md) dan `.env.example` API untuk variabel lengkap.

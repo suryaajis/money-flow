@@ -12,6 +12,7 @@ import { WaLinkChallenge } from '../whatsapp/wa-link-challenge.entity';
 import { WaWebhookEvent } from '../whatsapp/wa-webhook-event.entity';
 import { WaOutboundMessage } from '../whatsapp/wa-outbound-message.entity';
 import { WaNotificationDelivery } from '../whatsapp/wa-notification-delivery.entity';
+import { WebPushSubscription } from '../push/web-push-subscription.entity';
 
 export const entities = [
   User,
@@ -27,6 +28,7 @@ export const entities = [
   WaWebhookEvent,
   WaOutboundMessage,
   WaNotificationDelivery,
+  WebPushSubscription,
 ];
 
 /**

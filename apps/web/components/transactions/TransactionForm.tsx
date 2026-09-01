@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/hooks/useCategories";
-import { useUIStore } from "@/store/uiStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { CURRENCIES } from "@/lib/constants";
 import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
@@ -49,6 +49,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? "");
   const [date, setDate] = useState<string>(initial?.date ?? todayISO());
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
+  const currency: CurrencyCode = "IDR";
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -129,13 +130,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       categoryId: selectedCategoryId,
       date,
       notes: notes.trim() || undefined,
-      currency: "IDR",
+      currency,
       tags: tags.length > 0 ? tags : undefined,
     });
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-4" onSubmit={handleSubmit} noValidate>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
           <Label>Type</Label>
@@ -178,14 +179,33 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
 
         <div className="space-y-1.5">
           <Label htmlFor="tx-date">Date</Label>
-          <Input
+          <DatePicker
             id="tx-date"
-            type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onValueChange={setDate}
             max={todayISO()}
+            required
           />
           {errors.date ? <p className="text-xs text-destructive">{errors.date}</p> : null}
+        </div>
+
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="tx-currency">Transaction currency</Label>
+          <Select
+            id="tx-currency"
+            value={currency}
+            onValueChange={() => {}}
+            options={[
+              {
+                value: CURRENCIES.IDR.code,
+                label: `${CURRENCIES.IDR.code} (${CURRENCIES.IDR.symbol})`,
+              },
+            ]}
+            disabled
+          />
+          <p className="text-xs text-muted-foreground">
+            Untuk saat ini pencatatan transaksi menggunakan Rupiah Indonesia.
+          </p>
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">
@@ -193,18 +213,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
           <Select
             id="tx-category"
             value={selectedCategoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            {validCategories.length === 0 ? (
-              <option value="">No categories available</option>
-            ) : (
-              validCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))
-            )}
-          </Select>
+            onValueChange={setCategoryId}
+            options={
+              validCategories.length === 0
+                ? [
+                    {
+                      value: "",
+                      label: "No categories available",
+                      disabled: true,
+                    },
+                  ]
+                : validCategories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  }))
+            }
+          />
           {errors.categoryId ? (
             <p className="text-xs text-destructive">{errors.categoryId}</p>
           ) : null}

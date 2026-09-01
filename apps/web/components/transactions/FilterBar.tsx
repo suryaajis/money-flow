@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useCategories } from "@/hooks/useCategories";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TransactionType } from "@/lib/types";
@@ -36,37 +37,46 @@ export const FilterBar: React.FC = () => {
         className="lg:col-span-2"
         aria-label="Type"
         value={filters.type ?? "all"}
-        onChange={(e) => setFilters({ type: e.target.value as TransactionType | "all" })}
-      >
-        <option value="all">All types</option>
-        <option value="income">Income</option>
-        <option value="expense">Expense</option>
-      </Select>
+        onValueChange={(type) =>
+          setFilters({ type: type as TransactionType | "all" })
+        }
+        options={[
+          { value: "all", label: "All types" },
+          { value: "income", label: "Income" },
+          { value: "expense", label: "Expense" },
+        ]}
+      />
       <Select
         className="lg:col-span-2"
         aria-label="Category"
         value={filters.categoryId ?? ""}
-        onChange={(e) => setFilters({ categoryId: e.target.value || undefined })}
-      >
-        <option value="">All categories</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </Select>
+        onValueChange={(categoryId) =>
+          setFilters({ categoryId: categoryId || undefined })
+        }
+        options={[
+          { value: "", label: "All categories" },
+          ...categories.map((category) => ({
+            value: category.id,
+            label: category.name,
+          })),
+        ]}
+      />
       <div className="grid grid-cols-2 gap-2 lg:col-span-4">
-        <Input
+        <DatePicker
           aria-label="From date"
-          type="date"
           value={filters.dateFrom ?? ""}
-          onChange={(e) => setFilters({ dateFrom: e.target.value || undefined })}
+          onValueChange={(dateFrom) =>
+            setFilters({ dateFrom: dateFrom || undefined })
+          }
+          max={filters.dateTo}
         />
-        <Input
+        <DatePicker
           aria-label="To date"
-          type="date"
           value={filters.dateTo ?? ""}
-          onChange={(e) => setFilters({ dateTo: e.target.value || undefined })}
+          onValueChange={(dateTo) =>
+            setFilters({ dateTo: dateTo || undefined })
+          }
+          min={filters.dateFrom}
         />
       </div>
       <Input

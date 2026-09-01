@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { useRecurringStore } from "@/store/recurringStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Modal } from "@/components/shared/Modal";
 import type { ApiRecurring, CreateRecurringInput } from "@/lib/api";
 import { cn, parseCurrencyInput } from "@/lib/utils";
 
@@ -96,7 +98,6 @@ export function RecurringModal({ open, onClose, editing }: Props) {
       startDate: form.startDate,
       endDate: form.endDate || null,
       notes: form.notes || null,
-      isActive: true,
     };
 
     setSaving(true);
@@ -120,27 +121,12 @@ export function RecurringModal({ open, onClose, editing }: Props) {
   const labelCls = "block text-sm font-medium text-foreground mb-1";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      {/* Dialog */}
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card shadow-xl">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h3 className="text-base font-semibold">
-            {editing ? "Edit Recurring" : "New Recurring Transaction"}
-          </h3>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-accent"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? "Edit Recurring" : "New Recurring Transaction"}
+    >
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Type */}
           <div>
             <label className={labelCls}>Type</label>
@@ -178,7 +164,6 @@ export function RecurringModal({ open, onClose, editing }: Props) {
               value={form.amount}
               onChange={(val) => setForm((f) => ({ ...f, amount: val }))}
               className={inputCls}
-              required
             />
           </div>
 
@@ -187,21 +172,20 @@ export function RecurringModal({ open, onClose, editing }: Props) {
             <label htmlFor="category" className={labelCls}>
               Category
             </label>
-            <select
+            <Select
               id="category"
               value={form.categoryId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, categoryId: e.target.value }))
+              onValueChange={(categoryId) =>
+                setForm((f) => ({ ...f, categoryId }))
               }
-              className={inputCls}
-            >
-              <option value="">— None —</option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "— None —" },
+                ...filteredCategories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                })),
+              ]}
+            />
           </div>
 
           {/* Frequency */}
@@ -209,23 +193,20 @@ export function RecurringModal({ open, onClose, editing }: Props) {
             <label htmlFor="frequency" className={labelCls}>
               Frequency
             </label>
-            <select
+            <Select
               id="frequency"
               value={form.frequency}
-              onChange={(e) =>
+              onValueChange={(frequency) =>
                 setForm((f) => ({
                   ...f,
-                  frequency: e.target.value as FormState["frequency"],
+                  frequency: frequency as FormState["frequency"],
                 }))
               }
-              className={inputCls}
-            >
-              {FREQUENCIES.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+              options={FREQUENCIES.map((frequency) => ({
+                value: frequency.value,
+                label: frequency.label,
+              }))}
+            />
           </div>
 
           {/* Start / End Dates */}
@@ -234,14 +215,12 @@ export function RecurringModal({ open, onClose, editing }: Props) {
               <label htmlFor="startDate" className={labelCls}>
                 Start Date
               </label>
-              <input
+              <DatePicker
                 id="startDate"
-                type="date"
                 value={form.startDate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, startDate: e.target.value }))
+                onValueChange={(startDate) =>
+                  setForm((f) => ({ ...f, startDate }))
                 }
-                className={inputCls}
                 required
               />
             </div>
@@ -249,15 +228,14 @@ export function RecurringModal({ open, onClose, editing }: Props) {
               <label htmlFor="endDate" className={labelCls}>
                 End Date <span className="text-muted-foreground">(opt.)</span>
               </label>
-              <input
+              <DatePicker
                 id="endDate"
-                type="date"
                 value={form.endDate}
                 min={form.startDate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, endDate: e.target.value }))
+                onValueChange={(endDate) =>
+                  setForm((f) => ({ ...f, endDate }))
                 }
-                className={inputCls}
+                placeholder="Opsional"
               />
             </div>
           </div>
@@ -300,7 +278,6 @@ export function RecurringModal({ open, onClose, editing }: Props) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

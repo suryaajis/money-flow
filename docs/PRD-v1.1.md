@@ -5,7 +5,7 @@
 **Versi:** 1.1  
 **Status:** Proposed  
 **Terakhir diperbarui:** Agustus 2026  
-**Berdasarkan:** Money Flow v1–v3  
+**Berdasarkan:** Money Flow v1, v1.2, dan v1.3
 **Cakupan:** Frontend web/PWA, design system, visualisasi data, dan motion
 
 ---

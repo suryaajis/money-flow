@@ -1,6 +1,13 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep Turbopack scoped to this monorepo. A stray lockfile in the parent
+  // repository directory otherwise makes Next.js watch every sibling project.
+  turbopack: {
+    root: path.resolve(__dirname, "../.."),
+  },
+
   // PWA-related response headers.
   // Critically: `/sw.js` MUST NOT be HTTP-cached, otherwise users would get
   // stuck on a stale service worker. The manifest is small and changes

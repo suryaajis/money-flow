@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import {
   ConflictException,
   Injectable,
@@ -19,6 +20,9 @@ import { WaNotifierService } from './wa-notifier.service';
 import { MessageParserService } from './message-parser.service';
 import { VoiceService } from './voice.service';
 import { WaLinkChallenge } from './wa-link-challenge.entity';
+import { WalletMember } from '../shared-wallet/wallet-member.entity';
+import { WaProactiveNotificationService } from './wa-proactive-notification.service';
+import { WA_TEMPLATE_DEFAULT_NAMES } from './wa-template-definitions';
 
 @Injectable()
 export class WhatsappService {
@@ -33,11 +37,14 @@ export class WhatsappService {
     @InjectRepository(Debt) private debtRepo: Repository<Debt>,
     @InjectRepository(WaLinkChallenge)
     private linkChallengeRepo: Repository<WaLinkChallenge>,
+    @InjectRepository(WalletMember)
+    private walletMemberRepo: Repository<WalletMember>,
     private notifier: WaNotifierService,
     private parser: MessageParserService,
     private voice: VoiceService,
     private jwt: JwtService,
     private config: ConfigService,
+    private proactive: WaProactiveNotificationService,
   ) {}
 
   async getLinkStatus(userId: string) {
@@ -138,8 +145,8 @@ export class WhatsappService {
       await this.handleBudget(user);
     } else if (['utang', 'hutang', 'piutang'].includes(trimmed)) {
       await this.handleUtangList(user);
-    } else if (['ekspor', 'export', 'unduh'].includes(trimmed)) {
-      await this.handleEkspor(user);
+    } else if (/^(ekspor|export|unduh)(\s+(csv|xlsx))?$/.test(trimmed)) {
+      await this.handleEkspor(user, trimmed.endsWith('xlsx') ? 'xlsx' : 'csv');
     } else if (['bantuan', 'help', '?'].includes(trimmed)) {
       await this.handleBantuan(from);
     } else if (this.isDebtRecord(trimmed)) {
@@ -147,7 +154,14 @@ export class WhatsappService {
     } else if (this.isDebtSettle(trimmed)) {
       await this.handleDebtSettle(user, session, text);
     } else {
-      await this.handleTransactionInput(user, session, text);
+      const target = await this.resolveSharedWalletTarget(user, text);
+      if (target)
+        await this.handleTransactionInput(
+          user,
+          session,
+          target.text,
+          target.owner,
+        );
     }
   }
 
@@ -220,6 +234,7 @@ export class WhatsappService {
   }
 
   async handleButtonReply(from: string, replyId: string, _replyTitle: string) {
+    void _replyTitle;
     const user = await this.userRepo.findOne({ where: { waPhone: from } });
     if (!user) return;
     const session = await this.getOrCreateSession(from);
@@ -256,6 +271,8 @@ export class WhatsappService {
       }
     } else if (session.state === 'awaiting_voice_confirm') {
       await this.resolveVoiceConfirm(user, session, replyId === 'voice_save');
+    } else if (session.state === 'awaiting_text_confirm') {
+      await this.resolveTextConfirm(user, session, replyId === 'text_save');
     } else if (session.state === 'awaiting_debt_settle') {
       if (replyId.startsWith('settle_')) {
         const debtId = replyId.replace('settle_', '');
@@ -321,9 +338,12 @@ export class WhatsappService {
     user: User,
     session: WaSession,
     text: string,
+    targetOwner: User | null = null,
   ) {
     const from = user.waPhone!;
-    const categories = await this.catRepo.find({ where: { userId: user.id } });
+    const categories = await this.catRepo.find({
+      where: { userId: targetOwner?.id ?? user.id },
+    });
     const result = await this.parser.parse(text, categories, new Date());
 
     if (!result || result.transactions.length === 0) {
@@ -332,6 +352,42 @@ export class WhatsappService {
         '❓ Maaf, tidak bisa memahami pesanmu.\n\n' +
           'Coba format: "kopi 15rb" atau "gajian 5jt"\n' +
           'Ketik *bantuan* untuk melihat semua perintah.',
+      );
+      return;
+    }
+
+    for (const tx of result.transactions)
+      (tx as any).targetOwnerId = targetOwner?.id ?? null;
+    const lowConfidence = result.transactions.some(
+      (tx) =>
+        tx.confidence < 0.8 ||
+        tx.ambiguousFields.includes('amount') ||
+        tx.ambiguousFields.includes('type'),
+    );
+    if (lowConfidence) {
+      const fmt = (amount: number) =>
+        new Intl.NumberFormat('id-ID').format(amount);
+      const preview = result.transactions
+        .map((tx) => {
+          const sign = tx.type === 'income' ? '+' : '-';
+          const category =
+            categories.find((item) => item.id === tx.categoryId)?.name ??
+            'tanpa kategori';
+          return `${sign}Rp${fmt(tx.amount)} â€¢ ${category}${tx.notes ? ` â€¢ ${tx.notes}` : ''}`;
+        })
+        .join('\n');
+      await this.sessionRepo.update(session.id, {
+        state: 'awaiting_text_confirm',
+        context: { transactions: result.transactions } as any,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+      await this.notifier.sendTextWithButtons(
+        from,
+        `Aku belum sepenuhnya yakin:\n${preview}\n\nData ini sudah benar?`,
+        [
+          { id: 'text_save', title: 'Ya, simpan' },
+          { id: 'text_cancel', title: 'Batal' },
+        ],
       );
       return;
     }
@@ -370,14 +426,17 @@ export class WhatsappService {
   }
 
   private async saveTransaction(user: User, tx: any, from: string) {
+    const targetOwner = tx.targetOwnerId
+      ? await this.userRepo.findOne({ where: { id: tx.targetOwnerId } })
+      : null;
     const saved = this.txRepo.create({
       amount: tx.amount,
       type: tx.type,
       categoryId: tx.categoryId,
       date: tx.date || new Date().toISOString().split('T')[0],
       notes: tx.notes || undefined,
-      userId: user.id,
-      source: 'whatsapp',
+      userId: targetOwner?.id ?? user.id,
+      source: targetOwner ? 'shared' : 'whatsapp',
       recordedBy: user.id,
     });
     await this.txRepo.save(saved);
@@ -389,6 +448,66 @@ export class WhatsappService {
       from,
       `✅ Tercatat: ${sign}Rp${amount} ${cat?.name ?? ''}${tx.notes ? ' • ' + tx.notes : ''}`,
     );
+    if (targetOwner?.waPhone && targetOwner.id !== user.id) {
+      await this.proactive.sendOncePerDay({
+        userId: targetOwner.id,
+        to: targetOwner.waPhone,
+        kind: `shared_wallet_activity:${saved.id}`,
+        templateName: this.config.get<string>(
+          'WA_TEMPLATE_SHARED_WALLET',
+          WA_TEMPLATE_DEFAULT_NAMES.sharedWallet,
+        ),
+        bodyParameters: [
+          user.name,
+          `${sign}Rp${amount}`,
+          cat?.name ?? 'Tanpa kategori',
+          tx.notes || '-',
+        ],
+      });
+    }
+  }
+
+  private async resolveSharedWalletTarget(
+    user: User,
+    text: string,
+  ): Promise<{ text: string; owner: User | null } | null> {
+    const match = text.match(/^dompet\s+([^:]{1,60}):\s*(.+)$/i);
+    if (!match) return { text, owner: null };
+    const memberships = await this.walletMemberRepo.find({
+      where: { memberUserId: user.id },
+      relations: { owner: true },
+    });
+    const wanted = match[1].trim().toLowerCase();
+    const membership = memberships.find(
+      (item) =>
+        !!item.acceptedAt && item.owner?.name.toLowerCase().includes(wanted),
+    );
+    if (!membership?.owner) {
+      await this.notifier.sendText(
+        user.waPhone!,
+        `Dompet "${match[1].trim()}" tidak ditemukan atau belum diterima.`,
+      );
+      return null;
+    }
+    return { text: match[2].trim(), owner: membership.owner };
+  }
+
+  private async resolveTextConfirm(
+    user: User,
+    session: WaSession,
+    save: boolean,
+  ) {
+    const transactions: any[] = session.context?.transactions ?? [];
+    await this.sessionRepo.update(session.id, { state: 'idle', context: null });
+    if (!save) {
+      await this.notifier.sendText(
+        user.waPhone!,
+        'Dibatalkan. Kirim ulang dengan nominal, tipe, dan kategori yang lebih jelas.',
+      );
+      return;
+    }
+    for (const tx of transactions)
+      await this.saveTransaction(user, tx, user.waPhone!);
   }
 
   private async handleSaldo(user: User) {
@@ -564,6 +683,7 @@ export class WhatsappService {
 
     const spentByCat = new Map<string, number>();
     for (const tx of txs) {
+      if (!tx.categoryId) continue;
       spentByCat.set(
         tx.categoryId,
         (spentByCat.get(tx.categoryId) ?? 0) + Number(tx.amount),
@@ -777,7 +897,7 @@ export class WhatsappService {
   }
 
   // ── CMD-09: generate a 1-hour signed CSV export link ────────────────────────
-  private async handleEkspor(user: User) {
+  private async handleEkspor(user: User, format: 'csv' | 'xlsx') {
     const from = user.waPhone!;
     const token = this.jwt.sign(
       { sub: user.id, purpose: 'wa-export' },
@@ -786,11 +906,11 @@ export class WhatsappService {
     const baseUrl = this.config
       .get<string>('PUBLIC_API_URL', 'http://localhost:3001/api')
       .replace(/\/$/, '');
-    const url = `${baseUrl}/export/transactions?token=${token}`;
+    const url = `${baseUrl}/export/transactions?token=${token}&format=${format}`;
     await this.notifier.sendText(
       from,
       '📤 *Ekspor transaksi bulan ini*\n\n' +
-        `Unduh CSV di sini (berlaku 1 jam):\n${url}`,
+        `Unduh ${format.toUpperCase()} di sini (berlaku 1 jam):\n${url}`,
     );
   }
 
@@ -828,7 +948,12 @@ export class WhatsappService {
     const expired = new Date() > session.expiresAt;
 
     // VN-05: allow confirming/cancelling a voice note by typing (not just buttons)
-    if (!expired && session.state === 'awaiting_voice_confirm') {
+    if (
+      !expired &&
+      ['awaiting_voice_confirm', 'awaiting_text_confirm'].includes(
+        session.state,
+      )
+    ) {
       const t = text.trim().toLowerCase();
       const yes = [
         'ya',
@@ -851,7 +976,9 @@ export class WhatsappService {
         'n',
       ].includes(t);
       if (yes || no) {
-        await this.resolveVoiceConfirm(user, session, yes);
+        if (session.state === 'awaiting_voice_confirm')
+          await this.resolveVoiceConfirm(user, session, yes);
+        else await this.resolveTextConfirm(user, session, yes);
         return;
       }
       // Any other text → discard the pending voice note and treat as a fresh message

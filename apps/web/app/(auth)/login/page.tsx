@@ -40,7 +40,7 @@ export default function LoginPage() {
         <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-primary lg:block">
           Selamat datang kembali
         </p>
-        <h1 className="text-2xl font-bold tracking-[-0.04em] sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
           Masuk ke MoneyFlow
         </h1>
         <p className="text-center text-sm text-muted-foreground lg:text-left">

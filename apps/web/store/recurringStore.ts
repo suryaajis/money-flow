@@ -22,7 +22,7 @@ interface RecurringState {
   clearAll: () => void;
 }
 
-export const useRecurringStore = create<RecurringState>()((set, get) => ({
+export const useRecurringStore = create<RecurringState>()((set) => ({
   recurrings: [],
   loading: false,
   hasLoaded: false,

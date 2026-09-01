@@ -20,7 +20,8 @@ export function useCategories() {
   }, [categories]);
 
   const getCategory = useCallback(
-    (id: string): Category | undefined => byId.get(id),
+    (id: string | null | undefined): Category | undefined =>
+      id ? byId.get(id) : undefined,
     [byId],
   );
 

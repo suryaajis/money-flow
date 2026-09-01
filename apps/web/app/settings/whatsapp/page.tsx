@@ -187,7 +187,7 @@ export default function WhatsAppSettingsPage() {
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">
             <Sparkles className="h-3.5 w-3.5" /> Chat jadi catatan
           </p>
-          <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
             WhatsApp Bot
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

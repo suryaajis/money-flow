@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  HandCoins,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  CircleDollarSign,
+  CreditCard,
   Plus,
   CheckCircle2,
   Clock,
@@ -12,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { debtsApi, type ApiDebt, type CreateDebtInput } from "@/lib/api";
 import { parseCurrencyInput } from "@/lib/utils";
 
@@ -24,6 +29,36 @@ const fmt = (n: number) =>
 
 const isOverdue = (debt: ApiDebt) =>
   !debt.settledAt && debt.dueDate && new Date(debt.dueDate) < new Date();
+
+function DebtDirectionMark({
+  direction,
+  compact = false,
+}: {
+  direction: "owed_to_me" | "i_owe";
+  compact?: boolean;
+}) {
+  const incoming = direction === "owed_to_me";
+  const MainIcon = incoming ? CircleDollarSign : CreditCard;
+  const ArrowIcon = incoming ? ArrowDownLeft : ArrowUpRight;
+
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center rounded-xl border ${
+        compact ? "h-7 w-7" : "h-9 w-9"
+      } ${
+        incoming
+          ? "border-emerald-500/30 bg-emerald-500/12 text-emerald-600 dark:text-emerald-300"
+          : "border-rose-500/30 bg-rose-500/12 text-rose-600 dark:text-rose-300"
+      }`}
+      aria-hidden="true"
+    >
+      <MainIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+      <span className="absolute -bottom-1 -right-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-card ring-1 ring-border">
+        <ArrowIcon className="h-2.5 w-2.5" />
+      </span>
+    </span>
+  );
+}
 
 function DebtForm({
   onSave,
@@ -77,9 +112,17 @@ function DebtForm({
                 : "border-border text-muted-foreground"
             }`}
           >
-            {d === "owed_to_me"
-              ? "💰 Piutang (Mereka Hutang)"
-              : "💸 Hutang (Aku Hutang)"}
+            <span className="flex items-center justify-center gap-2">
+              <DebtDirectionMark direction={d} />
+              <span className="text-left leading-tight">
+                <span className="block font-semibold">
+                  {d === "owed_to_me" ? "Piutang" : "Hutang"}
+                </span>
+                <span className="block text-[11px] font-normal opacity-70">
+                  {d === "owed_to_me" ? "Mereka hutang" : "Aku hutang"}
+                </span>
+              </span>
+            </span>
           </button>
         ))}
       </div>
@@ -110,11 +153,10 @@ function DebtForm({
           <label className="block text-sm font-medium mb-1">
             Jatuh Tempo (opsional)
           </label>
-          <input
-            type="date"
+          <DatePicker
             value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            onValueChange={setDueDate}
+            placeholder="Opsional"
           />
         </div>
         <div>
@@ -171,9 +213,10 @@ function DebtCard({
         <div>
           <div className="flex items-center gap-2">
             <span
-              className={`text-sm font-medium ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+              className={`inline-flex items-center gap-2 text-sm font-medium ${isPiutang ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
             >
-              {isPiutang ? "💰 Piutang" : "💸 Hutang"}
+              <DebtDirectionMark direction={debt.direction} compact />
+              {isPiutang ? "Piutang" : "Hutang"}
             </span>
             {debt.settledAt && (
               <span className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 rounded-full px-2 py-0.5">
@@ -305,14 +348,17 @@ export default function DebtsPage() {
     <div className="mx-auto max-w-3xl space-y-6 py-2 md:py-4">
       <div className="flex items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
-            <HandCoins className="h-5 w-5" />
+          <div className="neo-sticker relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-lime text-brand-navy shadow-sm">
+            <CircleDollarSign className="h-5 w-5" />
+            <span className="absolute -bottom-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-navy text-brand-lime ring-2 ring-background">
+              <ArrowLeftRight className="h-3 w-3" />
+            </span>
           </div>
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
               <Sparkles className="h-3.5 w-3.5" /> Janji yang tetap tercatat
             </p>
-            <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
               Hutang Piutang
             </h1>
             <p className="truncate text-sm text-muted-foreground">
@@ -393,7 +439,10 @@ export default function DebtsPage() {
         <div className="text-center py-8 text-destructive text-sm">{error}</div>
       ) : displayed.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <HandCoins className="h-10 w-10 mx-auto mb-2 opacity-30" />
+          <span className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 text-primary">
+            <CircleDollarSign className="h-5 w-5" />
+            <ArrowLeftRight className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card p-1 ring-1 ring-border" />
+          </span>
           <p className="text-sm">
             {tab === "active"
               ? "Tidak ada hutang/piutang aktif"

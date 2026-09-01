@@ -10,6 +10,8 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
 import { NotificationScheduler } from "@/components/layout/NotificationScheduler";
+import { DataBootstrap } from "@/components/layout/DataBootstrap";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useTransactionStore } from "@/store/transactionStore";
@@ -118,6 +120,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
         <FloatingAddButton />
         <InstallPrompt />
         <NotificationScheduler />
+        <DataBootstrap />
+        <OnboardingTour />
       </div>
     </ThemeProvider>
   );

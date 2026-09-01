@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
+import { NumericTransition } from "@/components/motion/NumericTransition";
 
 type Tone = "neutral" | "income" | "expense";
 
@@ -62,7 +63,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                 tone === "expense" ? "text-white" : "text-brand-navy",
               )}
             >
-              {fmt(amount)}
+              <NumericTransition value={amount} format={fmt} />
             </p>
             {hint ? (
               <p

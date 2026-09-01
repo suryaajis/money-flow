@@ -18,6 +18,8 @@ interface AnalyticsOptions {
   months?: number;
 }
 
+const UNKNOWN_CATEGORY_ID = 'unknown';
+
 export function useAnalytics(opts: AnalyticsOptions = {}) {
   const { transactions: all } = useTransactions();
   const { byId } = useCategories();
@@ -66,7 +68,8 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
     let grand = 0;
     for (const tx of source) {
       if (tx.type !== "expense") continue;
-      totals.set(tx.categoryId, (totals.get(tx.categoryId) ?? 0) + tx.amount);
+      const categoryId = tx.categoryId ?? UNKNOWN_CATEGORY_ID;
+      totals.set(categoryId, (totals.get(categoryId) ?? 0) + tx.amount);
       grand += tx.amount;
     }
     const out: CategoryAggregate[] = [];
@@ -88,7 +91,8 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
     let grand = 0;
     for (const tx of source) {
       if (tx.type !== "income") continue;
-      totals.set(tx.categoryId, (totals.get(tx.categoryId) ?? 0) + tx.amount);
+      const categoryId = tx.categoryId ?? UNKNOWN_CATEGORY_ID;
+      totals.set(categoryId, (totals.get(categoryId) ?? 0) + tx.amount);
       grand += tx.amount;
     }
     const out: CategoryAggregate[] = [];

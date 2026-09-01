@@ -7,6 +7,8 @@ export interface ParsedTransaction {
   categoryId: string | null;
   date: string;
   notes: string | null;
+  confidence: number;
+  ambiguousFields: string[];
 }
 
 export interface ParseResult {
@@ -37,77 +39,206 @@ export class TemplateParserService {
     {
       type: 'expense',
       keywords: [
-        'makan', 'makanan', 'kopi', 'ngopi', 'nasi', 'soto', 'bakso', 'mie', 'pizza',
-        'ayam', 'snack', 'jajan', 'minum', 'minuman', 'warung', 'resto', 'cafe', 'gofood',
-        'grabfood', 'sarapan', 'siang', 'malam', 'brunch', 'kue', 'roti', 'es',
+        'makan',
+        'makanan',
+        'kopi',
+        'ngopi',
+        'nasi',
+        'soto',
+        'bakso',
+        'mie',
+        'pizza',
+        'ayam',
+        'snack',
+        'jajan',
+        'minum',
+        'minuman',
+        'warung',
+        'resto',
+        'cafe',
+        'gofood',
+        'grabfood',
+        'sarapan',
+        'siang',
+        'malam',
+        'brunch',
+        'kue',
+        'roti',
+        'es',
       ],
       catAliases: ['makan', 'food', 'kuliner', 'jajan'],
     },
     {
       type: 'expense',
       keywords: [
-        'bensin', 'bbm', 'pertalite', 'pertamax', 'solar', 'grab', 'gojek', 'ojek', 'ojol',
-        'taxi', 'taksi', 'parkir', 'tol', 'bus', 'kereta', 'krl', 'mrt', 'angkot', 'travel',
-        'tiket', 'pesawat', 'transport', 'transportasi',
+        'bensin',
+        'bbm',
+        'pertalite',
+        'pertamax',
+        'solar',
+        'grab',
+        'gojek',
+        'ojek',
+        'ojol',
+        'taxi',
+        'taksi',
+        'parkir',
+        'tol',
+        'bus',
+        'kereta',
+        'krl',
+        'mrt',
+        'angkot',
+        'travel',
+        'tiket',
+        'pesawat',
+        'transport',
+        'transportasi',
       ],
       catAliases: ['transport', 'transportasi', 'kendaraan'],
     },
     {
       type: 'expense',
       keywords: [
-        'beli', 'belanja', 'baju', 'celana', 'sepatu', 'sandal', 'tas', 'tokped', 'tokopedia',
-        'shopee', 'lazada', 'mall', 'toko', 'skincare', 'kosmetik', 'elektronik', 'gadget',
+        'beli',
+        'belanja',
+        'baju',
+        'celana',
+        'sepatu',
+        'sandal',
+        'tas',
+        'tokped',
+        'tokopedia',
+        'shopee',
+        'lazada',
+        'mall',
+        'toko',
+        'skincare',
+        'kosmetik',
+        'elektronik',
+        'gadget',
       ],
       catAliases: ['belanja', 'shopping', 'shop'],
     },
     {
       type: 'expense',
       keywords: [
-        'listrik', 'air', 'pdam', 'internet', 'wifi', 'indihome', 'telpon', 'telepon',
-        'pulsa', 'paket', 'kuota', 'token', 'cicilan', 'kredit', 'angsuran', 'iuran',
-        'tagihan', 'sewa', 'kontrakan', 'kos', 'pajak', 'bpjs', 'asuransi',
+        'listrik',
+        'air',
+        'pdam',
+        'internet',
+        'wifi',
+        'indihome',
+        'telpon',
+        'telepon',
+        'pulsa',
+        'paket',
+        'kuota',
+        'token',
+        'cicilan',
+        'kredit',
+        'angsuran',
+        'iuran',
+        'tagihan',
+        'sewa',
+        'kontrakan',
+        'kos',
+        'pajak',
+        'bpjs',
+        'asuransi',
       ],
       catAliases: ['tagihan', 'bills', 'bill', 'utilitas'],
     },
     {
       type: 'expense',
       keywords: [
-        'nonton', 'bioskop', 'film', 'game', 'games', 'netflix', 'spotify', 'youtube',
-        'disney', 'konser', 'karaoke', 'liburan', 'wisata', 'hiburan', 'main',
+        'nonton',
+        'bioskop',
+        'film',
+        'game',
+        'games',
+        'netflix',
+        'spotify',
+        'youtube',
+        'disney',
+        'konser',
+        'karaoke',
+        'liburan',
+        'wisata',
+        'hiburan',
+        'main',
       ],
       catAliases: ['hiburan', 'entertainment', 'fun'],
     },
     {
       type: 'expense',
       keywords: [
-        'dokter', 'obat', 'apotek', 'apotik', 'rs', 'rumah sakit', 'klinik', 'vitamin',
-        'medical', 'periksa', 'vaksin', 'gigi', 'kesehatan',
+        'dokter',
+        'obat',
+        'apotek',
+        'apotik',
+        'rs',
+        'rumah sakit',
+        'klinik',
+        'vitamin',
+        'medical',
+        'periksa',
+        'vaksin',
+        'gigi',
+        'kesehatan',
       ],
       catAliases: ['kesehatan', 'health', 'medis'],
     },
     {
       type: 'income',
-      keywords: [
-        'gajian', 'gaji', 'salary', 'thr', 'bonus', 'upah',
-      ],
+      keywords: ['gajian', 'gaji', 'salary', 'thr', 'bonus', 'upah'],
       catAliases: ['gaji', 'salary', 'income', 'pendapatan'],
     },
     {
       type: 'income',
       keywords: [
-        'dividen', 'bunga', 'saham', 'crypto', 'investasi', 'profit', 'return', 'reksadana',
+        'dividen',
+        'bunga',
+        'saham',
+        'crypto',
+        'investasi',
+        'profit',
+        'return',
+        'reksadana',
       ],
       catAliases: ['investasi', 'investment', 'invest'],
     },
   ];
 
   private readonly INCOME_WORDS = [
-    'gajian', 'gaji', 'terima', 'diterima', 'dapat', 'dapet', 'masuk', 'bayaran',
-    'fee', 'honor', 'thr', 'bonus', 'refund', 'cashback', 'jual', 'komisi', 'dividen',
+    'gajian',
+    'gaji',
+    'terima',
+    'diterima',
+    'dapat',
+    'dapet',
+    'masuk',
+    'bayaran',
+    'fee',
+    'honor',
+    'thr',
+    'bonus',
+    'refund',
+    'cashback',
+    'jual',
+    'komisi',
+    'dividen',
   ];
 
   private readonly DAY_NAMES: Record<string, number> = {
-    minggu: 0, senin: 1, selasa: 2, rabu: 3, kamis: 4, jumat: 5, "jum'at": 5, sabtu: 6,
+    minggu: 0,
+    senin: 1,
+    selasa: 2,
+    rabu: 3,
+    kamis: 4,
+    jumat: 5,
+    "jum'at": 5,
+    sabtu: 6,
   };
 
   parse(text: string, categories: Category[], now: Date): ParseResult {
@@ -118,7 +249,7 @@ export class TemplateParserService {
     // inside a number (so "1,5jt" stays intact but "bensin 50k, parkir" splits).
     const parts = text
       .split(/\s*;\s*|\s+dan\s+|,(?!\d)/i)
-      .map(p => p.trim())
+      .map((p) => p.trim())
       .filter(Boolean);
 
     for (const part of parts) {
@@ -159,11 +290,13 @@ export class TemplateParserService {
     const explicitCat = this.matchExplicitCategory(lower, categories);
 
     const type: 'income' | 'expense' =
-      text.trim().startsWith('+') || this.INCOME_WORDS.some(w => this.hasWord(lower, w))
+      text.trim().startsWith('+') ||
+      this.INCOME_WORDS.some((w) => this.hasWord(lower, w))
         ? 'income'
         : 'expense';
 
-    const categoryId = explicitCat ?? this.matchCategory(working, type, categories);
+    const categoryId =
+      explicitCat ?? this.matchCategory(working, type, categories);
 
     // Notes = text without amount token, date phrase, currency markers, tags
     let notes: string | null = dateMatch
@@ -178,7 +311,20 @@ export class TemplateParserService {
         .replace(/\s+/g, ' ')
         .trim() || null;
 
-    return { amount, type, categoryId, date, notes };
+    const ambiguousFields: string[] = [];
+    if (!categoryId) ambiguousFields.push('categoryId');
+    if (!unitMatch && Number(amountMatch[1].replace(/[.,]/g, '')) < 1000) {
+      ambiguousFields.push('amount');
+    }
+    return {
+      amount,
+      type,
+      categoryId,
+      date,
+      notes,
+      confidence: ambiguousFields.length ? 0.68 : 0.95,
+      ambiguousFields,
+    };
   }
 
   private parseAmount(raw: string, unit?: string): number {
@@ -201,13 +347,18 @@ export class TemplateParserService {
     return Math.round(numeric);
   }
 
-  private matchExplicitCategory(lower: string, categories: Category[]): string | null {
+  private matchExplicitCategory(
+    lower: string,
+    categories: Category[],
+  ): string | null {
     const tagMatch =
       lower.match(/#(\w+)/) || lower.match(/\b(?:kategori|kat)\s*:\s*(\w+)/);
     if (!tagMatch) return null;
     const wanted = tagMatch[1].toLowerCase();
     const matched = categories.find(
-      c => c.name.toLowerCase() === wanted || c.name.toLowerCase().includes(wanted),
+      (c) =>
+        c.name.toLowerCase() === wanted ||
+        c.name.toLowerCase().includes(wanted),
     );
     return matched?.id ?? null;
   }
@@ -217,8 +368,9 @@ export class TemplateParserService {
     type: 'income' | 'expense',
     categories: Category[],
   ): string | null {
-    const targetTypes = type === 'income' ? ['income', 'both'] : ['expense', 'both'];
-    const validCats = categories.filter(c => targetTypes.includes(c.type));
+    const targetTypes =
+      type === 'income' ? ['income', 'both'] : ['expense', 'both'];
+    const validCats = categories.filter((c) => targetTypes.includes(c.type));
     if (!validCats.length) return null;
 
     // 1) If the message literally contains a category's own name, use it.
@@ -232,9 +384,11 @@ export class TemplateParserService {
         // still allow income concepts only for income, expense for expense
         if (concept.type !== type) continue;
       }
-      if (concept.keywords.some(kw => this.hasWord(lower, kw))) {
-        const matched = validCats.find(c =>
-          concept.catAliases.some(alias => c.name.toLowerCase().includes(alias)),
+      if (concept.keywords.some((kw) => this.hasWord(lower, kw))) {
+        const matched = validCats.find((c) =>
+          concept.catAliases.some((alias) =>
+            c.name.toLowerCase().includes(alias),
+          ),
         );
         if (matched) return matched.id;
       }
@@ -242,15 +396,19 @@ export class TemplateParserService {
 
     // 3) Income with no match → first salary-like category.
     if (type === 'income') {
-      const salary = validCats.find(c =>
-        ['gaji', 'salary', 'income', 'pendapatan'].some(a => c.name.toLowerCase().includes(a)),
+      const salary = validCats.find((c) =>
+        ['gaji', 'salary', 'income', 'pendapatan'].some((a) =>
+          c.name.toLowerCase().includes(a),
+        ),
       );
       if (salary) return salary.id;
     }
 
     // 4) Fallback to an "Other/Lainnya" category if present.
-    const other = validCats.find(c =>
-      ['other', 'lain', 'lainnya', 'misc'].some(a => c.name.toLowerCase().includes(a)),
+    const other = validCats.find((c) =>
+      ['other', 'lain', 'lainnya', 'misc'].some((a) =>
+        c.name.toLowerCase().includes(a),
+      ),
     );
     return other?.id ?? null;
   }
@@ -266,7 +424,10 @@ export class TemplateParserService {
     }
     const nDaysMatch = lower.match(/(\d+)\s*hari\s*(?:yang\s*)?lalu/);
     if (nDaysMatch) {
-      return { date: this.shiftDate(now, -parseInt(nDaysMatch[1], 10)), matched: nDaysMatch[0] };
+      return {
+        date: this.shiftDate(now, -parseInt(nDaysMatch[1], 10)),
+        matched: nDaysMatch[0],
+      };
     }
     if (this.hasWord(lower, 'kemarin')) {
       return { date: this.shiftDate(now, -1), matched: 'kemarin' };
@@ -302,7 +463,10 @@ export class TemplateParserService {
   private hasWord(haystack: string, needle: string): boolean {
     if (!needle) return false;
     if (needle.includes(' ')) return haystack.includes(needle);
-    const re = new RegExp(`(^|[^a-z0-9])${this.escapeRegex(needle)}([^a-z0-9]|$)`, 'i');
+    const re = new RegExp(
+      `(^|[^a-z0-9])${this.escapeRegex(needle)}([^a-z0-9]|$)`,
+      'i',
+    );
     return re.test(haystack);
   }
 

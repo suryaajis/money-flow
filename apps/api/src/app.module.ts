@@ -13,6 +13,8 @@ import { DebtsModule } from './debts/debts.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { WaNotificationsModule } from './whatsapp/wa-notifications.module';
 import { buildDataSourceOptions } from './database/data-source-options';
+import { ScheduleModule } from '@nestjs/schedule';
+import { WebPushModule } from './push/web-push.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { buildDataSourceOptions } from './database/data-source-options';
       useFactory: (config: ConfigService) =>
         buildDataSourceOptions({ get: (key) => config.get<string>(key) }),
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     CategoriesModule,
@@ -34,6 +37,7 @@ import { buildDataSourceOptions } from './database/data-source-options';
     DebtsModule,
     WhatsappModule,
     WaNotificationsModule,
+    WebPushModule,
   ],
 })
 export class AppModule {}

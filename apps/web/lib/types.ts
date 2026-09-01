@@ -18,13 +18,14 @@ export interface Transaction {
   id: string;
   amount: number; // Always positive; sign is implied by `type`
   type: TransactionType;
-  categoryId: string;
-  date: string; // ISO 8601 (YYYY-MM-DD or full ISO datetime)
+  categoryId: string | null;
+  date: string; // Calendar date in YYYY-MM-DD format
   notes?: string;
   currency?: CurrencyCode | null; // optional per-transaction currency; null means use global setting
   tags?: string[];
   source?: string; // 'web' | 'whatsapp' | 'shared'
   recordedBy?: string | null; // user id who recorded it (shared wallet attribution)
+  clientMutationId?: string | null; // idempotency key for offline-created records
   createdAt: string;
   updatedAt: string;
 }

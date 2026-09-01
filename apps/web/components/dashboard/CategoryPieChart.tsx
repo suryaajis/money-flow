@@ -7,6 +7,7 @@ import { useCurrency } from "@/hooks/useCurrency";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PieChart as PieChartIcon } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { AccessibleChartSummary } from "@/components/charts/AccessibleChartSummary";
 
 interface CategoryPieChartProps {
   data: CategoryAggregate[];
@@ -37,8 +38,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 items-center">
-      <div className="h-[260px] w-full">
+    <div className="grid min-w-0 items-center gap-4 md:grid-cols-2">
+      <div className="h-[220px] min-w-0 w-full" aria-hidden="true">
         {mounted && (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -46,8 +47,8 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
                 data={data}
                 dataKey="total"
                 nameKey="categoryName"
-                innerRadius={56}
-                outerRadius={92}
+                innerRadius="43%"
+                outerRadius="70%"
                 paddingAngle={2}
                 stroke="var(--card)"
                 cornerRadius={5}
@@ -92,6 +93,15 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data }) => {
           </li>
         ))}
       </ul>
+      <div className="md:col-span-2">
+        <AccessibleChartSummary
+          title="Distribusi pengeluaran per kategori"
+          data={data.map((item) => ({ label: item.categoryName, values: [
+            { name: "Total", value: fmt(item.total) },
+            { name: "Persentase", value: `${item.percentage.toFixed(0)}%` },
+          ] }))}
+        />
+      </div>
     </div>
   );
 };

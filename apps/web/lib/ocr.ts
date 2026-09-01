@@ -80,7 +80,6 @@ export async function runOCR(
     return result?.data?.text ?? "";
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.warn("[ocr] failed:", err);
     }
     return "";

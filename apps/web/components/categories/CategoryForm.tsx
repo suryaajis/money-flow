@@ -89,7 +89,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initial, onSubmit, o
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-4" onSubmit={handleSubmit} noValidate>
       <div className="space-y-1.5">
         <Label htmlFor="cat-name">Name</Label>
         <Input
@@ -110,12 +110,13 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initial, onSubmit, o
         <Select
           id="cat-type"
           value={type}
-          onChange={(e) => setType(e.target.value as CategoryScope)}
-        >
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-          <option value="both">Both</option>
-        </Select>
+          onValueChange={(scope) => setType(scope as CategoryScope)}
+          options={[
+            { value: "expense", label: "Expense" },
+            { value: "income", label: "Income" },
+            { value: "both", label: "Both" },
+          ]}
+        />
       </div>
 
       <div className="space-y-2">

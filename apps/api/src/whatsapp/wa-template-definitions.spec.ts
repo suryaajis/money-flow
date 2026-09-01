@@ -8,6 +8,8 @@ describe('WhatsApp template definitions', () => {
     const payloads = WA_TEMPLATE_DEFINITIONS.map(buildMetaTemplatePayload);
 
     expect(payloads.map((payload) => payload.name)).toEqual([
+      'moneyflow_daily_input_reminder',
+      'moneyflow_shared_wallet_invite',
       'moneyflow_monthly_recap',
       'moneyflow_budget_alert',
       'moneyflow_debt_due',

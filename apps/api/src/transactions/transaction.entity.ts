@@ -27,8 +27,8 @@ export class Transaction {
   @Column({ type: 'enum', enum: ['income', 'expense'] })
   type: 'income' | 'expense';
 
-  @Column()
-  categoryId: string;
+  @Column({ type: 'uuid', nullable: true })
+  categoryId: string | null;
 
   @Column({ type: 'date' })
   date: string;
@@ -51,6 +51,9 @@ export class Transaction {
   @Column({ type: 'uuid', nullable: true })
   recordedBy: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  clientMutationId: string | null;
+
   @Column()
   userId: string;
 
@@ -63,7 +66,7 @@ export class Transaction {
     nullable: true,
   })
   @JoinColumn({ name: 'categoryId' })
-  category: Category;
+  category: Category | null;
 
   @CreateDateColumn()
   createdAt: Date;

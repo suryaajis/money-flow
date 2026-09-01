@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Users, UserPlus, UserMinus, CheckCircle2, Clock, AlertCircle, PlusCircle, X } from "lucide-react";
 import { sharedWalletApi, type ApiWalletMember, type ApiCategory } from "@/lib/api";
+import { Select } from "@/components/ui/select";
 
 // SHARE-03: inline form for a member to record a transaction into an owner's wallet.
 function RecordToWallet({ ownerId, ownerName }: { ownerId: string; ownerName: string }) {
@@ -84,21 +85,20 @@ function RecordToWallet({ ownerId, ownerName }: { ownerId: string; ownerName: st
               value={amount}
               onChange={e => setAmount(e.target.value)}
               placeholder="Jumlah"
-              min="0"
+              min="0.01"
               className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
               required
             />
-            <select
+            <Select
               value={categoryId}
-              onChange={e => setCategoryId(e.target.value)}
-              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              onValueChange={setCategoryId}
               required
-            >
-              <option value="">Kategori…</option>
-              {options.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              placeholder="Kategori…"
+              options={options.map(category => ({
+                value: category.id,
+                label: category.name,
+              }))}
+            />
           </div>
           <input
             value={notes}
@@ -124,7 +124,7 @@ export default function SharedWalletPage() {
   const [myMembers, setMyMembers] = useState<ApiWalletMember[]>([]);
   const [sharedWithMe, setSharedWithMe] = useState<ApiWalletMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
   const [inviting, setInviting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [acceptToken, setAcceptToken] = useState("");
@@ -146,20 +146,24 @@ export default function SharedWalletPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (token) setAcceptToken(token);
+  }, [load]);
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
+    if (!invitePhone.trim()) return;
     setInviting(true);
     setMessage(null);
     try {
-      await sharedWalletApi.invite(inviteEmail.trim());
-      setMessage({ type: "success", text: `Undangan dikirim ke ${inviteEmail}` });
-      setInviteEmail("");
+      await sharedWalletApi.invite(invitePhone.trim());
+      setMessage({ type: "success", text: `Undangan WhatsApp dikirim ke ${invitePhone}` });
+      setInvitePhone("");
       await load();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err?.message ?? "Gagal mengirim undangan." });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Gagal mengirim undangan." });
     } finally {
       setInviting(false);
     }
@@ -175,8 +179,8 @@ export default function SharedWalletPage() {
       setMessage({ type: "success", text: "Berhasil bergabung ke dompet bersama!" });
       setAcceptToken("");
       await load();
-    } catch (err: any) {
-      setMessage({ type: "error", text: err?.message ?? "Token tidak valid atau sudah digunakan." });
+    } catch (err: unknown) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Token tidak valid atau sudah digunakan." });
     } finally {
       setAccepting(false);
     }
@@ -216,6 +220,8 @@ export default function SharedWalletPage() {
 
       {message && (
         <div
+          role={message.type === "error" ? "alert" : "status"}
+          aria-live={message.type === "error" ? "assertive" : "polite"}
           className={`flex items-start gap-2 rounded-md p-3 text-sm ${
             message.type === "success"
               ? "bg-green-500/10 text-green-700 dark:text-green-400"
@@ -238,10 +244,10 @@ export default function SharedWalletPage() {
         </h2>
         <form onSubmit={handleInvite} className="flex gap-2">
           <input
-            type="email"
-            value={inviteEmail}
-            onChange={e => setInviteEmail(e.target.value)}
-            placeholder="email@example.com"
+            type="tel"
+            value={invitePhone}
+            onChange={e => setInvitePhone(e.target.value)}
+            placeholder="0812 3456 7890"
             className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             required
           />
@@ -271,7 +277,7 @@ export default function SharedWalletPage() {
               <li key={m.id} className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
-                    {m.member?.name ?? m.memberEmail ?? "Unknown"}
+                    {m.member?.name ?? m.memberWaPhone ?? "Unknown"}
                   </p>
                   <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1">
                     {m.acceptedAt ? (
@@ -279,15 +285,10 @@ export default function SharedWalletPage() {
                     ) : (
                       <><Clock className="h-3 w-3" /> Menunggu konfirmasi</>
                     )}
-                    {!m.acceptedAt && m.inviteToken && (
-                      <span className="font-mono text-xs bg-muted px-1 rounded">
-                        Token: {m.inviteToken.slice(0, 8)}...
-                      </span>
-                    )}
                   </p>
                 </div>
                 <button
-                  onClick={() => handleRemove(m.id, m.member?.name ?? m.memberEmail ?? "anggota ini")}
+                  onClick={() => handleRemove(m.id, m.member?.name ?? m.memberWaPhone ?? "anggota ini")}
                   className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   title="Hapus akses"
                   aria-label="Hapus akses"

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Bell, BellOff, Clock, AlertTriangle } from "lucide-react";
-import { useNotificationStore, ALL_DAYS, type DayOfWeek } from "@/store/notificationStore";
+import { useNotificationStore, ALL_DAYS } from "@/store/notificationStore";
 import { requestNotificationPermission, showDailyReminderNotification } from "@/lib/notifications";
+import { WebPushSettings } from "@/components/settings/WebPushSettings";
+import { WhatsAppDailyReminder } from "@/components/settings/WhatsAppDailyReminder";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -183,6 +185,8 @@ export default function NotificationSettingsPage() {
           Notifications permission: granted. Your reminder will fire at {reminderTime} on active days.
         </p>
       )}
+      <WebPushSettings />
+      <WhatsAppDailyReminder />
     </div>
   );
 }

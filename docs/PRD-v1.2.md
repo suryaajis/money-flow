@@ -1,6 +1,6 @@
-# Product Requirements Document — Money Flow v2
+# Product Requirements Document — Money Flow v1.2
 
-**Versi:** 2.0  
+**Versi:** 1.2
 **Status:** Planning  
 **Terakhir diperbarui:** Juni 2026  
 **Berdasarkan:** PRD v1 (Released)
@@ -9,11 +9,11 @@
 
 ## 1. Overview
 
-Money Flow v2 membangun di atas fondasi v1 dengan menambahkan fitur-fitur yang meningkatkan kontrol keuangan pengguna secara proaktif — bukan hanya mencatat, tapi juga **merencanakan dan mengingatkan**. V2 juga melengkapi gap auth dan manajemen akun yang belum ada di v1.
+Money Flow v1.2 membangun di atas fondasi v1 dengan menambahkan fitur-fitur yang meningkatkan kontrol keuangan pengguna secara proaktif — bukan hanya mencatat, tapi juga **merencanakan dan mengingatkan**. v1.2 juga melengkapi gap auth dan manajemen akun yang belum ada di v1.
 
 ---
 
-## 2. Tujuan v2
+## 2. Tujuan v1.2
 
 | Tujuan | Metrik Keberhasilan |
 |--------|-------------------|
@@ -24,7 +24,7 @@ Money Flow v2 membangun di atas fondasi v1 dengan menambahkan fitur-fitur yang m
 
 ---
 
-## 3. Fitur v2
+## 3. Fitur v1.2
 
 ---
 
@@ -119,7 +119,7 @@ RecurringTransaction {
 
 ### 3.4 Budget Planner
 
-**Latar Belakang:** User v1 hanya bisa melihat pengeluaran *setelah* terjadi. V2 memungkinkan user *merencanakan* sebelumnya dan mendapat peringatan dini.
+**Latar Belakang:** User v1 hanya bisa melihat pengeluaran *setelah* terjadi. v1.2 memungkinkan user *merencanakan* sebelumnya dan mendapat peringatan dini.
 
 | ID | Fitur | Deskripsi |
 |----|-------|-----------|
@@ -228,7 +228,7 @@ Budget {
 
 ---
 
-## 4. Arsitektur Perubahan v2
+## 4. Arsitektur Perubahan v1.2
 
 ### Tambahan Database Schema
 
@@ -287,7 +287,7 @@ CREATE TABLE transaction_tags (
 );
 ```
 
-### Tambahan API Endpoints v2
+### Tambahan API Endpoints v1.2
 
 | Method | Path | Keterangan |
 |--------|------|------------|
@@ -312,7 +312,7 @@ CREATE TABLE transaction_tags (
 
 ---
 
-## 5. Halaman Baru v2
+## 5. Halaman Baru v1.2
 
 | Halaman | Route | Deskripsi |
 |---------|-------|-----------|
@@ -325,9 +325,9 @@ CREATE TABLE transaction_tags (
 
 ---
 
-## 6. Out of Scope (v2)
+## 6. Out of Scope (v1.2)
 
-Fitur berikut ditunda ke v3 atau later:
+Fitur berikut ditunda ke v1.3 atau later:
 
 - Multi-akun / shared wallet (keluarga)
 - Sinkronisasi rekening bank otomatis
@@ -353,7 +353,7 @@ Fitur berikut ditunda ke v3 atau later:
 
 ---
 
-## 8. Dependensi v2
+## 8. Dependensi v1.2
 
 | Kebutuhan | Keterangan |
 |-----------|------------|

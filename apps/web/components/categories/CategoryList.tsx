@@ -30,6 +30,7 @@ export const CategoryList: React.FC = () => {
   const usageById = useMemo(() => {
     const usage = new Map<string, number>();
     for (const transaction of transactions) {
+      if (!transaction.categoryId) continue;
       usage.set(
         transaction.categoryId,
         (usage.get(transaction.categoryId) ?? 0) + 1,

@@ -45,9 +45,6 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-xs tracking-[0.2em] text-white/72">
-              •••• &nbsp; •••• &nbsp; 7821
-            </p>
             <p className="mt-1 text-[10px] uppercase tracking-[0.13em] text-white/40">
               {transactionCount} transaksi tersimpan
             </p>

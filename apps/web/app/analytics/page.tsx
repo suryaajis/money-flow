@@ -87,7 +87,7 @@ export default function AnalyticsPage() {
           <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Cerita di balik angka
           </p>
-          <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
             Analitik
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -99,14 +99,12 @@ export default function AnalyticsPage() {
           <Select
             id="range"
             value={months}
-            onChange={(e) => setMonths(Number(e.target.value))}
-          >
-            {RANGES.map((r) => (
-              <option key={r.months} value={r.months}>
-                {r.label}
-              </option>
-            ))}
-          </Select>
+            onValueChange={(range) => setMonths(Number(range))}
+            options={RANGES.map((range) => ({
+              value: String(range.months),
+              label: range.label,
+            }))}
+          />
         </div>
       </div>
 

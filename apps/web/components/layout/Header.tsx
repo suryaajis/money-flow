@@ -52,7 +52,7 @@ export const Header: React.FC = () => {
           <p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/45 sm:block">
             MoneyFlow space
           </p>
-          <h1 className="truncate text-base font-bold tracking-[-0.035em] sm:text-lg">
+          <h1 className="truncate text-base font-bold tracking-[-0.02em] sm:text-lg">
             {title}
           </h1>
         </div>

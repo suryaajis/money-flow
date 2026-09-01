@@ -14,6 +14,7 @@ import {
 import type { MonthlyAggregate } from "@/lib/types";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { AccessibleChartSummary } from "@/components/charts/AccessibleChartSummary";
 
 interface BalanceChartProps {
   data: MonthlyAggregate[];
@@ -28,8 +29,9 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
   if (!mounted) return <div className="h-[300px] w-full" />;
 
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full">
+      <div className="h-[300px]" aria-hidden="true">
+        <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid
             strokeDasharray="4 5"
@@ -71,7 +73,15 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data }) => {
             isAnimationActive={!reducedMotion}
           />
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
+      <AccessibleChartSummary
+        title="Saldo bulanan"
+        data={data.map((item) => ({ label: item.month, values: [
+          { name: "Pemasukan", value: fmt(item.income) },
+          { name: "Pengeluaran", value: fmt(item.expense) },
+        ] }))}
+      />
     </div>
   );
 };

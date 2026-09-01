@@ -6,6 +6,17 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+::view-transition-new(root) {
+  clip-path: circle(0 at var(--theme-x, 100%) var(--theme-y, 0));
+  animation: theme-reveal 420ms ease-out forwards;
+}
+
+::view-transition-old(root) { animation: none; }
+
+@keyframes theme-reveal {
+  to { clip-path: circle(150vmax at var(--theme-x, 100%) var(--theme-y, 0)); }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -140,7 +151,11 @@ body {
     Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-kerning: normal;
+  font-optical-sizing: none;
+  font-synthesis: none;
+  font-variant-ligatures: common-ligatures contextual;
   /* Remove the 300ms tap delay on iOS Safari & let the browser short-circuit
    * pinch/zoom gesture detection on interactive elements. Combined with the
    * `viewport-fit=cover` viewport meta this gives a near-native feel inside
@@ -231,6 +246,17 @@ body {
     0 2px 0 rgb(var(--shadow-color) / 0.035),
     0 10px 0 rgb(var(--shadow-color) / 0.045),
     0 20px 45px rgb(var(--shadow-color) / 0.075);
+}
+
+/* Dark surfaces still need visible elevation. Pure black shadows disappear
+ * against the canvas, so use a deep ambient shadow plus a restrained lime
+ * edge borrowed from the brand accent. */
+.dark .mf-card {
+  box-shadow:
+    0 2px 0 rgba(201, 244, 90, 0.055),
+    0 9px 0 rgba(201, 244, 90, 0.035),
+    0 24px 52px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(201, 244, 90, 0.025);
 }
 
 .mf-card::after {
@@ -456,7 +482,9 @@ body {
 .display-number {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.07em;
+  /* Keep large financial figures compact without letting WebKit collapse
+   * adjacent glyphs more aggressively than Chromium. */
+  letter-spacing: -0.025em;
 }
 
 .cute-orb {
@@ -570,6 +598,12 @@ body {
   box-shadow: 4px 4px 0 color-mix(in srgb, var(--brand-navy) 16%, transparent);
 }
 
+.dark .neo-sticker {
+  box-shadow:
+    4px 4px 0 rgba(201, 244, 90, 0.075),
+    0 14px 28px rgba(0, 0, 0, 0.38);
+}
+
 .motion-stagger > * {
   animation: card-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
@@ -656,6 +690,8 @@ a,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none !important; }
   *,
   *::before,
   *::after {

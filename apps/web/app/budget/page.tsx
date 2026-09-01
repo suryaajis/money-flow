@@ -18,6 +18,7 @@ import { useCategoryStore } from "@/store/categoryStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useUIStore } from "@/store/uiStore";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Select } from "@/components/ui/select";
 import { CURRENCIES } from "@/lib/constants";
 import { parseCurrencyInput } from "@/lib/utils";
 import type { ApiBudget } from "@/lib/api";
@@ -122,6 +123,10 @@ export default function BudgetPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formCategoryId) {
+      alert("Please select a category.");
+      return;
+    }
     setFormLoading(true);
     try {
       const amount = parseCurrencyInput(formAmount);
@@ -166,7 +171,7 @@ export default function BudgetPage() {
           <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-kicker">
             <Sparkles className="h-3.5 w-3.5" /> Rencana yang ramah
           </p>
-          <h1 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
             Budget
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -231,22 +236,20 @@ export default function BudgetPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Kategori</label>
-              <select
+              <Select
                 required
                 value={formCategoryId}
-                onChange={(e) => setFormCategoryId(e.target.value)}
+                onValueChange={setFormCategoryId}
                 disabled={!!editBudget}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-              >
-                <option value="">Pilih kategori</option>
-                {(editBudget ? expenseCategories : availableCategories).map(
-                  (c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ),
-                )}
-              </select>
+                placeholder="Pilih kategori"
+                options={(editBudget
+                  ? expenseCategories
+                  : availableCategories
+                ).map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">

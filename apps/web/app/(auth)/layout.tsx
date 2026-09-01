@@ -47,7 +47,7 @@ export default function AuthLayout({
                 <Sparkles className="h-3.5 w-3.5 text-brand-lime" /> Lebih rapi,
                 lebih lega
               </p>
-              <h1 className="text-5xl font-black leading-[.98] tracking-[-0.075em]">
+              <h1 className="text-5xl font-black leading-[.98] tracking-[-0.025em]">
                 Uangmu punya cerita. Yuk, baca dengan tenang.
               </h1>
               <p className="mt-5 max-w-sm text-base leading-relaxed text-white/70">

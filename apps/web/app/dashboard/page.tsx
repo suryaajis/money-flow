@@ -47,7 +47,7 @@ export default function DashboardPage() {
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.16em] text-foreground/55">
               <Sparkles className="h-3.5 w-3.5 text-brand-lime [filter:drop-shadow(0_0_0.5px_#151515)]" /> Money check-in
             </p>
-            <h2 className="truncate text-3xl font-black tracking-[-0.065em] text-foreground sm:text-4xl">
+            <h2 className="truncate text-3xl font-black tracking-[-0.025em] text-foreground sm:text-4xl">
               Halo, {user?.name?.split(" ")[0] ?? "teman"}!
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <p className="w-fit rounded-full bg-brand-lime px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-brand-navy">
               Arus kas
             </p>
-            <CardTitle className="text-xl font-black tracking-[-0.045em]">Uangmu bergerak ke mana?</CardTitle>
+            <CardTitle className="text-xl font-black tracking-[-0.025em]">Uangmu bergerak ke mana?</CardTitle>
             <p className="text-sm text-muted-foreground">
               Perbandingan pemasukan dan pengeluaran enam bulan terakhir.
             </p>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
             <p className="w-fit rounded-full bg-brand-navy px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-brand-lime">
               Peta pengeluaran
             </p>
-            <CardTitle className="text-xl font-black tracking-[-0.045em]">Si paling boros bulan ini</CardTitle>
+            <CardTitle className="text-xl font-black tracking-[-0.025em]">Si paling boros bulan ini</CardTitle>
             <p className="text-sm text-muted-foreground">
               Tenang, tahu polanya adalah langkah pertama.
             </p>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
       {budgets.length > 0 && (
         <Card className="neo-cutout interactive-lift overflow-hidden border-brand-navy/15">
           <CardHeader>
-            <CardTitle className="text-xl font-black tracking-[-0.04em]">Budget bulan ini</CardTitle>
+            <CardTitle className="text-xl font-black tracking-[-0.025em]">Budget bulan ini</CardTitle>
             <p className="text-sm text-muted-foreground">
               Sedikit pagar supaya rencana tetap di jalurnya.
             </p>
@@ -141,7 +141,7 @@ export default function DashboardPage() {
             <p className="text-xs font-black uppercase tracking-[0.14em] text-foreground/55">
               Ledger terbaru
             </p>
-            <CardTitle className="mt-1 text-xl font-black tracking-[-0.04em]">Jejak uang terakhir</CardTitle>
+            <CardTitle className="mt-1 text-xl font-black tracking-[-0.025em]">Jejak uang terakhir</CardTitle>
           </div>
           <Link
             href="/transactions"

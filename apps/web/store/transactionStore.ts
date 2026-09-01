@@ -25,7 +25,7 @@ interface TransactionState {
 
 const DEFAULT_FILTERS: TransactionFilters = { type: "all" };
 
-export const useTransactionStore = create<TransactionState>()((set, get) => ({
+export const useTransactionStore = create<TransactionState>()((set) => ({
   transactions: [],
   filters: DEFAULT_FILTERS,
   loading: false,

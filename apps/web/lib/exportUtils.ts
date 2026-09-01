@@ -14,7 +14,9 @@ function buildRows(transactions: Transaction[], categoriesById: Map<string, Cate
   return transactions.map((tx) => ({
     Date: tx.date,
     Type: tx.type === "income" ? "Income" : "Expense",
-    Category: categoriesById.get(tx.categoryId)?.name ?? "Unknown",
+    Category: tx.categoryId
+      ? (categoriesById.get(tx.categoryId)?.name ?? "Unknown")
+      : "Unknown",
     Amount: tx.type === "expense" ? -tx.amount : tx.amount,
     Notes: tx.notes ?? "",
   }));

@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useCategories } from "@/hooks/useCategories";
@@ -26,6 +27,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCurrency } from "@/hooks/useCurrency";
 import { localizeOcrStatus, runOCR } from "@/lib/ocr";
 import { parseReceipt, type ParsedReceipt } from "@/lib/receiptParser";
+import { prepareReceiptData } from "@/lib/receiptFile";
 import { cn, formatCurrency, todayISO } from "@/lib/utils";
 import type { TransactionType } from "@/lib/types";
 
@@ -83,11 +85,9 @@ export const ImportClient: React.FC = () => {
 
   const runPipelineOnDataUrl = React.useCallback(
     async (dataUrl: string, mime: string) => {
-      setPreviewUrl(dataUrl);
-      setPreviewMime(mime);
       setStage("processing");
       setProgress(0);
-      setStatusLabel("Memuat mesin OCR...");
+      setStatusLabel(mime === "application/pdf" ? "Merender halaman pertama PDF..." : "Menyiapkan gambar...");
       setErrorMessage("");
 
       // Cancel any in-flight job before starting a new one.
@@ -95,26 +95,23 @@ export const ImportClient: React.FC = () => {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      // PDFs aren't directly readable by Tesseract — surface a graceful
-      // empty result so the user can fill the form manually.
-      let ocrText = "";
-      if (mime === "application/pdf") {
-        setStatusLabel("PDF terdeteksi — silakan isi manual");
-        await new Promise((r) => setTimeout(r, 250));
-      } else {
-        ocrText = await runOCR(dataUrl, {
+      try {
+        const prepared = await prepareReceiptData(dataUrl, mime);
+        setPreviewUrl(prepared.dataUrl);
+        setPreviewMime(prepared.mimeType);
+        setStatusLabel("Memuat mesin OCR...");
+        const ocrText = await runOCR(prepared.dataUrl, {
           signal: controller.signal,
           onProgress: ({ progress: p, status }) => {
             setProgress(Math.round(p * 100));
             setStatusLabel(localizeOcrStatus(status));
           },
         });
-      }
 
-      if (controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
 
-      const result = parseReceipt(ocrText);
-      setParsed(result);
+        const result = parseReceipt(ocrText);
+        setParsed(result);
 
       // Pick a sensible default category for expenses.
       const defaultCategory =
@@ -122,16 +119,21 @@ export const ImportClient: React.FC = () => {
         expenseCategories.find((c) => c.id === "cat-other") ??
         expenseCategories[0];
 
-      setForm({
+        setForm({
         amount: result.amount !== null ? String(Math.round(result.amount * 100) / 100) : "",
         type: "expense",
         categoryId: defaultCategory?.id ?? "",
         date: result.date || todayISO(),
         notes: result.merchant || "",
-      });
-      setStage("confirm");
-      setProgress(100);
-      setStatusLabel("Selesai");
+        });
+        setStage("confirm");
+        setProgress(100);
+        setStatusLabel("Selesai");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setStage("upload");
+        setErrorMessage(error instanceof Error ? error.message : "OCR gagal memproses berkas.");
+      }
     },
     [expenseCategories],
   );
@@ -473,7 +475,7 @@ const UploadStage: React.FC<UploadStageProps> = ({
         <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
         <div>
           <strong className="text-foreground">Diproses di perangkat Anda.</strong>{" "}
-          Format yang didukung: JPEG, PNG, WebP, dan PDF dari GoPay, OVO, DANA,
+          Format yang didukung: JPEG, PNG, WebP, HEIC/HEIF, dan PDF (halaman pertama) dari GoPay, OVO, DANA,
           BCA Mobile, Mandiri, Alfamart, Indomaret, dan struk umum lainnya.
         </div>
       </div>
@@ -676,12 +678,12 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
 
             <div className="space-y-1.5">
               <Label htmlFor="import-date">Tanggal</Label>
-              <Input
+              <DatePicker
                 id="import-date"
-                type="date"
                 value={form.date}
-                onChange={(e) => updateForm("date", e.target.value)}
+                onValueChange={(date) => updateForm("date", date)}
                 max={todayISO()}
+                required
               />
             </div>
 
@@ -690,18 +692,24 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
               <Select
                 id="import-category"
                 value={form.categoryId}
-                onChange={(e) => updateForm("categoryId", e.target.value)}
-              >
-                {visibleCategories.length === 0 ? (
-                  <option value="">Tidak ada kategori</option>
-                ) : (
-                  visibleCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))
-                )}
-              </Select>
+                onValueChange={(categoryId) =>
+                  updateForm("categoryId", categoryId)
+                }
+                options={
+                  visibleCategories.length === 0
+                    ? [
+                        {
+                          value: "",
+                          label: "Tidak ada kategori",
+                          disabled: true,
+                        },
+                      ]
+                    : visibleCategories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      }))
+                }
+              />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
@@ -800,8 +808,9 @@ const ReceiptPreview: React.FC<{
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
   return (
+    // A data/blob URL preview cannot usefully be optimized by next/image.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={previewUrl}
       alt="Pratinjau struk"

@@ -60,9 +60,14 @@ export default function BackupPage() {
         const text = event.target?.result as string;
         const parsed = JSON.parse(text) as BackupData;
         if (
-          typeof parsed.version !== "number" ||
+          parsed.version !== 2 ||
           !Array.isArray(parsed.transactions) ||
-          !Array.isArray(parsed.categories)
+          !Array.isArray(parsed.categories) ||
+          !Array.isArray(parsed.budgets) ||
+          !Array.isArray(parsed.recurrings) ||
+          !Array.isArray(parsed.debts) ||
+          !Array.isArray(parsed.sharedWalletMembers) ||
+          !parsed.preferences
         ) {
           setErrorMessage("Invalid backup file format.");
           return;
@@ -123,7 +128,7 @@ export default function BackupPage() {
         <CardHeader>
           <CardTitle>Export</CardTitle>
           <CardDescription>
-            Download all your transactions and categories as a JSON backup file.
+            Download transactions, categories, budgets, recurring schedules, debts, shared-wallet settings, and notification preferences.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -170,6 +175,10 @@ export default function BackupPage() {
               <ul className="mt-1 space-y-0.5 text-muted-foreground">
                 <li>{parsedBackup.transactions.length} transaction{parsedBackup.transactions.length !== 1 ? "s" : ""}</li>
                 <li>{parsedBackup.categories.length} categor{parsedBackup.categories.length !== 1 ? "ies" : "y"}</li>
+                <li>{parsedBackup.budgets.length} budget</li>
+                <li>{parsedBackup.recurrings.length} recurring schedule</li>
+                <li>{parsedBackup.debts.length} debt record</li>
+                <li>{parsedBackup.sharedWalletMembers.length} shared-wallet member</li>
                 <li>Exported at: {new Date(parsedBackup.exportedAt).toLocaleString()}</li>
               </ul>
             </div>

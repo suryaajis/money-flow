@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
 @Entity('users')
 export class User {
@@ -67,4 +68,7 @@ export class User {
 
   @OneToMany(() => Category, (category) => category.user)
   categories: Category[];
+
+  @OneToMany(() => WaPhoneLink, (phoneLink) => phoneLink.user)
+  waPhoneLinks: WaPhoneLink[];
 }

@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { WaNotificationDelivery } from './wa-notification-delivery.entity';
 import { WaNotifierService } from './wa-notifier.service';
+import { WaPhoneLink } from './wa-phone-link.entity';
 
 export interface ProactiveTemplateMessage {
   userId: string;
   to: string;
+  waPhoneLinkId?: string;
   kind: string;
   templateName: string;
   bodyParameters: Array<string | number>;
@@ -20,6 +23,8 @@ export class WaProactiveNotificationService {
   constructor(
     @InjectRepository(WaNotificationDelivery)
     private readonly deliveryRepo: Repository<WaNotificationDelivery>,
+    @InjectRepository(WaPhoneLink)
+    private readonly phoneLinkRepo: Repository<WaPhoneLink>,
     private readonly notifier: WaNotifierService,
   ) {}
 
@@ -27,11 +32,26 @@ export class WaProactiveNotificationService {
     message: ProactiveTemplateMessage,
     now = new Date(),
   ): Promise<boolean> {
+    if (message.waPhoneLinkId) {
+      const activeDestination = await this.phoneLinkRepo.findOne({
+        where: {
+          id: message.waPhoneLinkId,
+          userId: message.userId,
+          phone: message.to,
+          revokedAt: IsNull(),
+        },
+      });
+      if (!activeDestination) return false;
+    }
     const deliveryDate = this.dateInTimeZone(now);
     let delivery: WaNotificationDelivery;
     try {
       delivery = this.deliveryRepo.create({
         userId: message.userId,
+        waPhoneLinkId: message.waPhoneLinkId ?? null,
+        destinationKey:
+          message.waPhoneLinkId ??
+          createHash('sha256').update(message.to).digest('hex'),
         deliveryDate,
         kind: message.kind,
         status: 'pending',

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, IsNull, Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
@@ -10,6 +10,7 @@ import { Budget } from '../budgets/budget.entity';
 import { Debt } from '../debts/debt.entity';
 import { WaProactiveNotificationService } from './wa-proactive-notification.service';
 import { WA_TEMPLATE_DEFAULT_NAMES } from './wa-template-definitions';
+import { WaPhoneLink } from './wa-phone-link.entity';
 
 @Injectable()
 export class WaNotificationsService {
@@ -21,6 +22,8 @@ export class WaNotificationsService {
     @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Budget) private budgetRepo: Repository<Budget>,
     @InjectRepository(Debt) private debtRepo: Repository<Debt>,
+    @InjectRepository(WaPhoneLink)
+    private phoneLinkRepo: Repository<WaPhoneLink>,
     private proactive: WaProactiveNotificationService,
     private config: ConfigService,
   ) {}
@@ -40,17 +43,16 @@ export class WaNotificationsService {
     const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     const users = (
       await this.userRepo.find({ where: { notifyDailyInput: true } })
-    ).filter((user) => !!user.waPhone && user.dailyInputTime === time);
+    ).filter((user) => user.dailyInputTime === time);
     for (const user of users) {
       try {
         const count = await this.txRepo.count({
           where: { userId: user.id, date: today },
         });
         if (count > 0) continue;
-        await this.proactive.sendOncePerDay(
+        await this.sendToDestinations(
           {
             userId: user.id,
-            to: user.waPhone!,
             kind: 'daily_input',
             templateName: this.config.get<string>(
               'WA_TEMPLATE_DAILY_INPUT',
@@ -71,9 +73,9 @@ export class WaNotificationsService {
 
   @Cron('0 8 1 * *', { timeZone: 'Asia/Jakarta' })
   async sendMonthlyRecaps(now = new Date()): Promise<void> {
-    const users = (
-      await this.userRepo.find({ where: { notifyMonthlyRecap: true } })
-    ).filter((user) => !!user.waPhone);
+    const users = await this.userRepo.find({
+      where: { notifyMonthlyRecap: true },
+    });
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
     const startStr = start.toISOString().split('T')[0];
@@ -116,10 +118,9 @@ export class WaNotificationsService {
             })
             .join('\n') || '-';
 
-        await this.proactive.sendOncePerDay(
+        await this.sendToDestinations(
           {
             userId: user.id,
-            to: user.waPhone!,
             kind: 'monthly_recap',
             templateName: this.config.get<string>(
               'WA_TEMPLATE_MONTHLY_RECAP',
@@ -146,9 +147,9 @@ export class WaNotificationsService {
 
   @Cron('0 20 * * *', { timeZone: 'Asia/Jakarta' })
   async sendOverBudgetAlerts(now = new Date()): Promise<void> {
-    const users = (
-      await this.userRepo.find({ where: { notifyOverBudget: true } })
-    ).filter((user) => !!user.waPhone);
+    const users = await this.userRepo.find({
+      where: { notifyOverBudget: true },
+    });
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const startStr = new Date(now.getFullYear(), now.getMonth(), 1)
       .toISOString()
@@ -199,10 +200,9 @@ export class WaNotificationsService {
           })
           .join('\n');
 
-        await this.proactive.sendOncePerDay(
+        await this.sendToDestinations(
           {
             userId: user.id,
-            to: user.waPhone!,
             kind: 'over_budget',
             templateName: this.config.get<string>(
               'WA_TEMPLATE_OVER_BUDGET',
@@ -223,9 +223,7 @@ export class WaNotificationsService {
 
   @Cron('0 9 * * *', { timeZone: 'Asia/Jakarta' })
   async sendDebtDueReminders(now = new Date()): Promise<void> {
-    const users = (
-      await this.userRepo.find({ where: { notifyDebtDue: true } })
-    ).filter((user) => !!user.waPhone);
+    const users = await this.userRepo.find({ where: { notifyDebtDue: true } });
     const today = now.toISOString().split('T')[0];
     const tomorrow = new Date(now.getTime() + 86_400_000)
       .toISOString()
@@ -253,10 +251,9 @@ export class WaNotificationsService {
           })
           .join('\n');
 
-        await this.proactive.sendOncePerDay(
+        await this.sendToDestinations(
           {
             userId: user.id,
-            to: user.waPhone!,
             kind: 'debt_due',
             templateName: this.config.get<string>(
               'WA_TEMPLATE_DEBT_DUE',
@@ -270,6 +267,44 @@ export class WaNotificationsService {
         this.logger.error(
           `Debt reminder failed for user ${user.id}`,
           error as Error,
+        );
+      }
+    }
+  }
+
+  private async sendToDestinations(
+    message: {
+      userId: string;
+      kind: string;
+      templateName: string;
+      bodyParameters: Array<string | number>;
+    },
+    now: Date,
+  ): Promise<void> {
+    const destinations = await this.phoneLinkRepo.find({
+      where: [
+        { userId: message.userId, isPrimary: true, revokedAt: IsNull() },
+        {
+          userId: message.userId,
+          notificationsEnabled: true,
+          revokedAt: IsNull(),
+        },
+      ],
+      order: { isPrimary: 'DESC', linkedAt: 'ASC' },
+    });
+    for (const destination of destinations) {
+      try {
+        await this.proactive.sendOncePerDay(
+          {
+            ...message,
+            to: destination.phone,
+            waPhoneLinkId: destination.id,
+          },
+          now,
+        );
+      } catch (error) {
+        this.logger.error(
+          `WhatsApp ${message.kind} failed for destination ${destination.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     }

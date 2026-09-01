@@ -155,6 +155,14 @@ export class WhatsappController {
       );
       return;
     }
+    const ownerUserId = await this.whatsappService.getActivePhoneOwnerId(from);
+    if (ownerUserId && !this.consumeRate(`user:${ownerUserId}`, 60)) {
+      await this.notifier.sendText(
+        from,
+        'Batas pesan gabungan akun tercapai. Tunggu sebentar lalu coba lagi.',
+      );
+      return;
+    }
 
     const eventKey = `message:${messageId}`;
     try {

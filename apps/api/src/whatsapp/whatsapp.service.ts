@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, IsNull } from 'typeorm';
 import { createHash, randomBytes } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { WaSession } from './wa-session.entity';
@@ -23,6 +27,10 @@ import { WaLinkChallenge } from './wa-link-challenge.entity';
 import { WalletMember } from '../shared-wallet/wallet-member.entity';
 import { WaProactiveNotificationService } from './wa-proactive-notification.service';
 import { WA_TEMPLATE_DEFAULT_NAMES } from './wa-template-definitions';
+import { WaPhoneLink } from './wa-phone-link.entity';
+import { UpdateWaPhoneLinkDto } from './dto/update-wa-phone-link.dto';
+
+const MAX_WHATSAPP_NUMBERS = 3;
 
 @Injectable()
 export class WhatsappService {
@@ -31,6 +39,8 @@ export class WhatsappService {
   constructor(
     @InjectRepository(WaSession) private sessionRepo: Repository<WaSession>,
     @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(WaPhoneLink)
+    private phoneLinkRepo: Repository<WaPhoneLink>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Budget) private budgetRepo: Repository<Budget>,
@@ -48,15 +58,21 @@ export class WhatsappService {
   ) {}
 
   async getLinkStatus(userId: string) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
+    const numbers = await this.phoneLinkRepo.find({
+      where: { userId, revokedAt: IsNull() },
+      order: { isPrimary: 'DESC', linkedAt: 'ASC' },
+    });
+    const primary = numbers.find((number) => number.isPrimary) ?? numbers[0];
     return {
-      linked: !!user?.waPhone,
-      phone: user?.waPhone ?? null,
-      linkedAt: user?.waLinkedAt ?? null,
+      linked: numbers.length > 0,
+      phone: primary ? this.maskPhone(primary.phone) : null,
+      linkedAt: primary?.linkedAt ?? null,
+      limit: MAX_WHATSAPP_NUMBERS,
+      numbers: numbers.map((number) => this.serializePhoneLink(number)),
     };
   }
 
-  async createLinkChallenge(userId: string) {
+  async createLinkChallenge(userId: string, requestedLabel?: string) {
     if (
       !this.config.get<string>('WA_ACCESS_TOKEN') ||
       !this.config.get<string>('WA_PHONE_NUMBER_ID')
@@ -80,6 +96,18 @@ export class WhatsappService {
         'WA_BUSINESS_PHONE_NUMBER tidak valid',
       );
     }
+    const activeCount = await this.phoneLinkRepo.count({
+      where: { userId, revokedAt: IsNull() },
+    });
+    if (activeCount >= MAX_WHATSAPP_NUMBERS) {
+      throw new ConflictException(
+        `Maksimal ${MAX_WHATSAPP_NUMBERS} nomor WhatsApp per akun`,
+      );
+    }
+    const label = this.normalizeLabel(
+      requestedLabel,
+      activeCount === 0 ? 'Utama' : `Nomor ${activeCount + 1}`,
+    );
     const token = randomBytes(24).toString('base64url');
     const tokenHash = this.hashLinkToken(token);
     const lifetimeMinutes =
@@ -93,6 +121,7 @@ export class WhatsappService {
         tokenHash,
         expiresAt,
         consumedAt: null,
+        label,
       }),
     );
 
@@ -101,19 +130,104 @@ export class WhatsappService {
       linkUrl: `https://wa.me/${businessPhone}?text=${encodeURIComponent(linkText)}`,
       businessPhone,
       expiresAt,
+      label,
     };
   }
 
-  async unlinkPhone(userId: string) {
+  async updatePhoneLink(
+    userId: string,
+    phoneLinkId: string,
+    dto: UpdateWaPhoneLinkDto,
+  ) {
+    const link = await this.findOwnedActivePhoneLink(userId, phoneLinkId);
+    if (dto.label !== undefined) {
+      link.label = this.normalizeLabel(dto.label, link.label);
+    }
+    if (dto.notificationsEnabled !== undefined) {
+      link.notificationsEnabled = dto.notificationsEnabled;
+    }
+    return this.serializePhoneLink(await this.phoneLinkRepo.save(link));
+  }
+
+  async setPrimaryPhone(userId: string, phoneLinkId: string) {
+    await this.phoneLinkRepo.manager.transaction(async (manager) => {
+      const userRepo = manager.getRepository(User);
+      const linkRepo = manager.getRepository(WaPhoneLink);
+      await userRepo
+        .createQueryBuilder('user')
+        .setLock('pessimistic_write')
+        .where('user.id = :userId', { userId })
+        .getOneOrFail();
+      const selected = await linkRepo.findOne({
+        where: { id: phoneLinkId, userId, revokedAt: IsNull() },
+      });
+      if (!selected) throw new NotFoundException('Nomor tidak ditemukan');
+      await linkRepo.update(
+        { userId, isPrimary: true, revokedAt: IsNull() },
+        { isPrimary: false },
+      );
+      await linkRepo.update(selected.id, { isPrimary: true });
+      await userRepo.update(userId, {
+        waPhone: selected.phone,
+        waLinkedAt: selected.linkedAt,
+      });
+    });
+    return this.getLinkStatus(userId);
+  }
+
+  async unlinkPhone(userId: string, password: string, phoneLinkId?: string) {
+    const credential = await this.userRepo.findOne({ where: { id: userId } });
+    if (!credential || !(await bcrypt.compare(password, credential.password))) {
+      throw new UnauthorizedException('Password tidak sesuai');
+    }
+    let revokedPhone: string | null = null;
+    await this.phoneLinkRepo.manager.transaction(async (manager) => {
+      const userRepo = manager.getRepository(User);
+      const linkRepo = manager.getRepository(WaPhoneLink);
+      await userRepo
+        .createQueryBuilder('user')
+        .setLock('pessimistic_write')
+        .where('user.id = :userId', { userId })
+        .getOneOrFail();
+      const target = phoneLinkId
+        ? await linkRepo.findOne({
+            where: { id: phoneLinkId, userId, revokedAt: IsNull() },
+          })
+        : await linkRepo.findOne({
+            where: { userId, isPrimary: true, revokedAt: IsNull() },
+          });
+      if (!target) throw new NotFoundException('Nomor tidak ditemukan');
+      const activeCount = await linkRepo.count({
+        where: { userId, revokedAt: IsNull() },
+      });
+      if (target.isPrimary && activeCount > 1) {
+        throw new ConflictException(
+          'Jadikan nomor lain sebagai nomor utama sebelum melepaskan nomor ini',
+        );
+      }
+      revokedPhone = target.phone;
+      await linkRepo.update(target.id, {
+        revokedAt: new Date(),
+        isPrimary: false,
+        notificationsEnabled: false,
+      });
+      const remaining = await linkRepo.find({
+        where: { userId, revokedAt: IsNull() },
+        order: { linkedAt: 'ASC' },
+      });
+      if (remaining.length === 0) {
+        await userRepo.update(userId, { waPhone: null, waLinkedAt: null });
+      }
+    });
     await this.linkChallengeRepo.delete({ userId });
-    await this.userRepo.update(userId, { waPhone: null, waLinkedAt: null });
+    if (revokedPhone) await this.sessionRepo.delete({ waPhone: revokedPhone });
   }
 
   async handleTextMessage(from: string, text: string) {
     if (await this.tryConsumeLinkChallenge(from, text)) return;
 
-    const user = await this.userRepo.findOne({ where: { waPhone: from } });
-    if (!user) {
+    const actor = await this.resolvePhoneActor(from);
+    if (!actor) {
       await this.notifier.sendText(
         from,
         '👋 Halo! Kamu belum menghubungkan nomor WA ini ke akun Money Flow.\n\n' +
@@ -121,60 +235,68 @@ export class WhatsappService {
       );
       return;
     }
+    const { user, phoneLink } = actor;
 
     const session = await this.getOrCreateSession(from);
     const trimmed = text.trim().toLowerCase();
 
     if (session.state !== 'idle') {
-      await this.handleSessionState(user, session, text);
+      await this.handleSessionState(user, session, text, from, phoneLink.id);
       return;
     }
 
     if (['saldo', 'balance'].includes(trimmed)) {
-      await this.handleSaldo(user);
+      await this.handleSaldo(user, from);
     } else if (
       ['rekap', 'laporan'].includes(trimmed) ||
       trimmed.startsWith('rekap ')
     ) {
-      await this.handleRekap(user, trimmed);
+      await this.handleRekap(user, trimmed, from);
     } else if (['hapus', 'batal', 'undo'].includes(trimmed)) {
-      await this.handleHapus(user, session);
+      await this.handleHapus(user, session, from);
     } else if (['daftar', 'list'].includes(trimmed)) {
-      await this.handleDaftar(user);
+      await this.handleDaftar(user, from);
     } else if (['budget', 'anggaran'].includes(trimmed)) {
-      await this.handleBudget(user);
+      await this.handleBudget(user, from);
     } else if (['utang', 'hutang', 'piutang'].includes(trimmed)) {
-      await this.handleUtangList(user);
+      await this.handleUtangList(user, from);
     } else if (/^(ekspor|export|unduh)(\s+(csv|xlsx))?$/.test(trimmed)) {
-      await this.handleEkspor(user, trimmed.endsWith('xlsx') ? 'xlsx' : 'csv');
+      await this.handleEkspor(
+        user,
+        trimmed.endsWith('xlsx') ? 'xlsx' : 'csv',
+        from,
+      );
     } else if (['bantuan', 'help', '?'].includes(trimmed)) {
       await this.handleBantuan(from);
     } else if (this.isDebtRecord(trimmed)) {
-      await this.handleDebtRecord(user, text);
+      await this.handleDebtRecord(user, text, from);
     } else if (this.isDebtSettle(trimmed)) {
-      await this.handleDebtSettle(user, session, text);
+      await this.handleDebtSettle(user, session, text, from);
     } else {
-      const target = await this.resolveSharedWalletTarget(user, text);
+      const target = await this.resolveSharedWalletTarget(user, text, from);
       if (target)
         await this.handleTransactionInput(
           user,
           session,
           target.text,
           target.owner,
+          from,
+          phoneLink.id,
         );
     }
   }
 
   // ── VN-01 to VN-05: voice note → transcribe → parse → confirm → save ────────
   async handleAudioMessage(from: string, audioId: string) {
-    const user = await this.userRepo.findOne({ where: { waPhone: from } });
-    if (!user) {
+    const actor = await this.resolvePhoneActor(from);
+    if (!actor) {
       await this.notifier.sendText(
         from,
         '👋 Kamu belum menghubungkan nomor WA ini. Buka Settings → WhatsApp.',
       );
       return;
     }
+    const { user } = actor;
 
     if (!this.voice.isConfigured) {
       await this.notifier.sendText(
@@ -235,8 +357,9 @@ export class WhatsappService {
 
   async handleButtonReply(from: string, replyId: string, _replyTitle: string) {
     void _replyTitle;
-    const user = await this.userRepo.findOne({ where: { waPhone: from } });
-    if (!user) return;
+    const actor = await this.resolvePhoneActor(from);
+    if (!actor) return;
+    const { user, phoneLink } = actor;
     const session = await this.getOrCreateSession(from);
 
     if (session.state === 'awaiting_confirm_delete') {
@@ -263,6 +386,7 @@ export class WhatsappService {
           user,
           { ...partial, categoryId: catId },
           from,
+          phoneLink.id,
         );
         await this.sessionRepo.update(session.id, {
           state: 'idle',
@@ -270,13 +394,25 @@ export class WhatsappService {
         });
       }
     } else if (session.state === 'awaiting_voice_confirm') {
-      await this.resolveVoiceConfirm(user, session, replyId === 'voice_save');
+      await this.resolveVoiceConfirm(
+        user,
+        session,
+        replyId === 'voice_save',
+        from,
+        phoneLink.id,
+      );
     } else if (session.state === 'awaiting_text_confirm') {
-      await this.resolveTextConfirm(user, session, replyId === 'text_save');
+      await this.resolveTextConfirm(
+        user,
+        session,
+        replyId === 'text_save',
+        from,
+        phoneLink.id,
+      );
     } else if (session.state === 'awaiting_debt_settle') {
       if (replyId.startsWith('settle_')) {
         const debtId = replyId.replace('settle_', '');
-        await this.settleDebtById(user, debtId);
+        await this.settleDebtById(user, debtId, from);
       } else {
         await this.notifier.sendText(from, '❌ Dibatalkan.');
       }
@@ -292,8 +428,9 @@ export class WhatsappService {
     user: User,
     session: WaSession,
     save: boolean,
+    from: string,
+    phoneLinkId: string,
   ) {
-    const from = user.waPhone!;
     const transactions: any[] = session.context?.transactions ?? [];
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
 
@@ -317,7 +454,7 @@ export class WhatsappService {
         tx.categoryId = fallback?.id ?? null;
       }
       if (tx.categoryId) {
-        await this.saveTransaction(user, tx, from);
+        await this.saveTransaction(user, tx, from, phoneLinkId);
         saved++;
       }
     }
@@ -339,8 +476,9 @@ export class WhatsappService {
     session: WaSession,
     text: string,
     targetOwner: User | null = null,
+    from: string,
+    phoneLinkId: string,
   ) {
-    const from = user.waPhone!;
     const categories = await this.catRepo.find({
       where: { userId: targetOwner?.id ?? user.id },
     });
@@ -413,7 +551,7 @@ export class WhatsappService {
         );
         return;
       }
-      await this.saveTransaction(user, tx, from);
+      await this.saveTransaction(user, tx, from, phoneLinkId);
       saved++;
     }
 
@@ -425,7 +563,12 @@ export class WhatsappService {
     }
   }
 
-  private async saveTransaction(user: User, tx: any, from: string) {
+  private async saveTransaction(
+    user: User,
+    tx: any,
+    from: string,
+    phoneLinkId: string,
+  ) {
     const targetOwner = tx.targetOwnerId
       ? await this.userRepo.findOne({ where: { id: tx.targetOwnerId } })
       : null;
@@ -438,6 +581,7 @@ export class WhatsappService {
       userId: targetOwner?.id ?? user.id,
       source: targetOwner ? 'shared' : 'whatsapp',
       recordedBy: user.id,
+      recordedByWaPhoneId: phoneLinkId,
     });
     await this.txRepo.save(saved);
 
@@ -448,10 +592,13 @@ export class WhatsappService {
       from,
       `✅ Tercatat: ${sign}Rp${amount} ${cat?.name ?? ''}${tx.notes ? ' • ' + tx.notes : ''}`,
     );
-    if (targetOwner?.waPhone && targetOwner.id !== user.id) {
+    if (targetOwner && targetOwner.id !== user.id) {
+      const targetPhone = await this.getPrimaryPhoneLink(targetOwner.id);
+      if (!targetPhone) return;
       await this.proactive.sendOncePerDay({
         userId: targetOwner.id,
-        to: targetOwner.waPhone,
+        to: targetPhone.phone,
+        waPhoneLinkId: targetPhone.id,
         kind: `shared_wallet_activity:${saved.id}`,
         templateName: this.config.get<string>(
           'WA_TEMPLATE_SHARED_WALLET',
@@ -470,6 +617,7 @@ export class WhatsappService {
   private async resolveSharedWalletTarget(
     user: User,
     text: string,
+    from: string,
   ): Promise<{ text: string; owner: User | null } | null> {
     const match = text.match(/^dompet\s+([^:]{1,60}):\s*(.+)$/i);
     if (!match) return { text, owner: null };
@@ -484,7 +632,7 @@ export class WhatsappService {
     );
     if (!membership?.owner) {
       await this.notifier.sendText(
-        user.waPhone!,
+        from,
         `Dompet "${match[1].trim()}" tidak ditemukan atau belum diterima.`,
       );
       return null;
@@ -496,22 +644,23 @@ export class WhatsappService {
     user: User,
     session: WaSession,
     save: boolean,
+    from: string,
+    phoneLinkId: string,
   ) {
     const transactions: any[] = session.context?.transactions ?? [];
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
     if (!save) {
       await this.notifier.sendText(
-        user.waPhone!,
+        from,
         'Dibatalkan. Kirim ulang dengan nominal, tipe, dan kategori yang lebih jelas.',
       );
       return;
     }
     for (const tx of transactions)
-      await this.saveTransaction(user, tx, user.waPhone!);
+      await this.saveTransaction(user, tx, from, phoneLinkId);
   }
 
-  private async handleSaldo(user: User) {
-    const from = user.waPhone!;
+  private async handleSaldo(user: User, from: string) {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1)
       .toISOString()
@@ -545,8 +694,7 @@ export class WhatsappService {
     );
   }
 
-  private async handleRekap(user: User, cmd: string) {
-    const from = user.waPhone!;
+  private async handleRekap(user: User, cmd: string, from: string) {
     const now = new Date();
     let start: string, end: string, label: string;
 
@@ -594,8 +742,7 @@ export class WhatsappService {
     await this.notifier.sendText(from, msg);
   }
 
-  private async handleHapus(user: User, session: WaSession) {
-    const from = user.waPhone!;
+  private async handleHapus(user: User, session: WaSession, from: string) {
     const last = await this.txRepo.findOne({
       where: { userId: user.id, source: 'whatsapp' },
       order: { createdAt: 'DESC' },
@@ -628,8 +775,7 @@ export class WhatsappService {
     );
   }
 
-  private async handleDaftar(user: User) {
-    const from = user.waPhone!;
+  private async handleDaftar(user: User, from: string) {
     const txs = await this.txRepo.find({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
@@ -652,8 +798,7 @@ export class WhatsappService {
   }
 
   // ── CMD-06: budget status per category for the current month ────────────────
-  private async handleBudget(user: User) {
-    const from = user.waPhone!;
+  private async handleBudget(user: User, from: string) {
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -707,8 +852,7 @@ export class WhatsappService {
   }
 
   // ── CMD-07: list active (unsettled) debts ───────────────────────────────────
-  private async handleUtangList(user: User) {
-    const from = user.waPhone!;
+  private async handleUtangList(user: User, from: string) {
     const debts = await this.debtRepo.find({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
@@ -757,8 +901,7 @@ export class WhatsappService {
     );
   }
 
-  private async handleDebtRecord(user: User, text: string) {
-    const from = user.waPhone!;
+  private async handleDebtRecord(user: User, text: string, from: string) {
     const lower = text.toLowerCase();
 
     // Amount
@@ -826,8 +969,12 @@ export class WhatsappService {
     );
   }
 
-  private async handleDebtSettle(user: User, session: WaSession, text: string) {
-    const from = user.waPhone!;
+  private async handleDebtSettle(
+    user: User,
+    session: WaSession,
+    text: string,
+    from: string,
+  ) {
     const lower = text.toLowerCase();
     const nameToken = lower
       .replace(/\b(udah|sudah|udh|bayar|lunas|utang|hutang|piutang)\b/g, ' ')
@@ -856,7 +1003,7 @@ export class WhatsappService {
       : active;
 
     if (matches.length === 1) {
-      await this.settleDebtById(user, matches[0].id);
+      await this.settleDebtById(user, matches[0].id, from);
       return;
     }
 
@@ -878,8 +1025,7 @@ export class WhatsappService {
     );
   }
 
-  private async settleDebtById(user: User, debtId: string) {
-    const from = user.waPhone!;
+  private async settleDebtById(user: User, debtId: string, from: string) {
     const debt = await this.debtRepo.findOne({
       where: { id: debtId, userId: user.id },
     });
@@ -897,8 +1043,7 @@ export class WhatsappService {
   }
 
   // ── CMD-09: generate a 1-hour signed CSV export link ────────────────────────
-  private async handleEkspor(user: User, format: 'csv' | 'xlsx') {
-    const from = user.waPhone!;
+  private async handleEkspor(user: User, format: 'csv' | 'xlsx', from: string) {
     const token = this.jwt.sign(
       { sub: user.id, purpose: 'wa-export' },
       { expiresIn: '1h' },
@@ -944,6 +1089,8 @@ export class WhatsappService {
     user: User,
     session: WaSession,
     text: string,
+    from: string,
+    phoneLinkId: string,
   ) {
     const expired = new Date() > session.expiresAt;
 
@@ -977,15 +1124,16 @@ export class WhatsappService {
       ].includes(t);
       if (yes || no) {
         if (session.state === 'awaiting_voice_confirm')
-          await this.resolveVoiceConfirm(user, session, yes);
-        else await this.resolveTextConfirm(user, session, yes);
+          await this.resolveVoiceConfirm(user, session, yes, from, phoneLinkId);
+        else
+          await this.resolveTextConfirm(user, session, yes, from, phoneLinkId);
         return;
       }
       // Any other text → discard the pending voice note and treat as a fresh message
     }
 
     await this.sessionRepo.update(session.id, { state: 'idle', context: null });
-    await this.handleTextMessage(user.waPhone!, text);
+    await this.handleTextMessage(from, text);
   }
 
   private async getOrCreateSession(waPhone: string): Promise<WaSession> {
@@ -1000,6 +1148,72 @@ export class WhatsappService {
       await this.sessionRepo.save(session);
     }
     return session;
+  }
+
+  private async resolvePhoneActor(
+    phone: string,
+  ): Promise<{ user: User; phoneLink: WaPhoneLink } | null> {
+    const normalized = this.normalizePhone(phone);
+    const phoneLink = await this.phoneLinkRepo.findOne({
+      where: { phone: normalized, revokedAt: IsNull() },
+      relations: { user: true },
+    });
+    if (!phoneLink?.user) return null;
+    await this.phoneLinkRepo.update(phoneLink.id, {
+      lastInboundAt: new Date(),
+    });
+    return { user: phoneLink.user, phoneLink };
+  }
+
+  async getActivePhoneOwnerId(phone: string): Promise<string | null> {
+    const link = await this.phoneLinkRepo.findOne({
+      where: { phone: this.normalizePhone(phone), revokedAt: IsNull() },
+      select: { userId: true },
+    });
+    return link?.userId ?? null;
+  }
+
+  private getPrimaryPhoneLink(userId: string): Promise<WaPhoneLink | null> {
+    return this.phoneLinkRepo.findOne({
+      where: { userId, isPrimary: true, revokedAt: IsNull() },
+    });
+  }
+
+  private async findOwnedActivePhoneLink(
+    userId: string,
+    phoneLinkId: string,
+  ): Promise<WaPhoneLink> {
+    const link = await this.phoneLinkRepo.findOne({
+      where: { id: phoneLinkId, userId, revokedAt: IsNull() },
+    });
+    if (!link) throw new NotFoundException('Nomor tidak ditemukan');
+    return link;
+  }
+
+  private serializePhoneLink(link: WaPhoneLink) {
+    return {
+      id: link.id,
+      phone: this.maskPhone(link.phone),
+      label: link.label,
+      isPrimary: link.isPrimary,
+      notificationsEnabled: link.notificationsEnabled,
+      linkedAt: link.linkedAt,
+      lastInboundAt: link.lastInboundAt,
+    };
+  }
+
+  private normalizeLabel(value: string | undefined, fallback: string): string {
+    const normalized = value?.trim().replace(/\s+/g, ' ');
+    if (!normalized) return fallback;
+    if (normalized.length > 30) {
+      throw new BadRequestException('Label maksimal 30 karakter');
+    }
+    return normalized;
+  }
+
+  private maskPhone(phone: string): string {
+    if (phone.length <= 6) return `+${phone}`;
+    return `+${phone.slice(0, 4)}${'*'.repeat(Math.max(4, phone.length - 8))}${phone.slice(-4)}`;
   }
 
   private normalizePhone(phone: string): string {
@@ -1042,10 +1256,10 @@ export class WhatsappService {
     }
 
     const normalizedFrom = this.normalizePhone(from);
-    const owner = await this.userRepo.findOne({
-      where: { waPhone: normalizedFrom },
+    const ownerLink = await this.phoneLinkRepo.findOne({
+      where: { phone: normalizedFrom, revokedAt: IsNull() },
     });
-    if (owner && owner.id !== challenge.userId) {
+    if (ownerLink && ownerLink.userId !== challenge.userId) {
       await this.notifier.sendText(
         from,
         'Nomor WhatsApp ini sudah terhubung ke akun MoneyFlow lain.',
@@ -1053,27 +1267,92 @@ export class WhatsappService {
       return true;
     }
 
-    await this.linkChallengeRepo.manager.transaction(async (manager) => {
-      const challengeRepo = manager.getRepository(WaLinkChallenge);
-      const userRepo = manager.getRepository(User);
-      const current = await challengeRepo.findOne({
-        where: { id: challenge.id },
+    try {
+      await this.linkChallengeRepo.manager.transaction(async (manager) => {
+        const challengeRepo = manager.getRepository(WaLinkChallenge);
+        const userRepo = manager.getRepository(User);
+        const phoneLinkRepo = manager.getRepository(WaPhoneLink);
+        const current = await challengeRepo
+          .createQueryBuilder('challenge')
+          .setLock('pessimistic_write')
+          .where('challenge.id = :id', { id: challenge.id })
+          .getOne();
+        if (
+          !current ||
+          current.consumedAt ||
+          current.expiresAt.getTime() <= Date.now()
+        ) {
+          throw new ConflictException(
+            'Link WhatsApp sudah digunakan atau kedaluwarsa',
+          );
+        }
+        await userRepo
+          .createQueryBuilder('user')
+          .setLock('pessimistic_write')
+          .where('user.id = :userId', { userId: current.userId })
+          .getOneOrFail();
+
+        const existing = await phoneLinkRepo.findOne({
+          where: { phone: normalizedFrom, revokedAt: IsNull() },
+        });
+        if (existing && existing.userId !== current.userId) {
+          throw new ConflictException(
+            'Nomor WhatsApp ini sudah terhubung ke akun MoneyFlow lain',
+          );
+        }
+        if (!existing) {
+          const activeCount = await phoneLinkRepo.count({
+            where: { userId: current.userId, revokedAt: IsNull() },
+          });
+          if (activeCount >= MAX_WHATSAPP_NUMBERS) {
+            throw new ConflictException(
+              `Maksimal ${MAX_WHATSAPP_NUMBERS} nomor WhatsApp per akun`,
+            );
+          }
+          const linkedAt = new Date();
+          const isPrimary = activeCount === 0;
+          await phoneLinkRepo.save(
+            phoneLinkRepo.create({
+              userId: current.userId,
+              phone: normalizedFrom,
+              label: this.normalizeLabel(
+                current.label ?? undefined,
+                isPrimary ? 'Utama' : `Nomor ${activeCount + 1}`,
+              ),
+              isPrimary,
+              notificationsEnabled: isPrimary,
+              linkedAt,
+              lastInboundAt: linkedAt,
+              revokedAt: null,
+            }),
+          );
+          if (isPrimary) {
+            await userRepo.update(current.userId, {
+              waPhone: normalizedFrom,
+              waLinkedAt: linkedAt,
+            });
+          }
+        }
+        await challengeRepo.update(current.id, { consumedAt: new Date() });
       });
+    } catch (error) {
+      const databaseError = error as {
+        code?: string;
+        driverError?: { code?: string };
+      };
       if (
-        !current ||
-        current.consumedAt ||
-        current.expiresAt.getTime() <= Date.now()
+        error instanceof ConflictException ||
+        databaseError.code === '23505' ||
+        databaseError.driverError?.code === '23505'
       ) {
-        throw new ConflictException(
-          'Link WhatsApp sudah digunakan atau kedaluwarsa',
+        await this.notifier.sendText(
+          normalizedFrom,
+          'Link tidak dapat digunakan. Nomor mungkin sudah terhubung atau kapasitas akun telah penuh.',
         );
+        return true;
       }
-      await userRepo.update(current.userId, {
-        waPhone: normalizedFrom,
-        waLinkedAt: new Date(),
-      });
-      await challengeRepo.update(current.id, { consumedAt: new Date() });
-    });
+      throw error;
+    }
 
     await this.notifier.sendText(
       normalizedFrom,

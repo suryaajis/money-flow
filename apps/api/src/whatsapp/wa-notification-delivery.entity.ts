@@ -8,7 +8,12 @@ import {
 } from 'typeorm';
 
 @Entity('wa_notification_deliveries')
-@Unique('UQ_wa_notification_user_date_kind', ['userId', 'deliveryDate', 'kind'])
+@Unique('UQ_wa_notification_destination_date_kind', [
+  'userId',
+  'deliveryDate',
+  'kind',
+  'destinationKey',
+])
 export class WaNotificationDelivery {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,6 +26,12 @@ export class WaNotificationDelivery {
 
   @Column({ type: 'varchar', length: 50 })
   kind: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  waPhoneLinkId: string | null;
+
+  @Column({ type: 'varchar', length: 64, default: 'primary' })
+  destinationKey: string;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
   status: 'pending' | 'sent' | 'failed';

@@ -201,11 +201,13 @@ export class WaNotifierService {
     metadata: SendMetadata,
   ): Promise<WaSendResult> {
     if (!/^\d{8,15}$/.test(to)) {
-      throw new WaApiError(`Nomor tujuan WhatsApp tidak valid: ${to}`);
+      throw new WaApiError(
+        `Nomor tujuan WhatsApp tidak valid: ${this.maskPhone(to)}`,
+      );
     }
     if (!this.token || !this.phoneNumberId) {
       this.logger.warn(
-        `[DEV] WhatsApp ${metadata.messageType} message queued for ${to}`,
+        `[DEV] WhatsApp ${metadata.messageType} message queued for ${this.maskPhone(to)}`,
       );
       return { messageId: null, accepted: false, devMode: true };
     }
@@ -275,6 +277,12 @@ export class WaNotifierService {
     throw lastError instanceof Error
       ? lastError
       : new WaApiError('Pengiriman WhatsApp gagal');
+  }
+
+  private maskPhone(phone: string): string {
+    const normalized = phone.replace(/\D/g, '');
+    if (normalized.length <= 6) return '***';
+    return `${normalized.slice(0, 4)}***${normalized.slice(-4)}`;
   }
 
   private async recordAcceptedMessage(

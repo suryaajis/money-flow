@@ -10,6 +10,7 @@ import {
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
 import { numericTransformer } from '../database/numeric.transformer';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
 @Entity('transactions')
 export class Transaction {
@@ -50,6 +51,13 @@ export class Transaction {
 
   @Column({ type: 'uuid', nullable: true })
   recordedBy: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  recordedByWaPhoneId: string | null;
+
+  @ManyToOne(() => WaPhoneLink, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'recordedByWaPhoneId' })
+  recordedByWaPhone: WaPhoneLink | null;
 
   @Column({ type: 'uuid', nullable: true })
   clientMutationId: string | null;

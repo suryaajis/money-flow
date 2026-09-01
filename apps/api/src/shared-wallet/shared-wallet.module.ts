@@ -7,10 +7,11 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { SharedWalletService } from './shared-wallet.service';
 import { SharedWalletController } from './shared-wallet.controller';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WalletMember, User, Category]),
+    TypeOrmModule.forFeature([WalletMember, User, Category, WaPhoneLink]),
     TransactionsModule,
     WhatsappModule, // provides WaNotifierService for owner activity notifications
   ],

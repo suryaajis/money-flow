@@ -1,5 +1,11 @@
 # WhatsApp Production Setup — MoneyFlow
 
+> Membership quota, distributed rate limit, dan outbound cost guard v1.7
+> dijelaskan di [`WHATSAPP-RATE-LIMITS.md`](./WHATSAPP-RATE-LIMITS.md).
+> Kebijakan pricing Meta dan biaya platform Kirimdev dijelaskan terpisah di
+> [`WHATSAPP-PRICING-META.md`](./WHATSAPP-PRICING-META.md). Rate dan harga wajib
+> diverifikasi ulang sebelum production launch.
+
 Dokumen ini adalah checklist deployment integrasi Meta WhatsApp Cloud API untuk
 MoneyFlow. Balasan terhadap chat pengguna memakai pesan biasa selama customer
 service window 24 jam. Semua pesan yang dimulai sistem memakai template Utility
@@ -144,6 +150,12 @@ Migration production hardening menambahkan:
 - audit status outbound berdasarkan `wamid`;
 - delivery gate unik per pengguna dan tanggal Jakarta.
 
+Migration v1.5 `WhatsappMultiNumber1788307200000` menambahkan
+`wa_phone_links`, memigrasikan `users.waPhone` sebagai nomor primary,
+menambahkan audit `transactions.recordedByWaPhoneId`, dan mengubah delivery
+gate menjadi unik per event dan destination. Kolom legacy tetap dipertahankan
+sementara sebagai mirror nomor primary untuk rollback aman.
+
 ## 4. Webhook Meta
 
 Gunakan callback berikut dan subscribe field `messages`:
@@ -161,13 +173,17 @@ belum dikonfigurasi.
 
 Pengguna tidak lagi mengetik nomor yang langsung dipercaya sistem:
 
-1. Pengguna memilih **Buat Link WhatsApp** di Settings.
+1. Pengguna memilih **Tambah nomor** dan memberi label di Settings.
 2. API membuat token acak, menyimpan SHA-256 token, dan memberi masa berlaku 10 menit.
 3. Pengguna membuka link dan mengirim pesan `HUBUNGKAN <token>` dari WhatsApp miliknya.
-4. Webhook mengikat akun ke nomor `from` yang diberikan Meta.
+4. Webhook mengikat akun ke nomor `from` yang diberikan Meta. Batas tiga nomor
+   diperiksa lagi di transaction dengan row lock user.
 5. Token ditandai sudah digunakan dan tidak dapat dipakai ulang.
 
 Pesan linking dari pengguna sekaligus membuka customer service window 24 jam.
+Semua nomor aktif dirutekan melalui `wa_phone_links`; sesi tetap keyed per nomor.
+Revoke membutuhkan password akun. Nomor primary hanya dapat direvoke jika ia
+nomor terakhir, atau setelah primary dipindahkan lebih dahulu.
 
 ## 6. Perilaku pengiriman
 
@@ -178,7 +194,11 @@ Pesan linking dari pengguna sekaligus membuka customer service window 24 jam.
 - Respons sukses harus mengandung ID `wamid`.
 - Webhook status memperbarui `accepted`, `sent`, `delivered`, `read`, atau `failed`.
 - Message ID inbound disimpan sebelum diproses agar retry Meta tidak menduplikasi transaksi.
-- Maksimal satu notifikasi proaktif per pengguna per tanggal `Asia/Jakarta`.
+- Maksimal satu notifikasi proaktif per event, pengguna, destination, dan tanggal
+  `Asia/Jakarta`.
+- Sebelum mengirim template, destination phone link dicek ulang masih aktif.
+- Primary menerima notifikasi secara default; nomor tambahan harus opt-in dan
+  kegagalan satu destination tidak menghentikan destination lain.
 
 Pesan inbound yang gagal diproses ditandai `failed` dan tidak direplay otomatis,
 karena transaksi mungkin sudah tersimpan sebelum pengiriman balasan gagal. Pengguna

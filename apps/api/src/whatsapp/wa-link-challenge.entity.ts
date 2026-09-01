@@ -24,6 +24,9 @@ export class WaLinkChallenge {
   @Column({ type: 'timestamp', nullable: true })
   consumedAt: Date | null;
 
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  label: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

@@ -8,10 +8,18 @@ import { Debt } from '../debts/debt.entity';
 import { WhatsappModule } from './whatsapp.module';
 import { WaNotificationsService } from './wa-notifications.service';
 import { NotificationSettingsController } from './notification-settings.controller';
+import { WaPhoneLink } from './wa-phone-link.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Transaction, Category, Budget, Debt]),
+    TypeOrmModule.forFeature([
+      User,
+      Transaction,
+      Category,
+      Budget,
+      Debt,
+      WaPhoneLink,
+    ]),
     WhatsappModule, // provides WaNotifierService
   ],
   controllers: [NotificationSettingsController],

@@ -40,6 +40,12 @@ export class WalletMember {
   @Column({ type: 'varchar', nullable: true, length: 64 })
   inviteToken: string | null;
 
+  @Column({ type: 'varchar', nullable: true, length: 64, unique: true })
+  inviteTokenHash: string | null;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  inviteExpiresAt: Date | null;
+
   @Column({ nullable: true, type: 'timestamp' })
   acceptedAt: Date | null;
 

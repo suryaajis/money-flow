@@ -7,12 +7,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { WalletMember } from './wallet-member.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
 import { CreateTransactionDto } from '../transactions/dto/create-transaction.dto';
+import { TransactionsService } from '../transactions/transactions.service';
 import { WaProactiveNotificationService } from '../whatsapp/wa-proactive-notification.service';
 import { WA_TEMPLATE_DEFAULT_NAMES } from '../whatsapp/wa-template-definitions';
 
@@ -22,8 +23,8 @@ export class SharedWalletService {
     @InjectRepository(WalletMember)
     private memberRepo: Repository<WalletMember>,
     @InjectRepository(User) private userRepo: Repository<User>,
-    @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
+    private transactions: TransactionsService,
     private proactive: WaProactiveNotificationService,
     private config: ConfigService,
   ) {}
@@ -46,38 +47,90 @@ export class SharedWalletService {
     });
   }
 
-  async inviteByEmail(
+  async inviteByPhone(
     ownerUserId: string,
-    email: string,
+    phone: string,
   ): Promise<WalletMember> {
+    const normalizedPhone = this.normalizePhone(phone);
+    if (!/^62\d{8,13}$/.test(normalizedPhone)) {
+      throw new ConflictException('Nomor WhatsApp tidak valid');
+    }
     const existing = await this.memberRepo.findOne({
-      where: { ownerUserId, memberEmail: email },
+      where: { ownerUserId, memberWaPhone: normalizedPhone },
     });
-    if (existing) throw new ConflictException('Already invited this email');
+    if (existing) throw new ConflictException('Nomor ini sudah diundang');
 
-    const invitee = await this.userRepo.findOne({ where: { email } });
-    const token = randomBytes(32).toString('hex');
+    const [invitee, owner] = await Promise.all([
+      this.userRepo.findOne({ where: { waPhone: normalizedPhone } }),
+      this.userRepo.findOne({ where: { id: ownerUserId } }),
+    ]);
+    if (!invitee)
+      throw new NotFoundException(
+        'Nomor WhatsApp belum terdaftar di MoneyFlow',
+      );
+    if (invitee.id === ownerUserId)
+      throw new ConflictException('Tidak dapat mengundang diri sendiri');
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashToken(token);
 
     const member = this.memberRepo.create({
       ownerUserId,
-      memberEmail: email,
-      memberUserId: invitee?.id ?? null,
-      memberWaPhone: null,
-      inviteToken: token,
-      acceptedAt: invitee ? null : null,
+      memberEmail: invitee.email,
+      memberUserId: invitee.id,
+      memberWaPhone: normalizedPhone,
+      inviteToken: null,
+      inviteTokenHash: tokenHash,
+      inviteExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      acceptedAt: null,
     });
-    return this.memberRepo.save(member);
+    const saved = await this.memberRepo.save(member);
+    const webUrl = this.config
+      .get<string>('PUBLIC_WEB_URL', 'http://localhost:3000')
+      .replace(/\/$/, '');
+    await this.proactive.sendOncePerDay({
+      userId: invitee.id,
+      to: normalizedPhone,
+      kind: `shared_invite:${saved.id}`,
+      templateName: this.config.get<string>(
+        'WA_TEMPLATE_SHARED_INVITE',
+        WA_TEMPLATE_DEFAULT_NAMES.sharedInvite,
+      ),
+      bodyParameters: [
+        owner?.name ?? 'Seseorang',
+        `${webUrl}/settings/shared-wallet?token=${encodeURIComponent(token)}`,
+      ],
+    });
+    saved.inviteTokenHash = null;
+    return saved;
   }
 
   async acceptInvite(token: string, userId: string): Promise<WalletMember> {
     const invite = await this.memberRepo.findOne({
-      where: { inviteToken: token },
+      where: { inviteTokenHash: this.hashToken(token) },
     });
-    if (!invite) throw new NotFoundException('Invalid or expired invite token');
+    if (
+      !invite ||
+      !invite.inviteExpiresAt ||
+      invite.inviteExpiresAt.getTime() <= Date.now()
+    ) {
+      throw new NotFoundException('Invalid or expired invite token');
+    }
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (
+      !user?.waPhone ||
+      user.waPhone !== invite.memberWaPhone ||
+      invite.memberUserId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Undangan ini ditujukan untuk nomor WhatsApp lain',
+      );
+    }
 
     invite.memberUserId = userId;
     invite.acceptedAt = new Date();
     invite.inviteToken = null;
+    invite.inviteTokenHash = null;
+    invite.inviteExpiresAt = null;
     return this.memberRepo.save(invite);
   }
 
@@ -128,13 +181,11 @@ export class SharedWalletService {
   ): Promise<Transaction> {
     await this.assertAcceptedMember(memberUserId, ownerUserId);
 
-    const tx = this.txRepo.create({
-      ...dto,
-      userId: ownerUserId,
-      source: 'shared',
-      recordedBy: memberUserId,
-    });
-    const saved = await this.txRepo.save(tx);
+    const saved = await this.transactions.createForSharedWallet(
+      ownerUserId,
+      memberUserId,
+      dto,
+    );
 
     // SHARE-06: notify the owner that a member recorded something (fire-and-forget).
     void this.notifyOwnerOfActivity(ownerUserId, memberUserId, saved).catch(
@@ -152,7 +203,9 @@ export class SharedWalletService {
     const [owner, member, category] = await Promise.all([
       this.userRepo.findOne({ where: { id: ownerUserId } }),
       this.userRepo.findOne({ where: { id: memberUserId } }),
-      this.catRepo.findOne({ where: { id: tx.categoryId } }),
+      tx.categoryId
+        ? this.catRepo.findOne({ where: { id: tx.categoryId } })
+        : Promise.resolve(null),
     ]);
     if (!owner?.waPhone) return;
     const sign = tx.type === 'income' ? '+' : '-';
@@ -160,7 +213,7 @@ export class SharedWalletService {
     await this.proactive.sendOncePerDay({
       userId: owner.id,
       to: owner.waPhone,
-      kind: 'shared_wallet_activity',
+      kind: `shared_wallet_activity:${tx.id}`,
       templateName: this.config.get<string>(
         'WA_TEMPLATE_SHARED_WALLET',
         WA_TEMPLATE_DEFAULT_NAMES.sharedWallet,
@@ -172,6 +225,17 @@ export class SharedWalletService {
         tx.notes || '-',
       ],
     });
+  }
+
+  private normalizePhone(phone: string): string {
+    let value = phone.replace(/\D/g, '');
+    if (value.startsWith('0')) value = `62${value.slice(1)}`;
+    if (!value.startsWith('62')) value = `62${value}`;
+    return value;
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   /**

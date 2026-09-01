@@ -21,6 +21,7 @@ import { WhatsappController } from './whatsapp.controller';
 import { WhatsappSettingsController } from './whatsapp.controller.settings';
 import { ExportController } from './export.controller';
 import { WaProactiveNotificationService } from './wa-proactive-notification.service';
+import { WalletMember } from '../shared-wallet/wallet-member.entity';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { WaProactiveNotificationService } from './wa-proactive-notification.serv
       Category,
       Budget,
       Debt,
+      WalletMember,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

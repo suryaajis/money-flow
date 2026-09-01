@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -12,7 +11,6 @@ import { NotificationSettingsController } from './notification-settings.controll
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([User, Transaction, Category, Budget, Debt]),
     WhatsappModule, // provides WaNotifierService
   ],

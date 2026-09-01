@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 @Entity('wa_notification_deliveries')
-@Unique('UQ_wa_notification_user_date', ['userId', 'deliveryDate'])
+@Unique('UQ_wa_notification_user_date_kind', ['userId', 'deliveryDate', 'kind'])
 export class WaNotificationDelivery {
   @PrimaryGeneratedColumn('uuid')
   id: string;

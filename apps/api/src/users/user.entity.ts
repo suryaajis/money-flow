@@ -41,6 +41,21 @@ export class User {
   @Column({ type: 'boolean', default: false })
   notifyDebtDue: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  notifyDailyInput: boolean;
+
+  @Column({ type: 'varchar', length: 5, default: '20:00' })
+  dailyInputTime: string;
+
+  @Column({ type: 'boolean', default: false })
+  webPushReminderEnabled: boolean;
+
+  @Column({ type: 'varchar', length: 5, default: '20:00' })
+  webPushReminderTime: string;
+
+  @Column({ type: 'simple-array', default: '0,1,2,3,4,5,6' })
+  webPushReminderDays: string[];
+
   @CreateDateColumn()
   createdAt: Date;
 

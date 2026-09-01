@@ -25,6 +25,10 @@ import type { WaInboundMessage, WaWebhookBody } from './wa-meta.types';
 export class WhatsappController {
   private readonly logger = new Logger(WhatsappController.name);
   private readonly appSecret: string;
+  private readonly rateBuckets = new Map<
+    string,
+    { count: number; resetAt: number }
+  >();
 
   constructor(
     private readonly config: ConfigService,
@@ -86,6 +90,16 @@ export class WhatsappController {
   ) {
     this.verifyPostSignature(req);
 
+    if (
+      !this.consumeRate(
+        `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`,
+        120,
+      )
+    ) {
+      this.logger.warn('WhatsApp webhook IP rate limit reached');
+      return { status: 'rate_limited' };
+    }
+
     const changes = (body.entry ?? []).flatMap((entry) => entry.changes ?? []);
     for (const change of changes) {
       const value = change?.value;
@@ -132,6 +146,13 @@ export class WhatsappController {
     const from = typeof message.from === 'string' ? message.from : null;
     if (!messageId || !from) {
       this.logger.warn('Ignoring WhatsApp webhook message without id/from');
+      return;
+    }
+    if (!this.consumeRate(`phone:${from}`, 30)) {
+      await this.notifier.sendText(
+        from,
+        'Terlalu banyak pesan dalam satu menit. Tunggu sebentar lalu coba lagi.',
+      );
       return;
     }
 
@@ -193,5 +214,20 @@ export class WhatsappController {
       return false;
     }
     return (record.driverError as Record<string, unknown>).code === '23505';
+  }
+
+  private consumeRate(key: string, limit: number): boolean {
+    const now = Date.now();
+    const bucket = this.rateBuckets.get(key);
+    if (!bucket || bucket.resetAt <= now) {
+      this.rateBuckets.set(key, { count: 1, resetAt: now + 60_000 });
+      return true;
+    }
+    bucket.count += 1;
+    if (this.rateBuckets.size > 10_000) {
+      for (const [entryKey, entry] of this.rateBuckets)
+        if (entry.resetAt <= now) this.rateBuckets.delete(entryKey);
+    }
+    return bucket.count <= limit;
   }
 }

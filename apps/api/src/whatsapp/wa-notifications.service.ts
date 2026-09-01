@@ -29,6 +29,46 @@ export class WaNotificationsService {
     return new Intl.NumberFormat('id-ID').format(n);
   }
 
+  @Cron('* * * * *', { timeZone: 'Asia/Jakarta' })
+  async sendDailyInputReminders(now = new Date()): Promise<void> {
+    const time = now.toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    const users = (
+      await this.userRepo.find({ where: { notifyDailyInput: true } })
+    ).filter((user) => !!user.waPhone && user.dailyInputTime === time);
+    for (const user of users) {
+      try {
+        const count = await this.txRepo.count({
+          where: { userId: user.id, date: today },
+        });
+        if (count > 0) continue;
+        await this.proactive.sendOncePerDay(
+          {
+            userId: user.id,
+            to: user.waPhone!,
+            kind: 'daily_input',
+            templateName: this.config.get<string>(
+              'WA_TEMPLATE_DAILY_INPUT',
+              WA_TEMPLATE_DEFAULT_NAMES.dailyInput,
+            ),
+            bodyParameters: [],
+          },
+          now,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Daily input reminder failed for user ${user.id}`,
+          error as Error,
+        );
+      }
+    }
+  }
+
   @Cron('0 8 1 * *', { timeZone: 'Asia/Jakarta' })
   async sendMonthlyRecaps(now = new Date()): Promise<void> {
     const users = (
@@ -82,8 +122,8 @@ export class WaNotificationsService {
             to: user.waPhone!,
             kind: 'monthly_recap',
             templateName: this.config.get<string>(
-                'WA_TEMPLATE_MONTHLY_RECAP',
-                WA_TEMPLATE_DEFAULT_NAMES.monthlyRecap,
+              'WA_TEMPLATE_MONTHLY_RECAP',
+              WA_TEMPLATE_DEFAULT_NAMES.monthlyRecap,
             ),
             bodyParameters: [
               label,
@@ -135,6 +175,7 @@ export class WaNotificationsService {
         ]);
         const spentByCategory = new Map<string, number>();
         for (const tx of transactions) {
+          if (!tx.categoryId) continue;
           spentByCategory.set(
             tx.categoryId,
             (spentByCategory.get(tx.categoryId) ?? 0) + Number(tx.amount),

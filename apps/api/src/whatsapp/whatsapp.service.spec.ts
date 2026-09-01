@@ -37,11 +37,13 @@ describe('WhatsappService linking', () => {
       {} as any,
       {} as any,
       challengeRepo as any,
+      {} as any,
       notifier as any,
       {} as any,
       {} as any,
       {} as any,
       config as any,
+      {} as any,
     );
   }
 

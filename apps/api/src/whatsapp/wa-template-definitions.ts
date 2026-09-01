@@ -12,9 +12,30 @@ export const WA_TEMPLATE_DEFAULT_NAMES = {
   overBudget: 'moneyflow_budget_alert',
   debtDue: 'moneyflow_debt_due',
   sharedWallet: 'moneyflow_shared_wallet_activity',
+  dailyInput: 'moneyflow_daily_input_reminder',
+  sharedInvite: 'moneyflow_shared_wallet_invite',
 } as const;
 
 export const WA_TEMPLATE_DEFINITIONS: readonly WaTemplateDefinition[] = [
+  {
+    envKey: 'WA_TEMPLATE_DAILY_INPUT',
+    defaultName: WA_TEMPLATE_DEFAULT_NAMES.dailyInput,
+    language: 'id',
+    category: 'UTILITY',
+    body: 'Belum ada transaksi MoneyFlow hari ini. Catat sekarang agar rekapmu tetap lengkap.',
+    examples: [],
+  },
+  {
+    envKey: 'WA_TEMPLATE_SHARED_INVITE',
+    defaultName: WA_TEMPLATE_DEFAULT_NAMES.sharedInvite,
+    language: 'id',
+    category: 'UTILITY',
+    body: '{{1}} mengundangmu ke dompet bersama MoneyFlow. Buka tautan ini sebelum kedaluwarsa: {{2}}.',
+    examples: [
+      'Surya',
+      'https://moneyflow.example/shared-wallet?token=example',
+    ],
+  },
   {
     envKey: 'WA_TEMPLATE_MONTHLY_RECAP',
     defaultName: WA_TEMPLATE_DEFAULT_NAMES.monthlyRecap,

@@ -165,3 +165,33 @@ self.addEventListener("fetch", (event) => {
   // API / everything else: network-first.
   event.respondWith(networkFirst(request, RUNTIME));
 });
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data?.json() ?? {};
+  } catch {
+    payload = { body: event.data?.text() };
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Money Flow", {
+      body: payload.body || "Ada pengingat baru dari Money Flow.",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: payload.tag || "money-flow-push",
+      data: { url: payload.url || "/dashboard" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/dashboard", self.location.origin).href;
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const existing = windows.find((client) => client.url === target);
+      if (existing) return existing.focus();
+      return clients.openWindow(target);
+    }),
+  );
+});

@@ -4,6 +4,7 @@ import {
   EntityManager,
   EntityTarget,
   ObjectLiteral,
+  IsNull,
 } from 'typeorm';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
@@ -12,9 +13,10 @@ import { RecurringTransaction } from '../recurring/recurring-transaction.entity'
 import { Debt } from '../debts/debt.entity';
 import { WalletMember } from '../shared-wallet/wallet-member.entity';
 import { User } from '../users/user.entity';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
-export interface BackupV2 {
-  version: 2;
+export interface BackupData {
+  version: 2 | 3;
   exportedAt: string;
   transactions: Partial<Transaction>[];
   categories: Partial<Category>[];
@@ -22,6 +24,14 @@ export interface BackupV2 {
   recurrings: Partial<RecurringTransaction>[];
   debts: Partial<Debt>[];
   sharedWalletMembers: Partial<WalletMember>[];
+  whatsappNumbers?: Array<{
+    phoneMasked: string;
+    label: string;
+    isPrimary: boolean;
+    notificationsEnabled: boolean;
+    linkedAt: string;
+    lastInboundAt: string | null;
+  }>;
   preferences: {
     notifyMonthlyRecap: boolean;
     notifyOverBudget: boolean;
@@ -35,7 +45,7 @@ export interface BackupV2 {
 export class BackupService {
   constructor(private readonly dataSource: DataSource) {}
 
-  async export(userId: string): Promise<BackupV2> {
+  async export(userId: string): Promise<BackupData> {
     const manager = this.dataSource.manager;
     const [
       transactions,
@@ -44,6 +54,7 @@ export class BackupService {
       recurrings,
       debts,
       members,
+      phoneLinks,
       user,
     ] = await Promise.all([
       manager.find(Transaction, { where: { userId } }),
@@ -52,11 +63,15 @@ export class BackupService {
       manager.find(RecurringTransaction, { where: { userId } }),
       manager.find(Debt, { where: { userId } }),
       manager.find(WalletMember, { where: { ownerUserId: userId } }),
+      manager.find(WaPhoneLink, {
+        where: { userId, revokedAt: IsNull() },
+        order: { isPrimary: 'DESC', linkedAt: 'ASC' },
+      }),
       manager.findOne(User, { where: { id: userId } }),
     ]);
 
     return {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       transactions,
       categories,
@@ -67,6 +82,14 @@ export class BackupService {
         ...member,
         inviteToken: null,
         inviteTokenHash: null,
+      })),
+      whatsappNumbers: phoneLinks.map((link) => ({
+        phoneMasked: this.maskPhone(link.phone),
+        label: link.label,
+        isPrimary: link.isPrimary,
+        notificationsEnabled: link.notificationsEnabled,
+        linkedAt: link.linkedAt.toISOString(),
+        lastInboundAt: link.lastInboundAt?.toISOString() ?? null,
       })),
       preferences: {
         notifyMonthlyRecap: user?.notifyMonthlyRecap ?? false,
@@ -92,7 +115,7 @@ export class BackupService {
     );
   }
 
-  private validate(raw: unknown): BackupV2 {
+  private validate(raw: unknown): BackupData {
     if (!raw || typeof raw !== 'object') {
       throw new BadRequestException('Backup harus berupa object JSON');
     }
@@ -106,10 +129,13 @@ export class BackupService {
       'sharedWalletMembers',
     ];
     if (
-      value.version !== 2 ||
+      ![2, 3].includes(Number(value.version)) ||
       arrays.some((key) => !Array.isArray(value[key]))
     ) {
-      throw new BadRequestException('Format backup v2 tidak valid');
+      throw new BadRequestException('Format backup tidak valid');
+    }
+    if (value.version === 3 && !Array.isArray(value.whatsappNumbers)) {
+      throw new BadRequestException('Metadata WhatsApp backup tidak valid');
     }
     if (!value.preferences || typeof value.preferences !== 'object') {
       throw new BadRequestException('Preferences backup tidak valid');
@@ -125,13 +151,13 @@ export class BackupService {
         throw new BadRequestException('Data transaksi backup tidak valid');
       }
     }
-    return value as unknown as BackupV2;
+    return value as unknown as BackupData;
   }
 
   private async restore(
     manager: EntityManager,
     userId: string,
-    data: BackupV2,
+    data: BackupData,
     mode: 'merge' | 'replace',
   ): Promise<{ imported: number }> {
     if (mode === 'replace') {
@@ -190,6 +216,7 @@ export class BackupService {
       userId,
       (row) => ({
         ...row,
+        recordedByWaPhoneId: null,
         categoryId: row.categoryId
           ? (categoryMap.get(String(row.categoryId)) ?? null)
           : null,
@@ -221,13 +248,22 @@ export class BackupService {
 
     for (const source of data.sharedWalletMembers) {
       if (!source.memberWaPhone && !source.memberEmail) continue;
-      const member = source.memberWaPhone
-        ? await manager.findOne(User, {
-            where: { waPhone: source.memberWaPhone },
+      const memberLink = source.memberWaPhone
+        ? await manager.findOne(WaPhoneLink, {
+            where: {
+              phone: source.memberWaPhone,
+              revokedAt: IsNull(),
+            },
+            relations: { user: true },
           })
-        : await manager.findOne(User, {
-            where: { email: source.memberEmail! },
-          });
+        : null;
+      const member = memberLink?.user
+        ? memberLink.user
+        : source.memberEmail
+          ? await manager.findOne(User, {
+              where: { email: source.memberEmail },
+            })
+          : null;
       const duplicate = source.memberWaPhone
         ? await manager.findOne(WalletMember, {
             where: { ownerUserId: userId, memberWaPhone: source.memberWaPhone },
@@ -299,5 +335,10 @@ export class BackupService {
     for (const key of ['user', 'category', 'owner', 'member', 'transactions'])
       delete row[key];
     return row;
+  }
+
+  private maskPhone(phone: string): string {
+    if (phone.length <= 6) return `+${phone}`;
+    return `+${phone.slice(0, 4)}${'*'.repeat(Math.max(4, phone.length - 8))}${phone.slice(-4)}`;
   }
 }

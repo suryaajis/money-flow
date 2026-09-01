@@ -7,15 +7,15 @@ import {
   removeMutation,
   removeQueuedCreate,
   updateQueuedCreate,
-} from '@/lib/offlineTransactions';
+} from "@/lib/offlineTransactions";
 
 export type { Transaction, Category };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('mf:token');
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("mf:token");
 }
 
 /**
@@ -25,24 +25,21 @@ function getToken(): string | null {
  * against an invalid session. Guarded so we don't loop when already on /login.
  */
 function handleStaleSession(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('mf:token');
-  localStorage.removeItem('mf:auth');
-  if (window.location.pathname !== '/login') {
-    window.location.replace('/login');
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("mf:token");
+  localStorage.removeItem("mf:auth");
+  if (window.location.pathname !== "/login") {
+    window.location.replace("/login");
   }
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
@@ -53,7 +50,10 @@ async function request<T>(
     if (res.status === 401 && token) handleStaleSession();
     const body = await res.json().catch(() => ({}));
     const message = body?.message ?? `HTTP ${res.status}`;
-    throw new ApiError(res.status, Array.isArray(message) ? message.join(', ') : message);
+    throw new ApiError(
+      res.status,
+      Array.isArray(message) ? message.join(", ") : message,
+    );
   }
 
   if (res.status === 204) return undefined as T;
@@ -84,30 +84,47 @@ export interface AuthResponse {
 
 export const authApi = {
   register: (data: { email: string; name: string; password: string }) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    request<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   login: (data: { email: string; password: string }) =>
-    request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    request<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  me: () => request<AuthUser>('/auth/me'),
+  me: () => request<AuthUser>("/auth/me"),
 
   forgotPassword: (email: string) =>
-    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    request<{ message: string }>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
 
   resetPassword: (token: string, password: string) =>
-    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+    request<{ message: string }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
 };
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
 export const profileApi = {
-  get: () => request<AuthUser>('/users/profile'),
+  get: () => request<AuthUser>("/users/profile"),
   updateName: (name: string) =>
-    request<AuthUser>('/users/profile', { method: 'PUT', body: JSON.stringify({ name }) }),
+    request<AuthUser>("/users/profile", {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    }),
   changePassword: (oldPassword: string, newPassword: string) =>
-    request<void>('/users/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
-  deleteAccount: () =>
-    request<void>('/users/account', { method: 'DELETE' }),
+    request<void>("/users/password", {
+      method: "PUT",
+      body: JSON.stringify({ oldPassword, newPassword }),
+    }),
+  deleteAccount: () => request<void>("/users/account", { method: "DELETE" }),
 };
 
 // ── Budgets ───────────────────────────────────────────────────────────────────
@@ -115,22 +132,33 @@ export const profileApi = {
 export interface ApiBudget {
   id: string;
   categoryId: string;
-  category: { id: string; name: string; color: string; icon: string; type: string };
+  category: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    type: string;
+  };
   amount: number;
   month: string;
 }
 
 export const budgetsApi = {
   getAll: (month?: string) => {
-    const qs = month ? `?month=${month}` : '';
+    const qs = month ? `?month=${month}` : "";
     return request<ApiBudget[]>(`/budgets${qs}`);
   },
   upsert: (data: { categoryId: string; amount: number; month: string }) =>
-    request<ApiBudget>('/budgets', { method: 'POST', body: JSON.stringify(data) }),
-  delete: (id: string) =>
-    request<void>(`/budgets/${id}`, { method: 'DELETE' }),
+    request<ApiBudget>("/budgets", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) => request<void>(`/budgets/${id}`, { method: "DELETE" }),
   copyPrevious: (month: string) =>
-    request<ApiBudget[]>('/budgets/copy-previous', { method: 'POST', body: JSON.stringify({ month }) }),
+    request<ApiBudget[]>("/budgets/copy-previous", {
+      method: "POST",
+      body: JSON.stringify({ month }),
+    }),
 };
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -138,13 +166,19 @@ export const budgetsApi = {
 export type ApiCategory = Category;
 
 export const categoriesApi = {
-  getAll: () => request<ApiCategory[]>('/categories'),
-  create: (data: Omit<ApiCategory, 'id' | 'isDefault'>) =>
-    request<ApiCategory>('/categories', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: Partial<Omit<ApiCategory, 'id' | 'isDefault'>>) =>
-    request<ApiCategory>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getAll: () => request<ApiCategory[]>("/categories"),
+  create: (data: Omit<ApiCategory, "id" | "isDefault">) =>
+    request<ApiCategory>("/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Omit<ApiCategory, "id" | "isDefault">>) =>
+    request<ApiCategory>(`/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   delete: (id: string) =>
-    request<void>(`/categories/${id}`, { method: 'DELETE' }),
+    request<void>(`/categories/${id}`, { method: "DELETE" }),
 };
 
 // ── Transactions ──────────────────────────────────────────────────────────────
@@ -160,22 +194,30 @@ export interface TransactionFiltersApi {
   endDate?: string;
 }
 
-type TransactionWrite = Omit<ApiTransaction, 'id' | 'createdAt' | 'updatedAt' | 'category'>;
+type TransactionWrite = Omit<
+  ApiTransaction,
+  "id" | "createdAt" | "updatedAt" | "category"
+>;
 
 function isNetworkError(error: unknown): boolean {
-  return error instanceof TypeError || (typeof navigator !== 'undefined' && !navigator.onLine);
+  return (
+    error instanceof TypeError ||
+    (typeof navigator !== "undefined" && !navigator.onLine)
+  );
 }
 
 export const transactionsApi = {
   getAll: async (filters?: TransactionFiltersApi) => {
     const params = new URLSearchParams();
-    if (filters?.type) params.set('type', filters.type);
-    if (filters?.categoryId) params.set('categoryId', filters.categoryId);
-    if (filters?.startDate) params.set('startDate', filters.startDate);
-    if (filters?.endDate) params.set('endDate', filters.endDate);
+    if (filters?.type) params.set("type", filters.type);
+    if (filters?.categoryId) params.set("categoryId", filters.categoryId);
+    if (filters?.startDate) params.set("startDate", filters.startDate);
+    if (filters?.endDate) params.set("endDate", filters.endDate);
     const qs = params.toString();
     try {
-      const rows = await request<ApiTransaction[]>(`/transactions${qs ? `?${qs}` : ''}`);
+      const rows = await request<ApiTransaction[]>(
+        `/transactions${qs ? `?${qs}` : ""}`,
+      );
       if (!filters) await cacheTransactions(rows);
       return rows;
     } catch (error) {
@@ -190,7 +232,10 @@ export const transactionsApi = {
     const clientMutationId = data.clientMutationId ?? crypto.randomUUID();
     const payload = { ...data, clientMutationId };
     try {
-      return await request<ApiTransaction>('/transactions', { method: 'POST', body: JSON.stringify(payload) });
+      return await request<ApiTransaction>("/transactions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       const now = new Date().toISOString();
@@ -201,8 +246,12 @@ export const transactionsApi = {
         updatedAt: now,
       } as ApiTransaction;
       await queueMutation({
-        id: crypto.randomUUID(), method: 'POST', path: '/transactions', body: payload,
-        clientMutationId, createdAt: Date.now(),
+        id: crypto.randomUUID(),
+        method: "POST",
+        path: "/transactions",
+        body: payload,
+        clientMutationId,
+        createdAt: Date.now(),
       });
       const cached = await getCachedTransactions();
       await cacheTransactions([optimistic, ...cached]);
@@ -210,38 +259,65 @@ export const transactionsApi = {
     }
   },
   update: async (id: string, data: Partial<TransactionWrite>) => {
-    if (id.startsWith('offline:')) {
-      const clientMutationId = id.slice('offline:'.length);
-      await updateQueuedCreate(clientMutationId, data as Record<string, unknown>);
+    if (id.startsWith("offline:")) {
+      const clientMutationId = id.slice("offline:".length);
+      await updateQueuedCreate(
+        clientMutationId,
+        data as Record<string, unknown>,
+      );
       const cached = await getCachedTransactions();
       const updated = cached.find((row) => row.id === id);
-      const next = cached.map((row) => row.id === id ? { ...row, ...data, updatedAt: new Date().toISOString() } : row);
+      const next = cached.map((row) =>
+        row.id === id
+          ? { ...row, ...data, updatedAt: new Date().toISOString() }
+          : row,
+      );
       await cacheTransactions(next);
       return { ...updated, ...data } as ApiTransaction;
     }
     try {
-      return await request<ApiTransaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      return await request<ApiTransaction>(`/transactions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
     } catch (error) {
       if (!isNetworkError(error)) throw error;
-      await queueMutation({ id: crypto.randomUUID(), method: 'PUT', path: `/transactions/${id}`, body: data, createdAt: Date.now() });
+      await queueMutation({
+        id: crypto.randomUUID(),
+        method: "PUT",
+        path: `/transactions/${id}`,
+        body: data,
+        createdAt: Date.now(),
+      });
       const cached = await getCachedTransactions();
-      const next = cached.map((row) => row.id === id ? { ...row, ...data, updatedAt: new Date().toISOString() } : row);
+      const next = cached.map((row) =>
+        row.id === id
+          ? { ...row, ...data, updatedAt: new Date().toISOString() }
+          : row,
+      );
       await cacheTransactions(next);
       return next.find((row) => row.id === id)!;
     }
   },
   delete: async (id: string) => {
-    if (id.startsWith('offline:')) {
-      await removeQueuedCreate(id.slice('offline:'.length));
+    if (id.startsWith("offline:")) {
+      await removeQueuedCreate(id.slice("offline:".length));
     } else {
       try {
-        await request<void>(`/transactions/${id}`, { method: 'DELETE' });
+        await request<void>(`/transactions/${id}`, { method: "DELETE" });
       } catch (error) {
         if (!isNetworkError(error)) throw error;
-        await queueMutation({ id: crypto.randomUUID(), method: 'DELETE', path: `/transactions/${id}`, createdAt: Date.now() });
+        await queueMutation({
+          id: crypto.randomUUID(),
+          method: "DELETE",
+          path: `/transactions/${id}`,
+          createdAt: Date.now(),
+        });
       }
     }
-    await cacheTransactions((await getCachedTransactions()).filter((row) => row.id !== id));
+    await cacheTransactions(
+      (await getCachedTransactions()).filter((row) => row.id !== id),
+    );
   },
   bulkDelete: async (ids: string[]) => {
     for (const id of ids) await transactionsApi.delete(id);
@@ -249,13 +325,16 @@ export const transactionsApi = {
 };
 
 export async function syncOfflineTransactions(): Promise<number> {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) return 0;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return 0;
   let synced = 0;
   for (const mutation of await listMutations()) {
     try {
       await request(mutation.path, {
         method: mutation.method,
-        body: mutation.body === undefined ? undefined : JSON.stringify(mutation.body),
+        body:
+          mutation.body === undefined
+            ? undefined
+            : JSON.stringify(mutation.body),
       });
       await removeMutation(mutation.id);
       synced++;
@@ -267,12 +346,13 @@ export async function syncOfflineTransactions(): Promise<number> {
       throw error;
     }
   }
-  if (synced && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('moneyflow:offline-synced'));
+  if (synced && typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("moneyflow:offline-synced"));
   return synced;
 }
 
 export const tagsApi = {
-  getAll: () => request<string[]>('/tags'),
+  getAll: () => request<string[]>("/tags"),
 };
 
 export interface PushSettings {
@@ -283,13 +363,22 @@ export interface PushSettings {
 }
 
 export const pushApi = {
-  getSettings: () => request<PushSettings>('/push/settings'),
-  updateSettings: (data: Partial<Omit<PushSettings, 'publicKey'>>) =>
-    request<PushSettings>('/push/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  getSettings: () => request<PushSettings>("/push/settings"),
+  updateSettings: (data: Partial<Omit<PushSettings, "publicKey">>) =>
+    request<PushSettings>("/push/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   subscribe: (subscription: PushSubscriptionJSON) =>
-    request('/push/subscriptions', { method: 'POST', body: JSON.stringify(subscription) }),
+    request("/push/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(subscription),
+    }),
   unsubscribe: (endpoint: string) =>
-    request('/push/subscriptions', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+    request("/push/subscriptions", {
+      method: "DELETE",
+      body: JSON.stringify({ endpoint }),
+    }),
 };
 
 export interface WaNotificationSettings {
@@ -301,17 +390,18 @@ export interface WaNotificationSettings {
 }
 
 export const waNotificationsApi = {
-  get: () => request<WaNotificationSettings>('/users/notifications'),
+  get: () => request<WaNotificationSettings>("/users/notifications"),
   update: (data: Partial<WaNotificationSettings>) =>
-    request<WaNotificationSettings>('/users/notifications', {
-      method: 'PUT', body: JSON.stringify(data),
+    request<WaNotificationSettings>("/users/notifications", {
+      method: "PUT",
+      body: JSON.stringify(data),
     }),
 };
 
 // ── Backup ────────────────────────────────────────────────────────────────────
 
 export interface BackupData {
-  version: 2;
+  version: 2 | 3;
   exportedAt: string;
   transactions: ApiTransaction[];
   categories: ApiCategory[];
@@ -319,27 +409,35 @@ export interface BackupData {
   recurrings: unknown[];
   debts: unknown[];
   sharedWalletMembers: unknown[];
+  whatsappNumbers?: Array<{
+    phoneMasked: string;
+    label: string;
+    isPrimary: boolean;
+    notificationsEnabled: boolean;
+    linkedAt: string;
+    lastInboundAt: string | null;
+  }>;
   preferences: Record<string, boolean | string>;
 }
 
 export const backupApi = {
-  export: () => request<BackupData>('/backup/export'),
-  import: (data: BackupData, mode: 'merge' | 'replace') =>
-    request<{ imported: number }>('/backup/import', {
-      method: 'POST',
+  export: () => request<BackupData>("/backup/export"),
+  import: (data: BackupData, mode: "merge" | "replace") =>
+    request<{ imported: number }>("/backup/import", {
+      method: "POST",
       body: JSON.stringify({ data, mode }),
     }),
 };
 
 // ── Recurring Transactions ────────────────────────────────────────────────────
 
-export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface ApiRecurring {
   id: string;
   userId: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   categoryId: string | null;
   category?: ApiCategory;
   frequency: RecurringFrequency;
@@ -354,13 +452,13 @@ export interface ApiRecurring {
 
 export type CreateRecurringInput = Omit<
   ApiRecurring,
-  | 'id'
-  | 'userId'
-  | 'category'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'nextRunDate'
-  | 'isActive'
+  | "id"
+  | "userId"
+  | "category"
+  | "createdAt"
+  | "updatedAt"
+  | "nextRunDate"
+  | "isActive"
 >;
 
 export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
@@ -371,7 +469,7 @@ export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
 
 export interface ApiDebt {
   id: string;
-  direction: 'owed_to_me' | 'i_owe';
+  direction: "owed_to_me" | "i_owe";
   amount: number;
   counterpartyName: string;
   notes: string | null;
@@ -382,7 +480,7 @@ export interface ApiDebt {
 }
 
 export interface CreateDebtInput {
-  direction: 'owed_to_me' | 'i_owe';
+  direction: "owed_to_me" | "i_owe";
   amount: number;
   counterpartyName: string;
   notes?: string;
@@ -390,38 +488,40 @@ export interface CreateDebtInput {
 }
 
 export const debtsApi = {
-  getAll: (status?: 'active' | 'settled') => {
-    const qs = status ? `?status=${status}` : '';
+  getAll: (status?: "active" | "settled") => {
+    const qs = status ? `?status=${status}` : "";
     return request<ApiDebt[]>(`/debts${qs}`);
   },
   create: (data: CreateDebtInput) =>
-    request<ApiDebt>('/debts', { method: 'POST', body: JSON.stringify(data) }),
+    request<ApiDebt>("/debts", { method: "POST", body: JSON.stringify(data) }),
   update: (id: string, data: Partial<CreateDebtInput>) =>
-    request<ApiDebt>(`/debts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<ApiDebt>(`/debts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   settle: (id: string) =>
-    request<ApiDebt>(`/debts/${id}/settle`, { method: 'PATCH' }),
+    request<ApiDebt>(`/debts/${id}/settle`, { method: "PATCH" }),
   unsettle: (id: string) =>
-    request<ApiDebt>(`/debts/${id}/unsettle`, { method: 'PATCH' }),
-  delete: (id: string) =>
-    request<void>(`/debts/${id}`, { method: 'DELETE' }),
+    request<ApiDebt>(`/debts/${id}/unsettle`, { method: "PATCH" }),
+  delete: (id: string) => request<void>(`/debts/${id}`, { method: "DELETE" }),
 };
 
 // ── Recurring ─────────────────────────────────────────────────────────────────
 
 export const recurringApi = {
-  getAll: () => request<ApiRecurring[]>('/recurring'),
+  getAll: () => request<ApiRecurring[]>("/recurring"),
   create: (data: CreateRecurringInput) =>
-    request<ApiRecurring>('/recurring', {
-      method: 'POST',
+    request<ApiRecurring>("/recurring", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (id: string, data: UpdateRecurringInput) =>
     request<ApiRecurring>(`/recurring/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     }),
   delete: (id: string) =>
-    request<void>(`/recurring/${id}`, { method: 'DELETE' }),
+    request<void>(`/recurring/${id}`, { method: "DELETE" }),
 };
 
 // ── Shared Wallet ─────────────────────────────────────────────────────────────
@@ -441,27 +541,40 @@ export interface ApiWalletMember {
 }
 
 export const sharedWalletApi = {
-  getMyMembers: () => request<ApiWalletMember[]>('/shared-wallet/members'),
-  getSharedWithMe: () => request<ApiWalletMember[]>('/shared-wallet/shared-with-me'),
+  getMyMembers: () => request<ApiWalletMember[]>("/shared-wallet/members"),
+  getSharedWithMe: () =>
+    request<ApiWalletMember[]>("/shared-wallet/shared-with-me"),
   invite: (phone: string) =>
-    request<ApiWalletMember>('/shared-wallet/invite', { method: 'POST', body: JSON.stringify({ phone }) }),
+    request<ApiWalletMember>("/shared-wallet/invite", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    }),
   accept: (token: string) =>
-    request<ApiWalletMember>(`/shared-wallet/accept/${token}`, { method: 'POST' }),
+    request<ApiWalletMember>(`/shared-wallet/accept/${token}`, {
+      method: "POST",
+    }),
   removeMember: (id: string) =>
-    request<void>(`/shared-wallet/members/${id}`, { method: 'DELETE' }),
+    request<void>(`/shared-wallet/members/${id}`, { method: "DELETE" }),
   leave: (id: string) =>
-    request<void>(`/shared-wallet/leave/${id}`, { method: 'DELETE' }),
+    request<void>(`/shared-wallet/leave/${id}`, { method: "DELETE" }),
   // SHARE-04: id→name of people who may appear as recordedBy on my wallet
-  getRecorders: () => request<{ id: string; name: string }[]>('/shared-wallet/recorders'),
+  getRecorders: () =>
+    request<{ id: string; name: string }[]>("/shared-wallet/recorders"),
   // SHARE-03: owner's categories + record a transaction into their wallet
   getOwnerCategories: (ownerId: string) =>
     request<ApiCategory[]>(`/shared-wallet/${ownerId}/categories`),
   recordForOwner: (
     ownerId: string,
-    data: { amount: number; type: 'income' | 'expense'; categoryId: string; date: string; notes?: string },
+    data: {
+      amount: number;
+      type: "income" | "expense";
+      categoryId: string;
+      date: string;
+      notes?: string;
+    },
   ) =>
     request<ApiTransaction>(`/shared-wallet/${ownerId}/transactions`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
 };

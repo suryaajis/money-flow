@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import { backupApi, BackupData } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 type ImportMode = "merge" | "replace";
 
@@ -60,7 +66,7 @@ export default function BackupPage() {
         const text = event.target?.result as string;
         const parsed = JSON.parse(text) as BackupData;
         if (
-          parsed.version !== 2 ||
+          ![2, 3].includes(Number(parsed.version)) ||
           !Array.isArray(parsed.transactions) ||
           !Array.isArray(parsed.categories) ||
           !Array.isArray(parsed.budgets) ||
@@ -74,7 +80,9 @@ export default function BackupPage() {
         }
         setParsedBackup(parsed);
       } catch {
-        setErrorMessage("Failed to parse backup file. Make sure it is a valid JSON.");
+        setErrorMessage(
+          "Failed to parse backup file. Make sure it is a valid JSON.",
+        );
       }
     };
     reader.readAsText(file);
@@ -89,7 +97,7 @@ export default function BackupPage() {
     try {
       const result = await backupApi.import(parsedBackup, mode);
       setSuccessMessage(
-        `Import successful! ${result.imported} item${result.imported !== 1 ? "s" : ""} imported.`
+        `Import successful! ${result.imported} item${result.imported !== 1 ? "s" : ""} imported.`,
       );
       setParsedBackup(null);
       setFileName(null);
@@ -105,7 +113,9 @@ export default function BackupPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Backup &amp; Restore</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          Backup &amp; Restore
+        </h2>
         <p className="text-sm text-muted-foreground">
           Export your data as a JSON file or restore it from a previous backup.
         </p>
@@ -128,7 +138,8 @@ export default function BackupPage() {
         <CardHeader>
           <CardTitle>Export</CardTitle>
           <CardDescription>
-            Download transactions, categories, budgets, recurring schedules, debts, shared-wallet settings, and notification preferences.
+            Download transactions, categories, budgets, recurring schedules,
+            debts, shared-wallet settings, and notification preferences.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -164,7 +175,9 @@ export default function BackupPage() {
               className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:cursor-pointer"
             />
             {fileName && (
-              <p className="text-xs text-muted-foreground">Selected: {fileName}</p>
+              <p className="text-xs text-muted-foreground">
+                Selected: {fileName}
+              </p>
             )}
           </div>
 
@@ -173,13 +186,28 @@ export default function BackupPage() {
             <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
               <p className="font-medium">Preview</p>
               <ul className="mt-1 space-y-0.5 text-muted-foreground">
-                <li>{parsedBackup.transactions.length} transaction{parsedBackup.transactions.length !== 1 ? "s" : ""}</li>
-                <li>{parsedBackup.categories.length} categor{parsedBackup.categories.length !== 1 ? "ies" : "y"}</li>
+                <li>
+                  {parsedBackup.transactions.length} transaction
+                  {parsedBackup.transactions.length !== 1 ? "s" : ""}
+                </li>
+                <li>
+                  {parsedBackup.categories.length} categor
+                  {parsedBackup.categories.length !== 1 ? "ies" : "y"}
+                </li>
                 <li>{parsedBackup.budgets.length} budget</li>
                 <li>{parsedBackup.recurrings.length} recurring schedule</li>
                 <li>{parsedBackup.debts.length} debt record</li>
-                <li>{parsedBackup.sharedWalletMembers.length} shared-wallet member</li>
-                <li>Exported at: {new Date(parsedBackup.exportedAt).toLocaleString()}</li>
+                <li>
+                  {parsedBackup.sharedWalletMembers.length} shared-wallet member
+                </li>
+                <li>
+                  {parsedBackup.whatsappNumbers?.length ?? 0} WhatsApp number
+                  metadata
+                </li>
+                <li>
+                  Exported at:{" "}
+                  {new Date(parsedBackup.exportedAt).toLocaleString()}
+                </li>
               </ul>
             </div>
           )}
@@ -199,7 +227,9 @@ export default function BackupPage() {
                 />
                 <span>
                   <span className="font-medium">Merge</span>
-                  <span className="ml-1 text-muted-foreground">— keep existing data, add new entries only</span>
+                  <span className="ml-1 text-muted-foreground">
+                    — keep existing data, add new entries only
+                  </span>
                 </span>
               </label>
               <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -213,7 +243,9 @@ export default function BackupPage() {
                 />
                 <span>
                   <span className="font-medium">Replace</span>
-                  <span className="ml-1 text-muted-foreground">— delete existing data and restore from backup</span>
+                  <span className="ml-1 text-muted-foreground">
+                    — delete existing data and restore from backup
+                  </span>
                 </span>
               </label>
             </div>
@@ -224,12 +256,17 @@ export default function BackupPage() {
             disabled={!parsedBackup || isImporting}
             variant={mode === "replace" ? "destructive" : "default"}
           >
-            {isImporting ? "Importing…" : mode === "replace" ? "Replace & import" : "Merge & import"}
+            {isImporting
+              ? "Importing…"
+              : mode === "replace"
+                ? "Replace & import"
+                : "Merge & import"}
           </Button>
 
           {mode === "replace" && (
             <p className="text-xs text-destructive">
-              Warning: Replace mode will permanently delete all your current transactions and non-default categories.
+              Warning: Replace mode will permanently delete all your current
+              transactions and non-default categories.
             </p>
           )}
         </CardContent>

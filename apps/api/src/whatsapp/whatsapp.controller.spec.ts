@@ -20,6 +20,7 @@ describe('WhatsappController', () => {
     handleTextMessage: jest.fn(),
     handleAudioMessage: jest.fn(),
     handleButtonReply: jest.fn(),
+    getActivePhoneOwnerId: jest.fn().mockResolvedValue(null),
   };
   const notifier = { updateDeliveryStatus: jest.fn() };
   const eventRepo = {

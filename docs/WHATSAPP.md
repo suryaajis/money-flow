@@ -1,6 +1,6 @@
 # Money Flow — Integrasi WhatsApp Bot
 
-Dokumentasi lengkap fitur WhatsApp Money Flow (PRD v1.3): apa saja fungsinya,
+Dokumentasi lengkap fitur WhatsApp Money Flow (PRD v1.3–v1.5): apa saja fungsinya,
 cara memakainya sebagai pengguna, dan cara men-deploy-nya ke produksi.
 
 Untuk konfigurasi hardened terbaru, template Meta, signature webhook, linking
@@ -12,7 +12,7 @@ lihat [`PRD-v1.7.md`](./PRD-v1.7.md) dan
 Kirimdev yang terpisah tersedia di
 [`WHATSAPP-PRICING-META.md`](./WHATSAPP-PRICING-META.md).
 
-- **Versi:** v1.3
+- **Versi:** v1.5
 - **Stack:** NestJS + TypeORM + PostgreSQL (API), Next.js (web)
 - **Channel:** Meta WhatsApp Cloud API
 - **AI:** Google Gemini 1.5 Flash (NLP teks) + Groq Whisper (voice note)
@@ -193,10 +193,18 @@ Diatur dari **Settings → WhatsApp** (toggle per jenis).
 ### Menghubungkan nomor
 
 1. Buka web app → **Settings → WhatsApp**.
-2. Klik **Buat Link WhatsApp** lalu **Buka WhatsApp**.
+2. Isi label nomor, klik **Buat link**, lalu **Buka WhatsApp**.
 3. Kirim pesan `HUBUNGKAN <token>` yang sudah disiapkan. Nomor diverifikasi dari webhook Meta.
 
-Satu akun hanya bisa terhubung ke satu nomor, dan sebaliknya.
+Satu akun dapat memiliki maksimal tiga nomor aktif. Satu nomor hanya dapat
+dimiliki satu akun. Nomor pertama otomatis menjadi utama; semua nomor aktif
+dapat menggunakan bot dengan sesi percakapan terpisah. Notifikasi dikirim ke
+nomor utama dan ke nomor tambahan yang diaktifkan secara eksplisit.
+
+Untuk melepas nomor, masukkan kembali password akun. Jika nomor utama bukan
+nomor terakhir, jadikan nomor lain sebagai utama terlebih dahulu. Backup v3
+hanya mengekspor nomor dalam bentuk termasking dan tidak memulihkan kepemilikan
+nomor tanpa challenge WhatsApp baru.
 
 ### Contoh percakapan
 
@@ -324,7 +332,12 @@ Endpoint internal (butuh JWT kecuali webhook & export):
 | `POST` | `/api/webhook/whatsapp` | Terima pesan masuk |
 | `GET`  | `/api/users/whatsapp` | Status koneksi WA |
 | `POST` | `/api/users/whatsapp/link` | Hubungkan nomor |
-| `DELETE` | `/api/users/whatsapp/link` | Putuskan nomor |
+| `DELETE` | `/api/users/whatsapp/link` | Putuskan nomor primary (legacy, membutuhkan password) |
+| `GET` | `/api/users/whatsapp/numbers` | Daftar nomor aktif termasking |
+| `POST` | `/api/users/whatsapp/numbers/challenge` | Buat challenge nomor baru |
+| `PATCH` | `/api/users/whatsapp/numbers/:id` | Ubah label/tujuan notifikasi |
+| `POST` | `/api/users/whatsapp/numbers/:id/primary` | Jadikan nomor utama |
+| `DELETE` | `/api/users/whatsapp/numbers/:id` | Revoke nomor setelah re-autentikasi |
 | `GET/PUT` | `/api/users/notifications` | Baca/ubah preferensi notif |
 | `GET`  | `/api/export/transactions?token=…` | Unduh CSV (token 1 jam) |
 | `POST` | `/api/shared-wallet/:ownerId/transactions` | Anggota catat ke dompet pemilik |

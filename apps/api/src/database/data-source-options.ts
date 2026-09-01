@@ -13,6 +13,7 @@ import { WaWebhookEvent } from '../whatsapp/wa-webhook-event.entity';
 import { WaOutboundMessage } from '../whatsapp/wa-outbound-message.entity';
 import { WaNotificationDelivery } from '../whatsapp/wa-notification-delivery.entity';
 import { WebPushSubscription } from '../push/web-push-subscription.entity';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
 export const entities = [
   User,
@@ -29,6 +30,7 @@ export const entities = [
   WaOutboundMessage,
   WaNotificationDelivery,
   WebPushSubscription,
+  WaPhoneLink,
 ];
 
 /**

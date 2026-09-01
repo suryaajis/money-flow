@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { createHash, randomBytes } from 'crypto';
 import { WalletMember } from './wallet-member.entity';
 import { User } from '../users/user.entity';
@@ -16,6 +16,7 @@ import { CreateTransactionDto } from '../transactions/dto/create-transaction.dto
 import { TransactionsService } from '../transactions/transactions.service';
 import { WaProactiveNotificationService } from '../whatsapp/wa-proactive-notification.service';
 import { WA_TEMPLATE_DEFAULT_NAMES } from '../whatsapp/wa-template-definitions';
+import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
 
 @Injectable()
 export class SharedWalletService {
@@ -24,6 +25,8 @@ export class SharedWalletService {
     private memberRepo: Repository<WalletMember>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
+    @InjectRepository(WaPhoneLink)
+    private phoneLinkRepo: Repository<WaPhoneLink>,
     private transactions: TransactionsService,
     private proactive: WaProactiveNotificationService,
     private config: ConfigService,
@@ -60,10 +63,14 @@ export class SharedWalletService {
     });
     if (existing) throw new ConflictException('Nomor ini sudah diundang');
 
-    const [invitee, owner] = await Promise.all([
-      this.userRepo.findOne({ where: { waPhone: normalizedPhone } }),
+    const [inviteeLink, owner] = await Promise.all([
+      this.phoneLinkRepo.findOne({
+        where: { phone: normalizedPhone, revokedAt: IsNull() },
+        relations: { user: true },
+      }),
       this.userRepo.findOne({ where: { id: ownerUserId } }),
     ]);
+    const invitee = inviteeLink?.user;
     if (!invitee)
       throw new NotFoundException(
         'Nomor WhatsApp belum terdaftar di MoneyFlow',
@@ -90,6 +97,7 @@ export class SharedWalletService {
     await this.proactive.sendOncePerDay({
       userId: invitee.id,
       to: normalizedPhone,
+      waPhoneLinkId: inviteeLink.id,
       kind: `shared_invite:${saved.id}`,
       templateName: this.config.get<string>(
         'WA_TEMPLATE_SHARED_INVITE',
@@ -115,12 +123,16 @@ export class SharedWalletService {
     ) {
       throw new NotFoundException('Invalid or expired invite token');
     }
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (
-      !user?.waPhone ||
-      user.waPhone !== invite.memberWaPhone ||
-      invite.memberUserId !== userId
-    ) {
+    const targetLink = invite.memberWaPhone
+      ? await this.phoneLinkRepo.findOne({
+          where: {
+            userId,
+            phone: invite.memberWaPhone,
+            revokedAt: IsNull(),
+          },
+        })
+      : null;
+    if (!targetLink || invite.memberUserId !== userId) {
       throw new ForbiddenException(
         'Undangan ini ditujukan untuk nomor WhatsApp lain',
       );
@@ -200,19 +212,23 @@ export class SharedWalletService {
     tx: Transaction,
   ): Promise<void> {
     if (memberUserId === ownerUserId) return;
-    const [owner, member, category] = await Promise.all([
+    const [owner, ownerPhone, member, category] = await Promise.all([
       this.userRepo.findOne({ where: { id: ownerUserId } }),
+      this.phoneLinkRepo.findOne({
+        where: { userId: ownerUserId, isPrimary: true, revokedAt: IsNull() },
+      }),
       this.userRepo.findOne({ where: { id: memberUserId } }),
       tx.categoryId
         ? this.catRepo.findOne({ where: { id: tx.categoryId } })
         : Promise.resolve(null),
     ]);
-    if (!owner?.waPhone) return;
+    if (!owner || !ownerPhone) return;
     const sign = tx.type === 'income' ? '+' : '-';
     const amount = new Intl.NumberFormat('id-ID').format(Number(tx.amount));
     await this.proactive.sendOncePerDay({
       userId: owner.id,
-      to: owner.waPhone,
+      to: ownerPhone.phone,
+      waPhoneLinkId: ownerPhone.id,
       kind: `shared_wallet_activity:${tx.id}`,
       templateName: this.config.get<string>(
         'WA_TEMPLATE_SHARED_WALLET',

@@ -24,12 +24,16 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
   const { transactions: all } = useTransactions();
   const { byId } = useCategories();
   const source = opts.transactions ?? all;
+  const operating = useMemo(
+    () => source.filter((tx) => !tx.transferId && !tx.adjustmentReason),
+    [source],
+  );
   const months = opts.months ?? 6;
 
   const summary: FinancialSummary = useMemo(() => {
     let income = 0;
     let expense = 0;
-    for (const tx of source) {
+    for (const tx of operating) {
       if (tx.type === "income") income += tx.amount;
       else expense += tx.amount;
     }
@@ -37,15 +41,15 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
       totalIncome: income,
       totalExpense: expense,
       totalBalance: income - expense,
-      transactionCount: source.length,
+      transactionCount: operating.length,
     };
-  }, [source]);
+  }, [operating]);
 
   const monthly: MonthlyAggregate[] = useMemo(() => {
     const keys = lastNMonthKeys(months);
     const buckets = new Map<string, { income: number; expense: number }>();
     for (const k of keys) buckets.set(k, { income: 0, expense: 0 });
-    for (const tx of source) {
+    for (const tx of operating) {
       const key = monthKey(tx.date);
       const bucket = buckets.get(key);
       if (!bucket) continue;
@@ -61,12 +65,12 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
         net: round2(b.income - b.expense),
       };
     });
-  }, [source, months]);
+  }, [operating, months]);
 
   const expenseByCategory: CategoryAggregate[] = useMemo(() => {
     const totals = new Map<string, number>();
     let grand = 0;
-    for (const tx of source) {
+    for (const tx of operating) {
       if (tx.type !== "expense") continue;
       const categoryId = tx.categoryId ?? UNKNOWN_CATEGORY_ID;
       totals.set(categoryId, (totals.get(categoryId) ?? 0) + tx.amount);
@@ -84,12 +88,12 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
       });
     }
     return out.sort((a, b) => b.total - a.total);
-  }, [source, byId]);
+  }, [operating, byId]);
 
   const incomeByCategory: CategoryAggregate[] = useMemo(() => {
     const totals = new Map<string, number>();
     let grand = 0;
-    for (const tx of source) {
+    for (const tx of operating) {
       if (tx.type !== "income") continue;
       const categoryId = tx.categoryId ?? UNKNOWN_CATEGORY_ID;
       totals.set(categoryId, (totals.get(categoryId) ?? 0) + tx.amount);
@@ -107,7 +111,7 @@ export function useAnalytics(opts: AnalyticsOptions = {}) {
       });
     }
     return out.sort((a, b) => b.total - a.total);
-  }, [source, byId]);
+  }, [operating, byId]);
 
   // Month-over-month change in net balance for the trailing two months.
   const momChange = useMemo(() => {

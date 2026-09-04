@@ -8,6 +8,7 @@ import {
   UseGuards,
   Request,
   HttpCode,
+  GoneException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SharedWalletService } from './shared-wallet.service';
@@ -59,16 +60,17 @@ export class SharedWalletController {
   }
 
   @Post('invite')
-  invite(
-    @Request() req: AuthenticatedRequest,
-    @Body() body: { phone: string },
-  ) {
-    return this.sharedWalletService.inviteByPhone(req.user.id, body.phone);
+  invite() {
+    throw new GoneException(
+      'Shared Wallet berbasis WhatsApp telah diganti Account Sharing berbasis email.',
+    );
   }
 
   @Post('accept/:token')
-  accept(@Request() req: AuthenticatedRequest, @Param('token') token: string) {
-    return this.sharedWalletService.acceptInvite(token, req.user.id);
+  accept() {
+    throw new GoneException(
+      'Undangan lama tidak lagi berlaku. Minta owner mengirim undangan account melalui email.',
+    );
   }
 
   @Delete('members/:id')

@@ -44,4 +44,8 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsUUID()
   clientMutationId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

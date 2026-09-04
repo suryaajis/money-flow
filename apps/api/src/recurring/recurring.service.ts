@@ -7,6 +7,7 @@ import {
 } from './recurring-transaction.entity';
 import { CreateRecurringDto } from './dto/create-recurring.dto';
 import { UpdateRecurringDto } from './dto/update-recurring.dto';
+import { AccountsService } from '../accounts/accounts.service';
 
 function addFrequency(dateStr: string, frequency: RecurringFrequency): string {
   const date = new Date(dateStr);
@@ -32,6 +33,7 @@ export class RecurringService {
   constructor(
     @InjectRepository(RecurringTransaction)
     private readonly recurringRepo: Repository<RecurringTransaction>,
+    private readonly accounts: AccountsService,
   ) {}
 
   findAll(userId: string): Promise<RecurringTransaction[]> {
@@ -45,9 +47,13 @@ export class RecurringService {
     userId: string,
     dto: CreateRecurringDto,
   ): Promise<RecurringTransaction> {
+    const account = dto.accountId
+      ? (await this.accounts.assertCanContribute(userId, dto.accountId)).account
+      : await this.accounts.getActiveWritableAccount(userId);
     const entity = this.recurringRepo.create({
       ...dto,
       userId,
+      accountId: account.id,
       nextRunDate: dto.startDate,
       isActive: true,
     });
@@ -61,6 +67,9 @@ export class RecurringService {
   ): Promise<RecurringTransaction> {
     const entity = await this.recurringRepo.findOne({ where: { id, userId } });
     if (!entity) throw new NotFoundException('Recurring transaction not found');
+    if (dto.accountId) {
+      await this.accounts.assertCanContribute(userId, dto.accountId);
+    }
     Object.assign(entity, dto);
     if (dto.startDate) {
       entity.nextRunDate = dto.startDate;

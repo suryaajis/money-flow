@@ -30,6 +30,7 @@ interface TransactionTableProps {
   onSelectionChange: (next: Set<string>) => void;
   // SHARE-04: id→name of people who may have recorded a transaction (shared wallet).
   recorders?: Record<string, string>;
+  readOnly?: boolean;
 }
 
 const PAGE_SIZE = 15;
@@ -42,6 +43,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   selected,
   onSelectionChange,
   recorders,
+  readOnly = false,
 }) => {
   const { getCategory } = useCategories();
   const { fmtSigned } = useCurrency();
@@ -128,13 +130,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 checked && "bg-primary/5",
               )}
             >
-              <input
+              {!readOnly && <input
                 type="checkbox"
                 aria-label={`Select transaction ${tx.id}`}
                 checked={checked}
                 onChange={() => toggleRow(tx.id)}
                 className="mt-1 h-5 w-5 shrink-0 rounded border-border accent-[var(--primary)]"
-              />
+              />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -176,10 +178,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   </p>
                 ) : null}
                 {tx.source === "shared" &&
-                  tx.recordedBy &&
-                  recorders?.[tx.recordedBy] && (
+                  (tx.recordedByUser?.name ||
+                    (tx.recordedBy && recorders?.[tx.recordedBy])) && (
                     <p className="mt-1 text-[11px] text-primary">
-                      👥 dicatat oleh {recorders[tx.recordedBy]}
+                      👥 dicatat oleh {tx.recordedByUser?.name ?? recorders?.[tx.recordedBy!]}
                     </p>
                   )}
                 {tx.tags && tx.tags.length > 0 && (
@@ -195,7 +197,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                 )}
 
-                <div className="mt-2 flex justify-end gap-1">
+                {!readOnly && <div className="mt-2 flex justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -212,7 +214,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
+                </div>}
               </div>
             </li>
           );
@@ -224,7 +226,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         <table className="w-full text-sm">
           <thead className="bg-muted/55 text-muted-foreground backdrop-blur">
             <tr className="text-left">
-              <th className="px-3 py-2 w-10">
+              {!readOnly && <th className="px-3 py-2 w-10">
                 <input
                   type="checkbox"
                   aria-label="Select page"
@@ -232,7 +234,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   onChange={togglePageSelection}
                   className="h-4 w-4 rounded border-border accent-[var(--primary)]"
                 />
-              </th>
+              </th>}
               <SortableHeader
                 label="Date"
                 active={sortKey === "date"}
@@ -255,7 +257,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 onClick={() => setSort("amount")}
                 align="right"
               />
-              <th className="px-3 py-2 w-20" aria-label="Actions" />
+              {!readOnly && <th className="px-3 py-2 w-20" aria-label="Actions" />}
             </tr>
           </thead>
           <tbody>
@@ -267,7 +269,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   key={tx.id}
                   className="border-t border-border transition-colors hover:bg-primary/[0.035]"
                 >
-                  <td className="px-3 py-2.5 align-middle">
+                  {!readOnly && <td className="px-3 py-2.5 align-middle">
                     <input
                       type="checkbox"
                       aria-label={`Select transaction ${tx.id}`}
@@ -275,7 +277,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       onChange={() => toggleRow(tx.id)}
                       className="h-4 w-4 rounded border-border accent-[var(--primary)]"
                     />
-                  </td>
+                  </td>}
                   <td className="px-3 py-2.5 align-middle whitespace-nowrap text-muted-foreground">
                     {formatDate(tx.date)}
                   </td>
@@ -299,10 +301,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td className="px-3 py-2.5 align-middle max-w-[280px] text-muted-foreground">
                     <span className="block truncate">{tx.notes || "—"}</span>
                     {tx.source === "shared" &&
-                      tx.recordedBy &&
-                      recorders?.[tx.recordedBy] && (
+                      (tx.recordedByUser?.name ||
+                        (tx.recordedBy && recorders?.[tx.recordedBy])) && (
                         <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-primary">
-                          👥 dicatat oleh {recorders[tx.recordedBy]}
+                          👥 dicatat oleh {tx.recordedByUser?.name ?? recorders?.[tx.recordedBy!]}
                         </span>
                       )}
                   </td>
@@ -335,7 +337,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 align-middle text-right">
+                  {!readOnly && <td className="px-3 py-2.5 align-middle text-right">
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
@@ -354,7 +356,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               );
             })}

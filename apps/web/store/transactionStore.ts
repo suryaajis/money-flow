@@ -12,7 +12,7 @@ interface TransactionState {
   loading: boolean;
   hasLoaded: boolean;
 
-  fetchTransactions: () => Promise<void>;
+  fetchTransactions: () => Promise<boolean>;
   addTransaction: (input: NewTransaction) => Promise<Transaction>;
   updateTransaction: (id: string, patch: Partial<NewTransaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -36,10 +36,12 @@ export const useTransactionStore = create<TransactionState>()((set) => ({
     try {
       const transactions = await transactionsApi.getAll();
       set({ transactions, hasLoaded: true });
+      return true;
     } catch {
       // A stale-session 401 is already handled globally in lib/api (evict +
-      // redirect). Swallow here so the fire-and-forget call in AppShell can't
-      // surface as an unhandled promise rejection.
+      // redirect). Return the failure so DataBootstrap can retry without
+      // surfacing an unhandled promise rejection from AppShell.
+      return false;
     } finally {
       set({ loading: false });
     }

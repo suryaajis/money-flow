@@ -8,17 +8,22 @@ import {
   ChevronLeft,
   ChevronRight,
   HandCoins,
+  HeartPulse,
   LayoutDashboard,
   MessageSquare,
   PiggyBank,
   Repeat,
   ScanLine,
+  Settings,
   Tags,
+  Users,
   UserCircle,
   Wallet,
+  WalletCards,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS, SETTINGS_ITEMS } from "@/lib/constants";
 import { useUIStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
 import { FlowBuddy } from "@/components/shared/FlowBuddy";
@@ -34,6 +39,11 @@ const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   UserCircle,
   MessageSquare,
+  HeartPulse,
+  Settings,
+  Users,
+  WalletCards,
+  WandSparkles,
 };
 
 export const Sidebar: React.FC = () => {
@@ -100,6 +110,17 @@ export const Sidebar: React.FC = () => {
             </Link>
           );
         })}
+        {!sidebarCollapsed && pathname.startsWith("/settings") && (
+          <div className="ml-5 space-y-1 border-l border-white/15 pl-3">
+            {SETTINGS_ITEMS.map((item) => {
+              const Icon = ICONS[item.icon];
+              const active = pathname === item.href;
+              return <Link key={item.href} href={item.href} className={cn("flex items-center gap-2 rounded-lg px-2 py-2 text-xs transition-colors", active ? "bg-white/15 text-white" : "text-white/55 hover:bg-white/10 hover:text-white")}>
+                {Icon ? <Icon className="h-3.5 w-3.5" /> : null}{item.label}
+              </Link>;
+            })}
+          </div>
+        )}
       </nav>
 
       {/* Footer + Toggle */}

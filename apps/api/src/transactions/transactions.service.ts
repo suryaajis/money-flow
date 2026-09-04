@@ -9,6 +9,8 @@ import { Transaction } from './transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Category } from '../categories/category.entity';
+import { AccountsService } from '../accounts/accounts.service';
+import { SmartRulesService } from '../smart-rules/smart-rules.service';
 
 @Injectable()
 export class TransactionsService {
@@ -17,6 +19,8 @@ export class TransactionsService {
     private readonly transactionRepository: Repository<Transaction>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    private readonly accountsService: AccountsService,
+    private readonly smartRules: SmartRulesService,
   ) {}
 
   async findAll(
@@ -26,12 +30,18 @@ export class TransactionsService {
       categoryId?: string;
       startDate?: string;
       endDate?: string;
+      accountId?: string;
     },
   ): Promise<Transaction[]> {
+    const accountIds =
+      await this.accountsService.getAccessibleAccountIds(userId);
+    if (!accountIds.length) return [];
     const qb = this.transactionRepository
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.category', 'category')
-      .where('t.userId = :userId', { userId })
+      .leftJoinAndSelect('t.account', 'account')
+      .leftJoinAndSelect('t.recordedByUser', 'recordedByUser')
+      .where('t.accountId IN (:...accountIds)', { accountIds })
       .orderBy('t.date', 'DESC')
       .addOrderBy('t.createdAt', 'DESC');
 
@@ -44,6 +54,10 @@ export class TransactionsService {
       qb.andWhere('t.date >= :startDate', { startDate: filters.startDate });
     if (filters?.endDate)
       qb.andWhere('t.date <= :endDate', { endDate: filters.endDate });
+    if (filters?.accountId) {
+      if (!accountIds.includes(filters.accountId)) return [];
+      qb.andWhere('t.accountId = :accountId', { accountId: filters.accountId });
+    }
 
     return qb.getMany();
   }
@@ -52,7 +66,39 @@ export class TransactionsService {
     userId: string,
     dto: CreateTransactionDto,
   ): Promise<Transaction> {
-    return this.createValidated(userId, dto);
+    const initialAccount = dto.accountId
+      ? (await this.accountsService.assertCanContribute(userId, dto.accountId))
+          .account
+      : await this.accountsService.getActiveWritableAccount(userId);
+    const ruled = await this.smartRules.applyToInput(
+      initialAccount.ownerUserId,
+      {
+        ...dto,
+        accountId: initialAccount.id,
+      },
+    );
+    const account =
+      ruled.accountId === initialAccount.id
+        ? initialAccount
+        : (
+            await this.accountsService.assertCanContribute(
+              userId,
+              ruled.accountId!,
+            )
+          ).account;
+    if (account.ownerUserId !== initialAccount.ownerUserId)
+      throw new BadRequestException(
+        'Smart rule tidak boleh memindahkan transaksi lintas owner',
+      );
+    return this.createValidated(
+      account.ownerUserId,
+      { ...ruled, accountId: account.id },
+      {
+        source: account.ownerUserId === userId ? 'web' : 'shared',
+        recordedBy: userId,
+        recordedByUserId: userId,
+      },
+    );
   }
 
   async createForSharedWallet(
@@ -60,16 +106,51 @@ export class TransactionsService {
     memberUserId: string,
     dto: CreateTransactionDto,
   ): Promise<Transaction> {
-    return this.createValidated(ownerUserId, dto, {
-      source: 'shared',
-      recordedBy: memberUserId,
+    const initialAccount = dto.accountId
+      ? (
+          await this.accountsService.assertCanContribute(
+            memberUserId,
+            dto.accountId,
+          )
+        ).account
+      : await this.accountsService.ensureDefaultAccount(ownerUserId);
+    if (initialAccount.ownerUserId !== ownerUserId)
+      throw new BadRequestException('Account bukan milik owner tujuan');
+    const ruled = await this.smartRules.applyToInput(ownerUserId, {
+      ...dto,
+      accountId: initialAccount.id,
     });
+    const account =
+      ruled.accountId === initialAccount.id
+        ? initialAccount
+        : (
+            await this.accountsService.assertCanContribute(
+              memberUserId,
+              ruled.accountId!,
+            )
+          ).account;
+    if (account.ownerUserId !== ownerUserId)
+      throw new BadRequestException(
+        'Smart rule tidak boleh memindahkan transaksi lintas owner',
+      );
+    return this.createValidated(
+      ownerUserId,
+      { ...ruled, accountId: account.id },
+      {
+        source: 'shared',
+        recordedBy: memberUserId,
+        recordedByUserId: memberUserId,
+      },
+    );
   }
 
   private async createValidated(
     userId: string,
     dto: CreateTransactionDto,
-    attribution: Pick<Transaction, 'source' | 'recordedBy'> | null = null,
+    attribution: Pick<
+      Transaction,
+      'source' | 'recordedBy' | 'recordedByUserId'
+    > | null = null,
   ): Promise<Transaction> {
     if (dto.clientMutationId) {
       const existing = await this.transactionRepository.findOne({
@@ -81,6 +162,10 @@ export class TransactionsService {
     const transaction = this.transactionRepository.create({
       ...dto,
       userId,
+      accountId: dto.accountId!,
+      transferId: null,
+      entryRole: null,
+      adjustmentReason: null,
       ...(attribution ?? {}),
     });
     try {
@@ -111,9 +196,32 @@ export class TransactionsService {
     });
     if (!transaction) throw new NotFoundException('Transaksi tidak ditemukan');
 
-    await this.validateInput(userId, { ...transaction, ...dto });
+    if (transaction.transferId || transaction.adjustmentReason)
+      throw new BadRequestException(
+        'Ledger entry ini tidak dapat diedit langsung',
+      );
+    const previousCategoryId = transaction.categoryId;
+    const nextAccountId = dto.accountId ?? transaction.accountId;
+    const account = await this.accountsService.getAccess(userId, nextAccountId);
+    if (account.ownership !== 'owned')
+      throw new BadRequestException(
+        'Transaksi shared hanya dapat diedit owner',
+      );
+    await this.validateInput(account.account.ownerUserId, {
+      ...transaction,
+      ...dto,
+    });
     Object.assign(transaction, dto);
-    return this.transactionRepository.save(transaction);
+    const saved = await this.transactionRepository.save(transaction);
+    if (dto.categoryId && dto.categoryId !== previousCategoryId) {
+      await this.smartRules.recordCategoryCorrection(
+        transaction.userId,
+        transaction.notes,
+        dto.categoryId,
+        transaction.source,
+      );
+    }
+    return saved;
   }
 
   async remove(userId: string, id: string): Promise<void> {
@@ -121,6 +229,10 @@ export class TransactionsService {
       where: { id, userId },
     });
     if (!transaction) throw new NotFoundException('Transaksi tidak ditemukan');
+    if (transaction.transferId || transaction.adjustmentReason)
+      throw new BadRequestException(
+        'Ledger entry ini tidak dapat dihapus langsung',
+      );
     await this.transactionRepository.remove(transaction);
   }
 
@@ -140,6 +252,7 @@ export class TransactionsService {
       type: 'income' | 'expense';
       categoryId: string | null;
       date: string;
+      accountId?: string;
     },
   ): Promise<void> {
     if (!Number.isFinite(Number(dto.amount)) || Number(dto.amount) <= 0) {

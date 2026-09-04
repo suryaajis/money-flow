@@ -10,6 +10,7 @@ import {
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
 import { numericTransformer } from '../database/numeric.transformer';
+import { Account } from '../accounts/account.entity';
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -39,7 +40,11 @@ export class RecurringTransaction {
   @Column({ nullable: true })
   categoryId: string;
 
-  @ManyToOne(() => Category, { onDelete: 'SET NULL', nullable: true, eager: true })
+  @ManyToOne(() => Category, {
+    onDelete: 'SET NULL',
+    nullable: true,
+    eager: true,
+  })
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
@@ -60,6 +65,13 @@ export class RecurringTransaction {
 
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
+
+  @Column({ type: 'uuid' })
+  accountId: string;
+
+  @ManyToOne(() => Account, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'accountId' })
+  account: Account;
 
   @CreateDateColumn()
   createdAt: Date;

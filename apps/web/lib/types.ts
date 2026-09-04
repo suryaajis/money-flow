@@ -20,11 +20,17 @@ export interface Transaction {
   type: TransactionType;
   categoryId: string | null;
   date: string; // Calendar date in YYYY-MM-DD format
-  notes?: string;
+  notes?: string | null;
   currency?: CurrencyCode | null; // optional per-transaction currency; null means use global setting
   tags?: string[];
   source?: string; // 'web' | 'whatsapp' | 'shared'
   recordedBy?: string | null; // user id who recorded it (shared wallet attribution)
+  recordedByUserId?: string | null;
+  recordedByUser?: { id: string; name: string; email: string } | null;
+  accountId?: string;
+  transferId?: string | null;
+  entryRole?: "source" | "destination" | null;
+  adjustmentReason?: string | null;
   clientMutationId?: string | null; // idempotency key for offline-created records
   createdAt: string;
   updatedAt: string;
@@ -37,6 +43,7 @@ export interface TransactionFilters {
   type?: TransactionType | "all";
   searchQuery?: string;
   tag?: string;
+  accountId?: string;
 }
 
 export interface FinancialSummary {

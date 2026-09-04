@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useTransactionStore } from "@/store/transactionStore";
 import { CURRENCIES } from "@/lib/constants";
 import type { Transaction, TransactionType, CurrencyCode } from "@/lib/types";
 import { todayISO, parseCurrencyInput } from "@/lib/utils";
+import { useAccountStore } from "@/store/accountStore";
 
 export interface TransactionFormValues {
   amount: number;
@@ -23,6 +24,7 @@ export interface TransactionFormValues {
   notes?: string;
   currency?: CurrencyCode | null;
   tags?: string[];
+  accountId: string;
 }
 
 interface TransactionFormProps {
@@ -35,6 +37,8 @@ interface TransactionFormProps {
 export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
   const { categories } = useCategories();
   const { transactions: allTransactions } = useTransactionStore();
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
 
   const allUsedTags = useMemo(() => {
     const set = new Set<string>();
@@ -49,11 +53,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? "");
   const [date, setDate] = useState<string>(initial?.date ?? todayISO());
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
-  const currency: CurrencyCode = "IDR";
+  const selectedAccount = accounts.find((account) => account.id === (initial?.accountId ?? activeAccountId));
+  const currency = (selectedAccount?.currency ?? "IDR") as CurrencyCode;
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
+  const [accountId, setAccountId] = useState(initial?.accountId ?? activeAccountId ?? "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
+
+  useEffect(() => {
+    if (!initial) setAccountId(activeAccountId ?? "");
+  }, [activeAccountId, initial]);
 
   const tagSuggestions = useMemo(() => {
     if (!tagInput.trim()) return [];
@@ -120,6 +130,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
     if (!date) {
       next.date = "Pick a date.";
     }
+    if (!accountId) next.accountId = "Pick an account.";
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -132,6 +143,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
       notes: notes.trim() || undefined,
       currency,
       tags: tags.length > 0 ? tags : undefined,
+      accountId,
     });
   };
 
@@ -190,6 +202,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="tx-account">Account / Pocket</Label>
+          <Select
+            id="tx-account"
+            value={accountId}
+            onValueChange={() => {}}
+            disabled
+            placeholder="Pilih active pocket dari navbar"
+            options={selectedAccount ? [{
+              value: selectedAccount.id,
+              label: `${selectedAccount.name}${selectedAccount.ownership === "shared" ? ` · Shared by ${selectedAccount.owner?.name ?? "owner"}` : ""}`,
+            }] : []}
+          />
+          <p className="text-xs text-muted-foreground">Source mengikuti active pocket di navbar.</p>
+          {errors.accountId ? <p className="text-xs text-destructive">{errors.accountId}</p> : null}
+        </div>
+
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="tx-currency">Transaction currency</Label>
           <Select
             id="tx-currency"
@@ -197,8 +226,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ initial, onSub
             onValueChange={() => {}}
             options={[
               {
-                value: CURRENCIES.IDR.code,
-                label: `${CURRENCIES.IDR.code} (${CURRENCIES.IDR.symbol})`,
+                value: CURRENCIES[currency].code,
+                label: `${CURRENCIES[currency].code} (${CURRENCIES[currency].symbol})`,
               },
             ]}
             disabled

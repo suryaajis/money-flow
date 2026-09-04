@@ -4,6 +4,7 @@ import {
   IsIn,
   IsOptional,
   IsDateString,
+  IsUUID,
   Min,
 } from 'class-validator';
 
@@ -32,4 +33,8 @@ export class CreateRecurringDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

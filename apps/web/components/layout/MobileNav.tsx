@@ -7,13 +7,17 @@ import {
   ArrowLeftRight,
   BarChart3,
   HandCoins,
+  HeartPulse,
   LayoutDashboard,
   MessageSquare,
   MoreHorizontal,
   PiggyBank,
   Repeat,
   ScanLine,
+  Settings,
   Tags,
+  WalletCards,
+  WandSparkles,
   UserCircle,
   X,
   type LucideIcon,
@@ -32,6 +36,10 @@ const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   UserCircle,
   MessageSquare,
+  HeartPulse,
+  Settings,
+  WalletCards,
+  WandSparkles,
 };
 
 // A bottom bar fits ~5 slots comfortably on a phone. Show the four most-used

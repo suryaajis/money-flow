@@ -66,13 +66,18 @@ export default function BackupPage() {
         const text = event.target?.result as string;
         const parsed = JSON.parse(text) as BackupData;
         if (
-          ![2, 3].includes(Number(parsed.version)) ||
+          ![2, 3, 4].includes(Number(parsed.version)) ||
           !Array.isArray(parsed.transactions) ||
           !Array.isArray(parsed.categories) ||
           !Array.isArray(parsed.budgets) ||
           !Array.isArray(parsed.recurrings) ||
           !Array.isArray(parsed.debts) ||
           !Array.isArray(parsed.sharedWalletMembers) ||
+          (Number(parsed.version) === 4 &&
+            (!Array.isArray(parsed.accounts) ||
+              !Array.isArray(parsed.accountShares) ||
+              !Array.isArray(parsed.transfers) ||
+              !Array.isArray(parsed.smartRules))) ||
           !parsed.preferences
         ) {
           setErrorMessage("Invalid backup file format.");
@@ -199,6 +204,9 @@ export default function BackupPage() {
                 <li>{parsedBackup.debts.length} debt record</li>
                 <li>
                   {parsedBackup.sharedWalletMembers.length} shared-wallet member
+                  {parsedBackup.version === 4 && (
+                    <> · {parsedBackup.accounts?.length ?? 0} accounts · {parsedBackup.transfers?.length ?? 0} transfers · {parsedBackup.smartRules?.length ?? 0} rules</>
+                  )}
                 </li>
                 <li>
                   {parsedBackup.whatsappNumbers?.length ?? 0} WhatsApp number

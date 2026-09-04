@@ -7,8 +7,9 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Modal } from "@/components/shared/Modal";
-import type { ApiRecurring, CreateRecurringInput } from "@/lib/api";
+import { type ApiRecurring, type CreateRecurringInput } from "@/lib/api";
 import { cn, parseCurrencyInput } from "@/lib/utils";
+import { useAccountStore } from "@/store/accountStore";
 
 interface Props {
   open: boolean;
@@ -34,6 +35,7 @@ function emptyForm(): FormState {
     startDate: today(),
     endDate: "",
     notes: "",
+    accountId: "",
   };
 }
 
@@ -45,6 +47,7 @@ interface FormState {
   startDate: string;
   endDate: string;
   notes: string;
+  accountId: string;
 }
 
 export function RecurringModal({ open, onClose, editing }: Props) {
@@ -54,6 +57,10 @@ export function RecurringModal({ open, onClose, editing }: Props) {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const activeAccount = accounts.find((account) => account.id === activeAccountId);
+  const selectedAccount = accounts.find((account) => account.id === form.accountId) ?? activeAccount;
 
   useEffect(() => {
     if (editing) {
@@ -65,12 +72,16 @@ export function RecurringModal({ open, onClose, editing }: Props) {
         startDate: editing.startDate,
         endDate: editing.endDate ?? "",
         notes: editing.notes ?? "",
+        accountId: editing.accountId,
       });
     } else {
-      setForm(emptyForm());
+      setForm({
+        ...emptyForm(),
+        accountId: activeAccount?.role !== "viewer" ? activeAccount?.id ?? "" : "",
+      });
     }
     setError(null);
-  }, [editing, open]);
+  }, [editing, open, activeAccount]);
 
   if (!open) return null;
 
@@ -98,6 +109,7 @@ export function RecurringModal({ open, onClose, editing }: Props) {
       startDate: form.startDate,
       endDate: form.endDate || null,
       notes: form.notes || null,
+      accountId: form.accountId,
     };
 
     setSaving(true);
@@ -185,6 +197,19 @@ export function RecurringModal({ open, onClose, editing }: Props) {
                   label: category.name,
                 })),
               ]}
+            />
+          </div>
+
+          {/* Frequency */}
+          <div>
+            <label htmlFor="recurring-account" className={labelCls}>Account / Pocket</label>
+            <Select
+              id="recurring-account"
+              value={form.accountId}
+              onValueChange={() => {}}
+              disabled
+              placeholder="Pilih active pocket dari navbar"
+              options={selectedAccount ? [{ value: selectedAccount.id, label: `${selectedAccount.name}${selectedAccount.ownership === "shared" ? " · Shared" : ""}` }] : []}
             />
           </div>
 

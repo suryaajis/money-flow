@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useCategoryStore } from "@/store/categoryStore";
-import { useTransactionStore } from "@/store/transactionStore";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useUIStore } from "@/store/uiStore";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select } from "@/components/ui/select";
@@ -87,7 +87,7 @@ export default function BudgetPage() {
     copyFromPreviousMonth,
   } = useBudgetStore();
   const { categories } = useCategoryStore();
-  const { transactions } = useTransactionStore();
+  const { transactions } = useTransactions();
   const { currency } = useUIStore();
 
   const [month, setMonth] = useState(currentMonth);

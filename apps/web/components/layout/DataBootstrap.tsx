@@ -13,16 +13,24 @@ export const DataBootstrap: React.FC = () => {
   const fetchTransactions = useTransactionStore((state) => state.fetchTransactions);
 
   useEffect(() => {
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let disposed = false;
     const refresh = async () => setPending((await listMutations()).length);
     const sync = async () => {
+      if (disposed) return;
       setOnline(navigator.onLine);
       if (navigator.onLine) {
         setSyncFailed(false);
         try {
           await syncOfflineTransactions();
-          await fetchTransactions();
+          const loaded = await fetchTransactions();
+          if (!loaded) {
+            setSyncFailed(true);
+            retryTimer = setTimeout(() => void sync(), 5_000);
+          }
         } catch {
           setSyncFailed(true);
+          retryTimer = setTimeout(() => void sync(), 5_000);
         }
       }
       await refresh();
@@ -34,6 +42,8 @@ export const DataBootstrap: React.FC = () => {
     window.addEventListener('moneyflow:offline-queue-changed', refresh);
     void sync();
     return () => {
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
       window.removeEventListener('online', sync);
       window.removeEventListener('offline', onOffline);
       window.removeEventListener('moneyflow:offline-synced', refresh);

@@ -1,4 +1,5 @@
 import type { DataSourceOptions } from 'typeorm';
+import { join } from 'node:path';
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -14,6 +15,13 @@ import { WaOutboundMessage } from '../whatsapp/wa-outbound-message.entity';
 import { WaNotificationDelivery } from '../whatsapp/wa-notification-delivery.entity';
 import { WebPushSubscription } from '../push/web-push-subscription.entity';
 import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
+import { Account } from '../accounts/account.entity';
+import { AccountShare } from '../accounts/account-share.entity';
+import { Transfer } from '../transfers/transfer.entity';
+import { SmartRule } from '../smart-rules/smart-rule.entity';
+import { RuleExecutionBatch } from '../smart-rules/rule-execution-batch.entity';
+import { FinancialHealthSnapshot } from '../financial-health/financial-health-snapshot.entity';
+import { RuleCorrectionEvent } from '../smart-rules/rule-correction-event.entity';
 
 export const entities = [
   User,
@@ -31,6 +39,13 @@ export const entities = [
   WaNotificationDelivery,
   WebPushSubscription,
   WaPhoneLink,
+  Account,
+  AccountShare,
+  Transfer,
+  SmartRule,
+  RuleExecutionBatch,
+  RuleCorrectionEvent,
+  FinancialHealthSnapshot,
 ];
 
 /**
@@ -43,6 +58,14 @@ export const entities = [
 export function buildDataSourceOptions(env: {
   get(key: string): string | undefined;
 }): DataSourceOptions {
+  // TypeORM's glob loader expects forward slashes, including on Windows.
+  // A mixed path such as `D:\\repo\\database/migrations/*` silently loads no
+  // migrations and makes the CLI report "No pending migrations".
+  const migrationsGlob = join(__dirname, 'migrations', '*.{ts,js}').replace(
+    /\\/g,
+    '/',
+  );
+
   return {
     type: 'postgres',
     host: env.get('DB_HOST') ?? 'localhost',
@@ -51,7 +74,7 @@ export function buildDataSourceOptions(env: {
     password: env.get('DB_PASSWORD'),
     database: env.get('DB_NAME') ?? 'money_flow',
     entities,
-    migrations: [__dirname + '/migrations/*.{ts,js}'],
+    migrations: [migrationsGlob],
     // Schema changes go through migrations in every environment. Never flip
     // this on: it silently drops columns to match the entities.
     synchronize: false,

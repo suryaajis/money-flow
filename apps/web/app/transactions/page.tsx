@@ -22,6 +22,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useExport } from "@/hooks/useExport";
 import { sharedWalletApi } from "@/lib/api";
 import type { Transaction } from "@/lib/types";
+import { useAccountStore } from "@/store/accountStore";
 
 export default function TransactionsPage() {
   const {
@@ -33,6 +34,11 @@ export default function TransactionsPage() {
     deleteMany,
   } = useTransactions();
   const { exportXLSX, exportCSV } = useExport();
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const activeAccount = accounts.find((account) => account.id === activeAccountId);
+  const canWrite = !!activeAccount && activeAccount.role !== "viewer";
+  const canManage = activeAccount?.ownership === "owned";
 
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -57,11 +63,11 @@ export default function TransactionsPage() {
   // window.location to avoid needing a useSearchParams Suspense boundary.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (new URLSearchParams(window.location.search).get("add") === "1") {
+    if (new URLSearchParams(window.location.search).get("add") === "1" && canWrite) {
       setAdding(true);
       window.history.replaceState(null, "", "/transactions");
     }
-  }, []);
+  }, [canWrite]);
 
   const handleSubmit = async (values: TransactionFormValues) => {
     setSubmitting(true);
@@ -89,7 +95,7 @@ export default function TransactionsPage() {
             Transaksi
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Semua jejak uangmu, tersusun rapi dan gampang dicari.
+            Ledger {activeAccount?.name ?? "active pocket"}{activeAccount?.role === "viewer" ? " · mode viewer" : ""}.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -107,7 +113,7 @@ export default function TransactionsPage() {
           >
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
-          <Button onClick={() => setAdding(true)}>
+          <Button onClick={() => setAdding(true)} disabled={!canWrite}>
             <Plus className="h-4 w-4" /> Add transaction
           </Button>
         </div>
@@ -119,7 +125,7 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
 
-      {selected.size > 0 ? (
+      {canManage && selected.size > 0 ? (
         <div className="glass-surface page-enter flex items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 shadow-lg">
           <span className="text-sm">
             <strong>{selected.size}</strong> selected
@@ -151,6 +157,7 @@ export default function TransactionsPage() {
         selected={selected}
         onSelectionChange={setSelected}
         recorders={recorders}
+        readOnly={!canManage}
       />
 
       <Modal

@@ -29,6 +29,9 @@ import { WaProactiveNotificationService } from './wa-proactive-notification.serv
 import { WA_TEMPLATE_DEFAULT_NAMES } from './wa-template-definitions';
 import { WaPhoneLink } from './wa-phone-link.entity';
 import { UpdateWaPhoneLinkDto } from './dto/update-wa-phone-link.dto';
+import { TransactionsService } from '../transactions/transactions.service';
+import { AccountsService } from '../accounts/accounts.service';
+import { TransfersService } from '../transfers/transfers.service';
 
 const MAX_WHATSAPP_NUMBERS = 3;
 
@@ -55,6 +58,9 @@ export class WhatsappService {
     private jwt: JwtService,
     private config: ConfigService,
     private proactive: WaProactiveNotificationService,
+    private transactionsService: TransactionsService,
+    private accountsService: AccountsService,
+    private transfersService: TransfersService,
   ) {}
 
   async getLinkStatus(userId: string) {
@@ -245,7 +251,9 @@ export class WhatsappService {
       return;
     }
 
-    if (['saldo', 'balance'].includes(trimmed)) {
+    if (trimmed.startsWith('transfer ') || trimmed.startsWith('bayar kartu ')) {
+      await this.handleAccountTransfer(user, text, from);
+    } else if (['saldo', 'balance'].includes(trimmed)) {
       await this.handleSaldo(user, from);
     } else if (
       ['rekap', 'laporan'].includes(trimmed) ||
@@ -483,6 +491,39 @@ export class WhatsappService {
       where: { userId: targetOwner?.id ?? user.id },
     });
     const result = await this.parser.parse(text, categories, new Date());
+    const accountResolution = await this.resolveAccountFromText(
+      user.id,
+      text,
+      targetOwner?.id,
+    );
+    if (accountResolution.ambiguous) {
+      await this.notifier.sendText(
+        from,
+        `Nama account ambigu. Gunakan nama yang unik: ${accountResolution.matches.join(', ')}.`,
+      );
+      return;
+    }
+    if (accountResolution.readOnly) {
+      await this.notifier.sendText(
+        from,
+        'Account tersebut hanya dapat dilihat karena role kamu viewer. Pilih account contributor/owner untuk mencatat transaksi.',
+      );
+      return;
+    }
+    let selectedAccount: { id: string } | null = accountResolution.account;
+    if (!selectedAccount && !targetOwner) {
+      try {
+        selectedAccount = await this.accountsService.getActiveWritableAccount(
+          user.id,
+        );
+      } catch {
+        await this.notifier.sendText(
+          from,
+          'Active pocket kamu hanya memiliki akses viewer. Pilih pocket yang bisa dicatat melalui aplikasi atau sebutkan nama account writable.',
+        );
+        return;
+      }
+    }
 
     if (!result || result.transactions.length === 0) {
       await this.notifier.sendText(
@@ -494,8 +535,10 @@ export class WhatsappService {
       return;
     }
 
-    for (const tx of result.transactions)
+    for (const tx of result.transactions) {
       (tx as any).targetOwnerId = targetOwner?.id ?? null;
+      (tx as any).accountId = selectedAccount?.id;
+    }
     const lowConfidence = result.transactions.some(
       (tx) =>
         tx.confidence < 0.8 ||
@@ -572,17 +615,23 @@ export class WhatsappService {
     const targetOwner = tx.targetOwnerId
       ? await this.userRepo.findOne({ where: { id: tx.targetOwnerId } })
       : null;
-    const saved = this.txRepo.create({
+    const input = {
       amount: tx.amount,
       type: tx.type,
       categoryId: tx.categoryId,
       date: tx.date || new Date().toISOString().split('T')[0],
       notes: tx.notes || undefined,
-      userId: targetOwner?.id ?? user.id,
-      source: targetOwner ? 'shared' : 'whatsapp',
-      recordedBy: user.id,
-      recordedByWaPhoneId: phoneLinkId,
-    });
+      accountId: tx.accountId || undefined,
+    };
+    const saved = targetOwner
+      ? await this.transactionsService.createForSharedWallet(
+          targetOwner.id,
+          user.id,
+          input,
+        )
+      : await this.transactionsService.create(user.id, input);
+    saved.source = targetOwner ? 'shared' : 'whatsapp';
+    saved.recordedByWaPhoneId = phoneLinkId;
     await this.txRepo.save(saved);
 
     const cat = await this.catRepo.findOne({ where: { id: tx.categoryId } });
@@ -658,6 +707,147 @@ export class WhatsappService {
     }
     for (const tx of transactions)
       await this.saveTransaction(user, tx, from, phoneLinkId);
+  }
+
+  private async resolveAccountFromText(
+    userId: string,
+    text: string,
+    targetOwnerId?: string,
+  ) {
+    const normalized = text.toLowerCase();
+    const accounts = (await this.accountsService.findAll(userId)).filter(
+      (account) =>
+        !account.archivedAt &&
+        (!targetOwnerId || account.ownerUserId === targetOwnerId),
+    );
+    const matches = accounts
+      .sort((a, b) => b.name.length - a.name.length)
+      .filter((account) => {
+        const name = account.name.toLowerCase();
+        return [
+          `dari ${name}`,
+          `akun ${name}`,
+          `account ${name}`,
+          `dompet ${name}`,
+        ].some((phrase) => normalized.includes(phrase));
+      });
+    const longest = matches[0]?.name.length ?? 0;
+    const bestMatches = matches.filter(
+      (account) => account.name.length === longest,
+    );
+    return {
+      account:
+        bestMatches.length === 1 && bestMatches[0].role !== 'viewer'
+          ? bestMatches[0]
+          : null,
+      ambiguous: bestMatches.length > 1,
+      readOnly: bestMatches.length === 1 && bestMatches[0].role === 'viewer',
+      matches: bestMatches.map(
+        (account) =>
+          `${account.name}${account.ownership === 'shared' ? ` (shared by ${account.owner?.name ?? 'owner'})` : ''}`,
+      ),
+    };
+  }
+
+  private async handleAccountTransfer(user: User, text: string, from: string) {
+    const transferMatch = text
+      .trim()
+      .match(
+        /^transfer\s+(\d[\d.,]*\s*(?:rb|ribu|k|jt|juta|m|miliar)?)\s+dari\s+(.+?)\s+ke\s+(.+)$/i,
+      );
+    const cardMatch = text
+      .trim()
+      .match(
+        /^bayar\s+kartu\s+(\d[\d.,]*\s*(?:rb|ribu|k|jt|juta|m|miliar)?)\s+dari\s+(.+?)(?:\s+ke\s+(.+))?$/i,
+      );
+    if (!transferMatch && !cardMatch) {
+      await this.notifier.sendText(
+        from,
+        'Format: *transfer 500rb dari BCA ke DANA* atau *bayar kartu 1jt dari Mandiri*',
+      );
+      return;
+    }
+    const accounts = (await this.accountsService.findAll(user.id)).filter(
+      (account) => account.ownership === 'owned' && !account.archivedAt,
+    );
+    const parsedMatch = (transferMatch ?? cardMatch)!;
+    const amountToken = parsedMatch[1];
+    const sourceName = parsedMatch[2].trim().toLowerCase();
+    const destinationName = parsedMatch[3]?.trim().toLowerCase();
+    const sourceMatches = accounts.filter(
+      (account) => account.name.toLowerCase() === sourceName,
+    );
+    const destinationMatches = destinationName
+      ? accounts.filter(
+          (account) => account.name.toLowerCase() === destinationName,
+        )
+      : accounts.filter((account) => account.type === 'credit_card');
+    if (
+      sourceMatches.length > 1 ||
+      (destinationName && destinationMatches.length > 1)
+    ) {
+      await this.notifier.sendText(
+        from,
+        'Nama account ambigu. Ubah nama account agar unik lalu coba kembali.',
+      );
+      return;
+    }
+    if (cardMatch && !destinationName && destinationMatches.length !== 1) {
+      await this.notifier.sendText(
+        from,
+        `Pilih kartu tujuan dengan format *bayar kartu 1jt dari Mandiri ke Nama Kartu*. Kartu kamu: ${destinationMatches.map((account) => account.name).join(', ') || 'belum ada'}`,
+      );
+      return;
+    }
+    const source = sourceMatches[0];
+    const destination = destinationMatches[0];
+    if (!source || !destination) {
+      await this.notifier.sendText(
+        from,
+        `Account tidak ditemukan. Account kamu: ${accounts.map((account) => account.name).join(', ')}`,
+      );
+      return;
+    }
+    if (source.currency !== destination.currency) {
+      await this.notifier.sendText(
+        from,
+        'Transfer lintas currency perlu nominal tujuan dan kurs; catat melalui aplikasi web.',
+      );
+      return;
+    }
+    const amount = this.parseMoneyAmount(amountToken);
+    if (!amount) {
+      await this.notifier.sendText(from, 'Nominal transfer tidak valid.');
+      return;
+    }
+    await this.transfersService.create(user.id, {
+      sourceAccountId: source.id,
+      destinationAccountId: destination.id,
+      sourceAmount: amount,
+      destinationAmount: amount,
+      exchangeRate: 1,
+      date: new Date().toISOString().slice(0, 10),
+      notes: cardMatch
+        ? 'Pembayaran kartu via WhatsApp'
+        : 'Transfer via WhatsApp',
+    });
+    await this.notifier.sendText(
+      from,
+      `✅ ${cardMatch ? 'Pembayaran kartu' : 'Transfer'} Rp${new Intl.NumberFormat('id-ID').format(amount)} dari ${source.name} ke ${destination.name} tercatat.`,
+    );
+  }
+
+  private parseMoneyAmount(raw: string): number {
+    const match = raw
+      .toLowerCase()
+      .match(/([\d.,]+)\s*(rb|ribu|k|jt|juta|m|miliar)?/);
+    if (!match) return 0;
+    let value = Number(match[1].replace(/\./g, '').replace(',', '.'));
+    const unit = match[2] ?? '';
+    if (['rb', 'ribu', 'k'].includes(unit)) value *= 1_000;
+    if (['jt', 'juta'].includes(unit)) value *= 1_000_000;
+    if (['m', 'miliar'].includes(unit)) value *= 1_000_000_000;
+    return Number.isFinite(value) ? Math.round(value) : 0;
   }
 
   private async handleSaldo(user: User, from: string) {
@@ -1067,6 +1257,9 @@ export class WhatsappService {
         '• kopi 15rb\n' +
         '• gajian 8jt\n' +
         '• bensin 50k, parkir 3k\n' +
+        '• kopi 25rb dari GoPay\n' +
+        '• transfer 500rb dari BCA ke DANA\n' +
+        '• bayar kartu 1jt dari Mandiri\n' +
         '• 🎙️ atau kirim voice note!\n\n' +
         '*Utang piutang:*\n' +
         '• pinjam ke budi 100rb\n' +

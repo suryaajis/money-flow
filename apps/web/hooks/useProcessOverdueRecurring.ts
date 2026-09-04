@@ -11,7 +11,6 @@ import { recurringApi, transactionsApi } from "@/lib/api";
  */
 export function useProcessOverdueRecurring() {
   const { recurrings, hasLoaded, fetchRecurrings } = useRecurringStore();
-  const { addTransaction } = useTransactionStore();
   const processed = useRef(false);
 
   useEffect(() => {
@@ -50,15 +49,11 @@ export function useProcessOverdueRecurring() {
               categoryId: r.categoryId ?? "",
               date: runDate,
               notes,
+              accountId: r.accountId,
             });
-            // Update local store
-            useTransactionStore.getState().addTransaction({
-              amount: tx.amount,
-              type: tx.type,
-              categoryId: tx.categoryId,
-              date: tx.date,
-              notes: tx.notes,
-            });
+            useTransactionStore.setState((state) => ({
+              transactions: [tx, ...state.transactions],
+            }));
           } catch {
             // ignore per-transaction errors, continue with others
           }
@@ -70,7 +65,10 @@ export function useProcessOverdueRecurring() {
 
         // Update nextRunDate on the server
         try {
-          await recurringApi.update(r.id, { isActive: runDate <= (r.endDate ?? "9999-12-31") });
+          await recurringApi.update(r.id, {
+            nextRunDate: runDate,
+            isActive: runDate <= (r.endDate ?? "9999-12-31"),
+          });
           useRecurringStore.setState((state) => ({
             recurrings: state.recurrings.map((item) =>
               item.id === r.id ? { ...item, nextRunDate: runDate } : item,
@@ -81,7 +79,7 @@ export function useProcessOverdueRecurring() {
         }
       }
     })();
-  }, [hasLoaded, recurrings, addTransaction]);
+  }, [hasLoaded, recurrings]);
 }
 
 function advanceDate(

@@ -192,6 +192,7 @@ export interface TransactionFiltersApi {
   categoryId?: string;
   startDate?: string;
   endDate?: string;
+  accountId?: string;
 }
 
 type TransactionWrite = Omit<
@@ -213,6 +214,7 @@ export const transactionsApi = {
     if (filters?.categoryId) params.set("categoryId", filters.categoryId);
     if (filters?.startDate) params.set("startDate", filters.startDate);
     if (filters?.endDate) params.set("endDate", filters.endDate);
+    if (filters?.accountId) params.set("accountId", filters.accountId);
     const qs = params.toString();
     try {
       const rows = await request<ApiTransaction[]>(
@@ -401,7 +403,7 @@ export const waNotificationsApi = {
 // ── Backup ────────────────────────────────────────────────────────────────────
 
 export interface BackupData {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   exportedAt: string;
   transactions: ApiTransaction[];
   categories: ApiCategory[];
@@ -409,6 +411,10 @@ export interface BackupData {
   recurrings: unknown[];
   debts: unknown[];
   sharedWalletMembers: unknown[];
+  accounts?: ApiAccount[];
+  accountShares?: ApiAccountShare[];
+  transfers?: ApiTransfer[];
+  smartRules?: ApiSmartRule[];
   whatsappNumbers?: Array<{
     phoneMasked: string;
     label: string;
@@ -446,6 +452,7 @@ export interface ApiRecurring {
   nextRunDate: string;
   isActive: boolean;
   notes: string | null;
+  accountId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -463,6 +470,121 @@ export type CreateRecurringInput = Omit<
 
 export type UpdateRecurringInput = Partial<CreateRecurringInput> & {
   isActive?: boolean;
+  nextRunDate?: string;
+};
+
+// Accounts, sharing, transfers, smart rules, and financial health (v1.6)
+export type AccountType = "cash" | "bank" | "e_wallet" | "credit_card" | "other";
+export type AccountRole = "owner" | "viewer" | "contributor";
+
+export interface ApiAccount {
+  id: string;
+  ownerUserId: string;
+  owner?: { id: string; name: string; email: string };
+  name: string;
+  type: AccountType;
+  currency: string;
+  openingBalance: number;
+  balance: number;
+  color: string | null;
+  icon: string | null;
+  isDefault: boolean;
+  archivedAt: string | null;
+  ownership: "owned" | "shared";
+  role: AccountRole;
+  shareId: string | null;
+  lastActivityAt: string | null;
+}
+
+export interface ApiAccountShare {
+  id: string;
+  accountId: string;
+  invitedEmail: string;
+  role: "viewer" | "contributor";
+  status: "pending" | "accepted" | "revoked";
+  acceptedAt: string | null;
+  member?: { id: string; name: string; email: string };
+  account?: ApiAccount;
+}
+
+export const accountsApi = {
+  getAll: () => request<ApiAccount[]>("/accounts"),
+  getActive: () => request<{ accountId: string }>("/accounts/active"),
+  setActive: (accountId: string) => request<{ accountId: string }>("/accounts/active", { method: "PUT", body: JSON.stringify({ accountId }) }),
+  create: (data: { name: string; type: AccountType; currency: string; openingBalance: number; color?: string; icon?: string }) =>
+    request<ApiAccount>("/accounts", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Pick<ApiAccount, "name" | "type" | "currency" | "color" | "icon">>) =>
+    request<ApiAccount>(`/accounts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  archive: (id: string) => request<void>(`/accounts/${id}`, { method: "DELETE" }),
+  adjust: (id: string, amount: number, reason: string) =>
+    request<ApiTransaction>(`/accounts/${id}/adjustments`, { method: "POST", body: JSON.stringify({ amount, reason }) }),
+  getShares: (id: string) => request<ApiAccountShare[]>(`/accounts/${id}/shares`),
+  invite: (id: string, email: string, role: "viewer" | "contributor") =>
+    request<ApiAccountShare>(`/accounts/${id}/shares`, { method: "POST", body: JSON.stringify({ email, role }) }),
+  updateShare: (id: string, shareId: string, role: "viewer" | "contributor") =>
+    request<ApiAccountShare>(`/accounts/${id}/shares/${shareId}`, { method: "PATCH", body: JSON.stringify({ role }) }),
+  revokeShare: (id: string, shareId: string) => request<void>(`/accounts/${id}/shares/${shareId}`, { method: "DELETE" }),
+  invitations: () => request<ApiAccountShare[]>("/account-invitations"),
+  acceptInvitation: (token: string) => request<ApiAccountShare>(`/account-invitations/${token}/accept`, { method: "POST" }),
+  declineInvitation: (token: string) => request<void>(`/account-invitations/${token}/decline`, { method: "POST" }),
+  leave: (shareId: string) => request<void>(`/account-invitations/${shareId}/leave`, { method: "DELETE" }),
+};
+
+export interface ApiTransfer {
+  id: string;
+  sourceAccountId: string;
+  destinationAccountId: string;
+  sourceAccount?: ApiAccount;
+  destinationAccount?: ApiAccount;
+  sourceAmount: number;
+  destinationAmount: number;
+  exchangeRate: number;
+  date: string;
+  notes: string | null;
+}
+
+export const transfersApi = {
+  getAll: () => request<ApiTransfer[]>("/transfers"),
+  create: (data: Omit<ApiTransfer, "id" | "sourceAccount" | "destinationAccount"> & { idempotencyKey?: string }) =>
+    request<ApiTransfer>("/transfers", { method: "POST", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/transfers/${id}`, { method: "DELETE" }),
+};
+
+export interface ApiSmartRule {
+  id: string;
+  name: string;
+  conditions: { descriptionContains?: string; source?: string; accountId?: string; minAmount?: number; maxAmount?: number; type?: "income" | "expense" };
+  actions: { categoryId?: string; tags?: string[]; normalizedDescription?: string };
+  priority: number;
+  active: boolean;
+  stopOnMatch: boolean;
+}
+
+export const smartRulesApi = {
+  getAll: () => request<ApiSmartRule[]>("/smart-rules"),
+  suggestions: () => request<Array<{ merchant: string; occurrences: number; conditions: ApiSmartRule["conditions"]; actions: ApiSmartRule["actions"] }>>("/smart-rules/suggestions"),
+  create: (data: Omit<ApiSmartRule, "id">) => request<ApiSmartRule>("/smart-rules", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Omit<ApiSmartRule, "id">>) => request<ApiSmartRule>(`/smart-rules/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/smart-rules/${id}`, { method: "DELETE" }),
+  preview: (id: string) => request<{ count: number; sample: ApiTransaction[] }>(`/smart-rules/${id}/preview`, { method: "POST" }),
+  apply: (id: string) => request<{ batchId: string; affected: number; reversibleUntil: string }>(`/smart-rules/${id}/apply`, { method: "POST" }),
+  undo: (batchId: string) => request<{ restored: number }>(`/smart-rules/batches/${batchId}/undo`, { method: "POST" }),
+};
+
+export interface ApiFinancialHealth {
+  enabled: boolean;
+  period: string;
+  score?: number | null;
+  components?: Record<string, { score: number | null; weight: number; reason: string; value?: number }>;
+  formulaVersion?: string;
+  dataQuality?: { sufficient: boolean; transactionCount: number; reasons: string[] };
+  comparison?: { period: string; score: number | null; change: number | null };
+  recommendations?: string[];
+}
+
+export const financialHealthApi = {
+  get: (period?: string) => request<ApiFinancialHealth>(`/financial-health${period ? `?period=${period}` : ""}`),
+  setEnabled: (enabled: boolean) => request<{ enabled: boolean }>("/financial-health/preference", { method: "PUT", body: JSON.stringify({ enabled }) }),
 };
 
 // ── Debts ─────────────────────────────────────────────────────────────────────

@@ -53,6 +53,31 @@ export class EmailService {
     this.logger.log(`Password reset email sent to ${this.maskEmail(email)}`);
   }
 
+  async sendAccountInvitation(
+    email: string,
+    rawToken: string,
+    accountName: string,
+  ): Promise<void> {
+    const inviteUrl = `${this.frontendUrl}/accounts/invitations?token=${encodeURIComponent(rawToken)}`;
+    if (this.isDev) {
+      this.logger.log(`[DEV] Account invitation for ${email} → ${inviteUrl}`);
+      return;
+    }
+    if (!this.transporter) {
+      throw new Error(
+        'SMTP_HOST wajib dikonfigurasi pada environment production',
+      );
+    }
+    await this.transporter.sendMail({
+      from: this.config.get<string>('SMTP_FROM', 'noreply@moneyflow.app'),
+      to: email,
+      subject: `Undangan account ${accountName} di Money Flow`,
+      text: `Kamu diundang ke account ${accountName}. Terima undangan dalam 24 jam: ${inviteUrl}`,
+      html: `<p>Kamu diundang ke account <strong>${accountName}</strong>.</p><p><a href="${inviteUrl}">Terima undangan</a> (berlaku 24 jam)</p>`,
+    });
+    this.logger.log(`Account invitation sent to ${this.maskEmail(email)}`);
+  }
+
   private maskEmail(email: string): string {
     const [name, domain] = email.split('@');
     return `${name.slice(0, 2)}***@${domain}`;

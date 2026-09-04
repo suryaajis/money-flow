@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Sparkles, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { CurrencyToggle } from "@/components/layout/CurrencyToggle";
+import { ActivePocketSwitcher } from "@/components/layout/ActivePocketSwitcher";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useAuthStore } from "@/store/authStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
+import { useAccountStore } from "@/store/accountStore";
 
 function titleForPath(pathname: string): string {
   const match = NAV_ITEMS.find(
@@ -33,10 +34,12 @@ export const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
   const clearTx = useTransactionStore((s) => s.clearAll);
   const clearCat = useCategoryStore((s) => s.clearAll);
+  const clearAccounts = useAccountStore((s) => s.clearAll);
 
   const handleLogout = () => {
     clearTx();
     clearCat();
+    clearAccounts();
     logout();
     router.replace("/login");
   };
@@ -58,7 +61,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <CurrencyToggle />
+        <ActivePocketSwitcher />
         <ThemeToggle />
         {user && (
           <div className="ml-1 flex items-center gap-1 border-l border-border/80 pl-2 sm:gap-2 sm:pl-3">

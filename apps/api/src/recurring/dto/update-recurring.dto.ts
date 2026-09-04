@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsDateString,
   IsBoolean,
+  IsUUID,
   Min,
 } from 'class-validator';
 
@@ -32,6 +33,10 @@ export class UpdateRecurringDto {
 
   @IsOptional()
   @IsDateString()
+  nextRunDate?: string;
+
+  @IsOptional()
+  @IsDateString()
   endDate?: string;
 
   @IsOptional()
@@ -41,4 +46,8 @@ export class UpdateRecurringDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

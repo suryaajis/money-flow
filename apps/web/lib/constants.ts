@@ -51,6 +51,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+  { href: "/accounts", label: "Accounts", icon: "WalletCards" },
   { href: "/transactions", label: "Transactions", icon: "ArrowLeftRight" },
   { href: "/budget", label: "Budget", icon: "PiggyBank" },
   { href: "/recurring", label: "Recurring", icon: "Repeat" },
@@ -58,6 +59,13 @@ export const NAV_ITEMS = [
   { href: "/import", label: "Import", icon: "ScanLine" },
   { href: "/categories", label: "Categories", icon: "Tags" },
   { href: "/analytics", label: "Analytics", icon: "BarChart3" },
+  { href: "/smart-rules", label: "Smart Rules", icon: "WandSparkles" },
+  { href: "/financial-health", label: "Health", icon: "HeartPulse" },
+  { href: "/settings", label: "Settings", icon: "Settings" },
+] as const;
+
+export const SETTINGS_ITEMS = [
   { href: "/settings/profile", label: "Profile", icon: "UserCircle" },
   { href: "/settings/whatsapp", label: "WhatsApp", icon: "MessageSquare" },
+  { href: "/accounts", label: "Account Sharing", icon: "Users" },
 ] as const;

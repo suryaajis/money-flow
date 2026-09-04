@@ -23,6 +23,9 @@ import { ExportController } from './export.controller';
 import { WaProactiveNotificationService } from './wa-proactive-notification.service';
 import { WalletMember } from '../shared-wallet/wallet-member.entity';
 import { WaPhoneLink } from './wa-phone-link.entity';
+import { TransactionsModule } from '../transactions/transactions.module';
+import { AccountsModule } from '../accounts/accounts.module';
+import { TransfersModule } from '../transfers/transfers.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { WaPhoneLink } from './wa-phone-link.entity';
       WalletMember,
       WaPhoneLink,
     ]),
+    TransactionsModule,
+    AccountsModule,
+    TransfersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

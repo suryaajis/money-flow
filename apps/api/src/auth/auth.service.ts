@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +13,7 @@ import { EmailService } from '../email/email.service';
 import { PasswordResetToken } from './password-reset-token.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { AccountsService } from '../accounts/accounts.service';
 
 @Injectable()
 export class AuthService {
@@ -16,12 +21,18 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly accountsService: AccountsService,
     @InjectRepository(PasswordResetToken)
     private readonly resetTokenRepo: Repository<PasswordResetToken>,
   ) {}
 
   async register(dto: RegisterDto) {
-    const user = await this.usersService.create(dto.email, dto.name, dto.password);
+    const user = await this.usersService.create(
+      dto.email,
+      dto.name,
+      dto.password,
+    );
+    await this.accountsService.ensureDefaultAccount(user.id);
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
     return {
       accessToken: token,
@@ -68,16 +79,26 @@ export class AuthService {
       await this.emailService.sendPasswordReset(email, rawToken);
     }
 
-    return { message: 'Jika email terdaftar, link reset password telah dikirim.' };
+    return {
+      message: 'Jika email terdaftar, link reset password telah dikirim.',
+    };
   }
 
-  async resetPassword(rawToken: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    rawToken: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const record = await this.resetTokenRepo.findOne({ where: { token: hashed } });
+    const record = await this.resetTokenRepo.findOne({
+      where: { token: hashed },
+    });
 
-    if (!record) throw new BadRequestException('Link reset password tidak valid');
-    if (record.usedAt) throw new BadRequestException('Link sudah pernah digunakan');
-    if (record.expiresAt < new Date()) throw new BadRequestException('Link sudah kadaluarsa');
+    if (!record)
+      throw new BadRequestException('Link reset password tidak valid');
+    if (record.usedAt)
+      throw new BadRequestException('Link sudah pernah digunakan');
+    if (record.expiresAt < new Date())
+      throw new BadRequestException('Link sudah kadaluarsa');
 
     await this.usersService.updatePassword(record.userId, newPassword);
     record.usedAt = new Date();

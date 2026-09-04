@@ -5,6 +5,7 @@ import {
   EntityTarget,
   ObjectLiteral,
   IsNull,
+  In,
 } from 'typeorm';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from '../categories/category.entity';
@@ -14,9 +15,13 @@ import { Debt } from '../debts/debt.entity';
 import { WalletMember } from '../shared-wallet/wallet-member.entity';
 import { User } from '../users/user.entity';
 import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
+import { Account } from '../accounts/account.entity';
+import { AccountShare } from '../accounts/account-share.entity';
+import { Transfer } from '../transfers/transfer.entity';
+import { SmartRule } from '../smart-rules/smart-rule.entity';
 
 export interface BackupData {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   exportedAt: string;
   transactions: Partial<Transaction>[];
   categories: Partial<Category>[];
@@ -24,6 +29,10 @@ export interface BackupData {
   recurrings: Partial<RecurringTransaction>[];
   debts: Partial<Debt>[];
   sharedWalletMembers: Partial<WalletMember>[];
+  accounts?: Partial<Account>[];
+  accountShares?: Partial<AccountShare>[];
+  transfers?: Partial<Transfer>[];
+  smartRules?: Partial<SmartRule>[];
   whatsappNumbers?: Array<{
     phoneMasked: string;
     label: string;
@@ -38,6 +47,7 @@ export interface BackupData {
     notifyDebtDue: boolean;
     notifyDailyInput: boolean;
     dailyInputTime: string;
+    healthScoreEnabled?: boolean;
   };
 }
 
@@ -56,6 +66,7 @@ export class BackupService {
       members,
       phoneLinks,
       user,
+      accounts,
     ] = await Promise.all([
       manager.find(Transaction, { where: { userId } }),
       manager.find(Category, { where: { userId } }),
@@ -68,10 +79,20 @@ export class BackupService {
         order: { isPrimary: 'DESC', linkedAt: 'ASC' },
       }),
       manager.findOne(User, { where: { id: userId } }),
+      manager.find(Account, { where: { ownerUserId: userId } }),
+    ]);
+
+    const accountIds = accounts.map((account) => account.id);
+    const [accountShares, transfers, smartRules] = await Promise.all([
+      accountIds.length
+        ? manager.find(AccountShare, { where: { accountId: In(accountIds) } })
+        : Promise.resolve([]),
+      manager.find(Transfer, { where: { userId } }),
+      manager.find(SmartRule, { where: { userId } }),
     ]);
 
     return {
-      version: 3,
+      version: 4,
       exportedAt: new Date().toISOString(),
       transactions,
       categories,
@@ -83,6 +104,13 @@ export class BackupService {
         inviteToken: null,
         inviteTokenHash: null,
       })),
+      accounts,
+      accountShares: accountShares.map((share) => ({
+        ...share,
+        inviteTokenHash: null,
+      })),
+      transfers,
+      smartRules,
       whatsappNumbers: phoneLinks.map((link) => ({
         phoneMasked: this.maskPhone(link.phone),
         label: link.label,
@@ -97,6 +125,7 @@ export class BackupService {
         notifyDebtDue: user?.notifyDebtDue ?? false,
         notifyDailyInput: user?.notifyDailyInput ?? false,
         dailyInputTime: user?.dailyInputTime ?? '20:00',
+        healthScoreEnabled: user?.healthScoreEnabled ?? true,
       },
     };
   }
@@ -129,13 +158,21 @@ export class BackupService {
       'sharedWalletMembers',
     ];
     if (
-      ![2, 3].includes(Number(value.version)) ||
+      ![2, 3, 4].includes(Number(value.version)) ||
       arrays.some((key) => !Array.isArray(value[key]))
     ) {
       throw new BadRequestException('Format backup tidak valid');
     }
     if (value.version === 3 && !Array.isArray(value.whatsappNumbers)) {
       throw new BadRequestException('Metadata WhatsApp backup tidak valid');
+    }
+    if (
+      value.version === 4 &&
+      ['accounts', 'accountShares', 'transfers', 'smartRules'].some(
+        (key) => !Array.isArray(value[key]),
+      )
+    ) {
+      throw new BadRequestException('Data account backup v4 tidak valid');
     }
     if (!value.preferences || typeof value.preferences !== 'object') {
       throw new BadRequestException('Preferences backup tidak valid');
@@ -161,6 +198,15 @@ export class BackupService {
     mode: 'merge' | 'replace',
   ): Promise<{ imported: number }> {
     if (mode === 'replace') {
+      await manager.delete(AccountShare, {
+        accountId: In(
+          (await manager.find(Account, { where: { ownerUserId: userId } })).map(
+            (account) => account.id,
+          ),
+        ),
+      });
+      await manager.delete(Transfer, { userId });
+      await manager.delete(SmartRule, { userId });
       await manager.delete(Transaction, { userId });
       await manager.delete(Budget, { userId });
       await manager.delete(RecurringTransaction, { userId });
@@ -209,6 +255,69 @@ export class BackupService {
       imported++;
     }
 
+    const currentAccounts = await manager.find(Account, {
+      where: { ownerUserId: userId },
+    });
+    let defaultAccount = currentAccounts.find((account) => account.isDefault);
+    if (!defaultAccount) {
+      defaultAccount = await manager.save(
+        Account,
+        manager.create(Account, {
+          ownerUserId: userId,
+          name: 'Dompet Utama',
+          type: 'cash',
+          currency: 'IDR',
+          openingBalance: 0,
+          color: '#84cc16',
+          icon: 'Wallet',
+          isDefault: true,
+          sortOrder: 0,
+          archivedAt: null,
+        }),
+      );
+    }
+    const accountMap = new Map<string, string>();
+    for (const source of data.accounts ?? []) {
+      if (!source.id) continue;
+      if (source.isDefault) {
+        accountMap.set(source.id, defaultAccount.id);
+        continue;
+      }
+      const existing = currentAccounts.find(
+        (account) => account.id === source.id || account.name === source.name,
+      );
+      if (existing) {
+        accountMap.set(source.id, existing.id);
+        continue;
+      }
+      const row = this.withoutRelations(source);
+      const saved = await manager.save(
+        Account,
+        manager.create(Account, {
+          ...row,
+          id: undefined,
+          ownerUserId: userId,
+          isDefault: false,
+        }),
+      );
+      accountMap.set(source.id, saved.id);
+      imported++;
+    }
+
+    imported += await this.insertMissing(
+      manager,
+      Transfer,
+      data.transfers ?? [],
+      userId,
+      (row) => ({
+        ...row,
+        sourceAccountId:
+          accountMap.get(String(row.sourceAccountId)) ?? defaultAccount.id,
+        destinationAccountId:
+          accountMap.get(String(row.destinationAccountId)) ?? defaultAccount.id,
+      }),
+    );
+
     imported += await this.insertMissing(
       manager,
       Transaction,
@@ -217,6 +326,8 @@ export class BackupService {
       (row) => ({
         ...row,
         recordedByWaPhoneId: null,
+        recordedByUserId: userId,
+        accountId: accountMap.get(String(row.accountId)) ?? defaultAccount.id,
         categoryId: row.categoryId
           ? (categoryMap.get(String(row.categoryId)) ?? null)
           : null,
@@ -242,9 +353,61 @@ export class BackupService {
         categoryId: row.categoryId
           ? categoryMap.get(String(row.categoryId))
           : undefined,
+        accountId: accountMap.get(String(row.accountId)) ?? defaultAccount.id,
       }),
     );
     imported += await this.insertMissing(manager, Debt, data.debts, userId);
+
+    for (const source of data.accountShares ?? []) {
+      const accountId = accountMap.get(String(source.accountId));
+      if (!accountId || !source.invitedEmail) continue;
+      const member = await manager.findOne(User, {
+        where: { email: source.invitedEmail.toLowerCase() },
+      });
+      if (!member || member.id === userId) continue;
+      const duplicate = await manager.findOne(AccountShare, {
+        where: { accountId, memberUserId: member.id },
+      });
+      if (duplicate) continue;
+      await manager.save(
+        AccountShare,
+        manager.create(AccountShare, {
+          accountId,
+          memberUserId: member.id,
+          invitedEmail: member.email,
+          role: source.role ?? 'viewer',
+          status: source.status === 'accepted' ? 'accepted' : 'revoked',
+          inviteTokenHash: null,
+          inviteExpiresAt: null,
+          acceptedAt: source.acceptedAt ?? null,
+          revokedAt: source.status === 'accepted' ? null : new Date(),
+        }),
+      );
+      imported++;
+    }
+
+    for (const source of data.smartRules ?? []) {
+      if (
+        source.id &&
+        (await manager.findOne(SmartRule, { where: { id: source.id } }))
+      )
+        continue;
+      const conditions = { ...(source.conditions ?? {}) };
+      const actions = { ...(source.actions ?? {}) };
+      if (conditions.accountId)
+        conditions.accountId = accountMap.get(String(conditions.accountId));
+      await manager.save(
+        SmartRule,
+        manager.create(SmartRule, {
+          ...this.withoutRelations(source),
+          id: undefined,
+          userId,
+          conditions,
+          actions,
+        }),
+      );
+      imported++;
+    }
 
     for (const source of data.sharedWalletMembers) {
       if (!source.memberWaPhone && !source.memberEmail) continue;
@@ -299,6 +462,7 @@ export class BackupService {
       )
         ? data.preferences.dailyInputTime
         : '20:00',
+      healthScoreEnabled: data.preferences.healthScoreEnabled !== false,
     });
     return { imported };
   }

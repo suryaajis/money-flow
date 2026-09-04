@@ -3,6 +3,8 @@ import type { Repository } from 'typeorm';
 import { Category } from '../categories/category.entity';
 import { Transaction } from './transaction.entity';
 import { TransactionsService } from './transactions.service';
+import type { AccountsService } from '../accounts/accounts.service';
+import type { SmartRulesService } from '../smart-rules/smart-rules.service';
 
 describe('TransactionsService reliability', () => {
   const transactionRepository = {
@@ -12,6 +14,14 @@ describe('TransactionsService reliability', () => {
   };
   const categoryRepository = {
     findOne: jest.fn(),
+  };
+  const accountsService = {
+    ensureDefaultAccount: jest.fn(),
+    getActiveWritableAccount: jest.fn(),
+    assertCanContribute: jest.fn(),
+  };
+  const smartRules = {
+    applyToInput: jest.fn(),
   };
   const dto = {
     amount: 25_000,
@@ -33,9 +43,29 @@ describe('TransactionsService reliability', () => {
     transactionRepository.save.mockImplementation((value: Transaction) =>
       Promise.resolve(value),
     );
+    accountsService.ensureDefaultAccount.mockImplementation((userId: string) =>
+      Promise.resolve({ id: `account-${userId}`, ownerUserId: userId }),
+    );
+    accountsService.getActiveWritableAccount.mockImplementation(
+      (userId: string) =>
+        Promise.resolve({ id: `account-${userId}`, ownerUserId: userId }),
+    );
+    accountsService.assertCanContribute.mockImplementation(
+      (userId: string, accountId: string) =>
+        Promise.resolve({
+          account: { id: accountId, ownerUserId: userId },
+          ownership: 'owned',
+          role: 'owner',
+        }),
+    );
+    smartRules.applyToInput.mockImplementation(
+      (_userId: string, input: object) => Promise.resolve(input),
+    );
     service = new TransactionsService(
       transactionRepository as unknown as Repository<Transaction>,
       categoryRepository as unknown as Repository<Category>,
+      accountsService as unknown as AccountsService,
+      smartRules as unknown as SmartRulesService,
     );
   });
 
@@ -79,6 +109,7 @@ describe('TransactionsService reliability', () => {
       userId: 'owner-1',
       source: 'shared',
       recordedBy: 'member-1',
+      recordedByUserId: 'member-1',
     });
     expect(categoryRepository.findOne).toHaveBeenCalledWith({
       where: { id: dto.categoryId, userId: 'owner-1' },

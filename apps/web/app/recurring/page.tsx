@@ -16,6 +16,7 @@ import { useProcessOverdueRecurring } from "@/hooks/useProcessOverdueRecurring";
 import { RecurringModal } from "@/components/recurring/RecurringModal";
 import type { ApiRecurring } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAccountStore } from "@/store/accountStore";
 
 const FREQ_LABELS: Record<string, string> = {
   daily: "Daily",
@@ -36,6 +37,11 @@ export default function RecurringPage() {
     deleteRecurring,
   } = useRecurringStore();
   const { categories } = useCategoryStore();
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const activeAccount = accounts.find((account) => account.id === activeAccountId);
+  const visibleRecurrings = recurrings.filter((item) => item.accountId === activeAccountId);
+  const canWrite = !!activeAccount && activeAccount.role !== "viewer";
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ApiRecurring | null>(null);
@@ -85,6 +91,7 @@ export default function RecurringPage() {
         </div>
         <button
           onClick={handleNew}
+          disabled={!canWrite}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -94,7 +101,7 @@ export default function RecurringPage() {
 
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
-      {!loading && recurrings.length === 0 && (
+      {!loading && visibleRecurrings.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-primary/20 bg-primary/[0.035] py-16 text-center">
           <Repeat className="mb-3 h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm font-medium">No recurring templates yet</p>
@@ -103,6 +110,7 @@ export default function RecurringPage() {
           </p>
           <button
             onClick={handleNew}
+            disabled={!canWrite}
             className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Create first template
@@ -110,9 +118,9 @@ export default function RecurringPage() {
         </div>
       )}
 
-      {recurrings.length > 0 && (
+      {visibleRecurrings.length > 0 && (
         <div className="mf-card divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {recurrings.map((item) => (
+          {visibleRecurrings.map((item) => (
             <div
               key={item.id}
               className={cn(
@@ -135,7 +143,7 @@ export default function RecurringPage() {
                   <span className="text-sm font-semibold">
                     {Number(item.amount).toLocaleString("id-ID", {
                       style: "currency",
-                      currency: "IDR",
+                      currency: activeAccount?.currency ?? "IDR",
                       maximumFractionDigits: 0,
                     })}
                   </span>

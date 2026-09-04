@@ -4,6 +4,7 @@ import { AppDataSource } from './data-source';
 import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
 import { Transaction } from '../transactions/transaction.entity';
+import { Account } from '../accounts/account.entity';
 
 const DEMO_EMAIL = process.env.SEED_EMAIL ?? 'demo@moneyflow.test';
 const DEMO_PASSWORD = process.env.SEED_PASSWORD ?? 'demo1234';
@@ -53,6 +54,7 @@ async function seed(): Promise<void> {
       const userRepo = manager.getRepository(User);
       const categoryRepo = manager.getRepository(Category);
       const transactionRepo = manager.getRepository(Transaction);
+      const accountRepo = manager.getRepository(Account);
 
       // Idempotent: re-running the seed must not duplicate the demo data.
       const existing = await userRepo.findOne({ where: { email: DEMO_EMAIL } });
@@ -76,6 +78,21 @@ async function seed(): Promise<void> {
       );
       const byName = new Map(categories.map((c) => [c.name, c]));
 
+      const account = await accountRepo.save(
+        accountRepo.create({
+          ownerUserId: user.id,
+          name: 'Dompet Utama',
+          type: 'cash',
+          currency: 'IDR',
+          openingBalance: 0,
+          color: '#84cc16',
+          icon: 'Wallet',
+          isDefault: true,
+          sortOrder: 0,
+          archivedAt: null,
+        }),
+      );
+
       await transactionRepo.save(
         SAMPLE_TRANSACTIONS.map((t) =>
           transactionRepo.create({
@@ -86,6 +103,12 @@ async function seed(): Promise<void> {
             notes: t.notes,
             date: isoDateDaysAgo(t.daysAgo),
             currency: 'IDR',
+            accountId: account.id,
+            recordedBy: user.id,
+            recordedByUserId: user.id,
+            transferId: null,
+            entryRole: null,
+            adjustmentReason: null,
           }),
         ),
       );

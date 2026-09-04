@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
-import { FloatingAddButton } from "@/components/layout/FloatingAddButton";
+import { FloatingScanButton } from "@/components/layout/FloatingScanButton";
 import { Header } from "@/components/layout/Header";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { ServiceWorkerRegistrar } from "@/components/layout/ServiceWorkerRegistrar";
@@ -17,6 +17,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useUIStore } from "@/store/uiStore";
+import { useAccountStore } from "@/store/accountStore";
 
 // Routes that render without the authenticated app chrome or the auth gate.
 const PUBLIC_ROUTES = ["/login", "/register"];
@@ -29,6 +30,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
   const { token } = useAuthStore();
   const fetchTransactions = useTransactionStore((s) => s.fetchTransactions);
   const fetchCategories = useCategoryStore((s) => s.fetchCategories);
+  const fetchAccounts = useAccountStore((s) => s.fetchAccounts);
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
@@ -74,6 +76,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     // in with cached data.
     authApi.me().catch(() => {});
     fetchCategories();
+    fetchAccounts();
     fetchTransactions();
   }, [
     token,
@@ -81,6 +84,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
     pathname,
     isPublicRoute,
     fetchCategories,
+    fetchAccounts,
     fetchTransactions,
     router,
   ]);
@@ -117,7 +121,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({
           </main>
         </div>
         <MobileNav />
-        <FloatingAddButton />
+        <FloatingScanButton />
         <InstallPrompt />
         <NotificationScheduler />
         <DataBootstrap />

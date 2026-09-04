@@ -11,6 +11,7 @@ import { User } from '../users/user.entity';
 import { Category } from '../categories/category.entity';
 import { numericTransformer } from '../database/numeric.transformer';
 import { WaPhoneLink } from '../whatsapp/wa-phone-link.entity';
+import { Account } from '../accounts/account.entity';
 
 @Entity('transactions')
 export class Transaction {
@@ -35,7 +36,7 @@ export class Transaction {
   date: string;
 
   @Column({ nullable: true, type: 'text' })
-  notes: string;
+  notes: string | null;
 
   // `type` must be explicit: the `string | null` TS type emits design:type
   // Object, which TypeORM cannot map to a Postgres column.
@@ -53,6 +54,13 @@ export class Transaction {
   recordedBy: string | null;
 
   @Column({ type: 'uuid', nullable: true })
+  recordedByUserId: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'recordedByUserId' })
+  recordedByUser: User | null;
+
+  @Column({ type: 'uuid', nullable: true })
   recordedByWaPhoneId: string | null;
 
   @ManyToOne(() => WaPhoneLink, { onDelete: 'SET NULL', nullable: true })
@@ -61,6 +69,22 @@ export class Transaction {
 
   @Column({ type: 'uuid', nullable: true })
   clientMutationId: string | null;
+
+  @Column({ type: 'uuid' })
+  accountId: string;
+
+  @ManyToOne(() => Account, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'accountId' })
+  account: Account;
+
+  @Column({ type: 'uuid', nullable: true })
+  transferId: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  entryRole: 'source' | 'destination' | null;
+
+  @Column({ type: 'text', nullable: true })
+  adjustmentReason: string | null;
 
   @Column()
   userId: string;

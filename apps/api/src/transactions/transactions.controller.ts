@@ -32,12 +32,14 @@ export class TransactionsController {
     @Query('categoryId') categoryId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('accountId') accountId?: string,
   ) {
     return this.transactionsService.findAll(req.user.id, {
       type,
       categoryId,
       startDate,
       endDate,
+      accountId,
     });
   }
 

@@ -30,6 +30,8 @@ import { parseReceipt, type ParsedReceipt } from "@/lib/receiptParser";
 import { prepareReceiptData } from "@/lib/receiptFile";
 import { cn, formatCurrency, todayISO } from "@/lib/utils";
 import type { TransactionType } from "@/lib/types";
+import type { ApiAccount } from "@/lib/api";
+import { useAccountStore } from "@/store/accountStore";
 
 type ImportStage = "upload" | "processing" | "confirm";
 
@@ -39,6 +41,7 @@ interface ConfirmFormState {
   categoryId: string;
   date: string;
   notes: string;
+  accountId: string;
 }
 
 const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf";
@@ -62,6 +65,13 @@ export const ImportClient: React.FC = () => {
   const [errorMessage, setErrorMessage] = React.useState<string>("");
   const [saved, setSaved] = React.useState<boolean>(false);
   const [showRawText, setShowRawText] = React.useState<boolean>(false);
+  const accountRows = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const activeAccount = accountRows.find((account) => account.id === activeAccountId);
+  const accounts = React.useMemo(
+    () => activeAccount && activeAccount.role !== "viewer" ? [activeAccount] : [],
+    [activeAccount],
+  );
 
   const abortRef = React.useRef<AbortController | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -125,6 +135,7 @@ export const ImportClient: React.FC = () => {
         categoryId: defaultCategory?.id ?? "",
         date: result.date || todayISO(),
         notes: result.merchant || "",
+        accountId: activeAccount?.role !== "viewer" ? activeAccount?.id ?? "" : "",
         });
         setStage("confirm");
         setProgress(100);
@@ -135,7 +146,7 @@ export const ImportClient: React.FC = () => {
         setErrorMessage(error instanceof Error ? error.message : "OCR gagal memproses berkas.");
       }
     },
-    [expenseCategories],
+    [expenseCategories, activeAccount],
   );
 
   // ------------------------------------------------------------------
@@ -304,6 +315,10 @@ export const ImportClient: React.FC = () => {
       setErrorMessage("Pilih tanggal.");
       return;
     }
+    if (!form.accountId) {
+      setErrorMessage(activeAccount?.role === "viewer" ? "Active pocket hanya memiliki akses viewer." : "Pilih active pocket dari navbar.");
+      return;
+    }
     setErrorMessage("");
 
     addTransaction({
@@ -312,6 +327,7 @@ export const ImportClient: React.FC = () => {
       categoryId: form.categoryId,
       date: form.date,
       notes: form.notes.trim() || undefined,
+      accountId: form.accountId,
     });
     setSaved(true);
     // Brief success state, then route to transactions.
@@ -379,6 +395,7 @@ export const ImportClient: React.FC = () => {
           previewUrl={previewUrl}
           previewMime={previewMime}
           visibleCategories={visibleCategories}
+          accounts={accounts}
           showRawText={showRawText}
           setShowRawText={setShowRawText}
           updateForm={updateForm}
@@ -543,6 +560,7 @@ interface ConfirmStageProps {
   previewUrl: string | null;
   previewMime: string;
   visibleCategories: { id: string; name: string }[];
+  accounts: ApiAccount[];
   showRawText: boolean;
   setShowRawText: (v: boolean) => void;
   updateForm: <K extends keyof ConfirmFormState>(
@@ -561,6 +579,7 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
   previewUrl,
   previewMime,
   visibleCategories,
+  accounts,
   showRawText,
   setShowRawText,
   updateForm,
@@ -710,6 +729,22 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
                       }))
                 }
               />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="import-account">Account / Pocket</Label>
+              <Select
+                id="import-account"
+                value={form.accountId}
+                onValueChange={() => {}}
+                disabled
+                placeholder="Pilih active pocket dari navbar"
+                options={accounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.name}${account.ownership === "shared" ? " · Shared" : ""}`,
+                }))}
+              />
+              <p className="text-xs text-muted-foreground">Hasil OCR akan dicatat ke active pocket.</p>
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">

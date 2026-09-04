@@ -84,7 +84,7 @@ export const FilterBar: React.FC = () => {
         placeholder="Filter by tag..."
         value={filters.tag ?? ""}
         onChange={(e) => setFilters({ tag: e.target.value || undefined })}
-        className="lg:col-span-12"
+        className="lg:col-span-10"
       />
 
       {hasActiveFilters ? (

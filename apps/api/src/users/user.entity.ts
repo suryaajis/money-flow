@@ -57,6 +57,12 @@ export class User {
   @Column({ type: 'simple-array', default: '0,1,2,3,4,5,6' })
   webPushReminderDays: string[];
 
+  @Column({ type: 'boolean', default: true })
+  healthScoreEnabled: boolean;
+
+  @Column({ type: 'uuid', nullable: true })
+  activeAccountId: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

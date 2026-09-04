@@ -15,6 +15,10 @@ import { WaNotificationsModule } from './whatsapp/wa-notifications.module';
 import { buildDataSourceOptions } from './database/data-source-options';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WebPushModule } from './push/web-push.module';
+import { AccountsModule } from './accounts/accounts.module';
+import { TransfersModule } from './transfers/transfers.module';
+import { SmartRulesModule } from './smart-rules/smart-rules.module';
+import { FinancialHealthModule } from './financial-health/financial-health.module';
 
 @Module({
   imports: [
@@ -38,6 +42,10 @@ import { WebPushModule } from './push/web-push.module';
     WhatsappModule,
     WaNotificationsModule,
     WebPushModule,
+    AccountsModule,
+    TransfersModule,
+    SmartRulesModule,
+    FinancialHealthModule,
   ],
 })
 export class AppModule {}

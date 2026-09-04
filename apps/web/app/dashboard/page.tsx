@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
+  Activity,
   Plus,
   Sparkles,
 } from "lucide-react";
@@ -17,22 +18,40 @@ import { CategoryPieChart } from "@/components/dashboard/CategoryPieChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { BudgetOverviewWidget } from "@/components/dashboard/BudgetOverviewWidget";
 import { BalanceHero } from "@/components/dashboard/BalanceHero";
-import { QuickActionDock } from "@/components/dashboard/QuickActionDock";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useAuthStore } from "@/store/authStore";
 import { useCurrency } from "@/hooks/useCurrency";
 import { FlowBuddy } from "@/components/shared/FlowBuddy";
+import { financialHealthApi, type ApiFinancialHealth } from "@/lib/api";
+import { useAccountStore } from "@/store/accountStore";
+import { useTransactions } from "@/hooks/useTransactions";
 
 export default function DashboardPage() {
   const { summary, monthly, expenseByCategory } = useAnalytics({ months: 6 });
   const { budgets, fetchBudgets } = useBudgetStore();
   const user = useAuthStore((state) => state.user);
   const { fmt } = useCurrency();
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const activeAccount = accounts.find((account) => account.id === activeAccountId);
+  const { transactions } = useTransactions();
+  const ledgerBalance = useMemo(
+    () =>
+      (activeAccount?.openingBalance ?? 0) +
+      transactions.reduce(
+        (total, transaction) =>
+          total + (transaction.type === "income" ? transaction.amount : -transaction.amount),
+        0,
+      ),
+    [activeAccount?.openingBalance, transactions],
+  );
+  const [health, setHealth] = useState<ApiFinancialHealth | null>(null);
 
   // Fetch budgets for the current month on mount
   useEffect(() => {
     fetchBudgets();
+    financialHealthApi.get().then(setHealth).catch(() => setHealth(null));
   }, [fetchBudgets]);
 
   return (
@@ -51,12 +70,12 @@ export default function DashboardPage() {
               Halo, {user?.name?.split(" ")[0] ?? "teman"}!
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Yuk lihat aliran uangmu hari ini—pelan-pelan jadi rapi.
+              Ledger aktif: {activeAccount?.name ?? "memuat pocket…"}{activeAccount?.ownership === "shared" ? ` · Shared · ${activeAccount.role}` : ""}.
             </p>
           </div>
         </div>
-        <Link href="/transactions" className="hidden sm:inline-flex">
-          <Button>
+        <Link href="/transactions" className="hidden sm:inline-flex" aria-disabled={activeAccount?.role === "viewer"}>
+          <Button disabled={!activeAccount || activeAccount.role === "viewer"}>
             <Plus className="h-4 w-4" /> Tambah transaksi
           </Button>
         </Link>
@@ -65,9 +84,10 @@ export default function DashboardPage() {
       <div className="motion-stagger grid gap-5 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <BalanceHero
-            balance={fmt(summary.totalBalance)}
+            balance={fmt(activeAccount ? (activeAccount.type === "credit_card" ? -Math.abs(ledgerBalance) : ledgerBalance) : summary.totalBalance)}
             transactionCount={summary.transactionCount}
           />
+          <p className="mt-2 text-xs text-muted-foreground">Saldo dan metrik hanya berasal dari active pocket. Ganti pocket melalui navbar untuk melihat ledger lain.</p>
         </div>
 
         <div className="motion-stagger grid gap-5 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-1">
@@ -88,7 +108,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <QuickActionDock />
+      {health?.enabled && (
+        <Link href="/financial-health" className="block">
+          <Card className="neo-cutout interactive-lift border-brand-navy/15">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              <div className="flex items-center gap-3">
+                <span className="rounded-2xl bg-brand-lime p-3 text-brand-navy"><Activity className="h-5 w-5" /></span>
+                <div>
+                  <p className="font-black">Financial Health</p>
+                  <p className="text-sm text-muted-foreground">Lihat faktor pembentuk skor dan langkah yang bisa dicoba.</p>
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-black">{health.score ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{health.score == null ? "Belum cukup data" : health.comparison?.change == null ? "dari 100" : `${health.comparison.change > 0 ? "+" : ""}${health.comparison.change} vs lalu`}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       <div className="motion-stagger grid gap-5 lg:grid-cols-5">
         <Card className="neo-cutout interactive-lift overflow-hidden border-brand-navy/15 lg:col-span-3">

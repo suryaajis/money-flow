@@ -4,7 +4,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { useBudgetStore } from "@/store/budgetStore";
-import { useTransactionStore } from "@/store/transactionStore";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useUIStore } from "@/store/uiStore";
 import { CURRENCIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ function fmt(amount: number, currency: string) {
 
 export const BudgetOverviewWidget: React.FC = () => {
   const { budgets } = useBudgetStore();
-  const { transactions } = useTransactionStore();
+  const { transactions } = useTransactions();
   const { currency } = useUIStore();
 
   const currentMonth = format(new Date(), "yyyy-MM");

@@ -21,7 +21,7 @@ const TYPE_LABELS = {
 export const CategoryList: React.FC = () => {
   const { categories, addCategory, updateCategory, deleteCategory } =
     useCategories();
-  const { transactions } = useTransactions();
+  const { allTransactions: transactions } = useTransactions();
 
   const [editing, setEditing] = useState<Category | null>(null);
   const [adding, setAdding] = useState(false);
